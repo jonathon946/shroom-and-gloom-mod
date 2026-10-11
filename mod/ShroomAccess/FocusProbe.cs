@@ -19,6 +19,7 @@ namespace ShroomAccess
         private static string _lastState;
         private static bool _bindingsDumped;
         private static IntPtr _lastSelected;
+        private static FocusMode _lastMode;
         private static readonly InputActionId[] ActionIds =
         {
             InputActionId.Confirm, InputActionId.Cancel, InputActionId.Pause, InputActionId.EndTurn,
@@ -38,8 +39,7 @@ namespace ShroomAccess
                 if (!_bindingsDumped && input != null && ArmedAt > 0 && Time.realtimeSinceStartup > ArmedAt)
                 {
                     _bindingsDumped = true;
-                    DumpBindings(input);
-                    DumpAsset(input);
+                    if (DevBridge.Enabled) DumpAsset(input);
                 }
 
                 string state = "mode=" + focus.Mode
@@ -53,8 +53,14 @@ namespace ShroomAccess
                     _lastState = state;
                     Log("[state] " + state);
                 }
+                FocusMode mode = focus.Mode;
+                if (mode != _lastMode)
+                {
+                    if (mode == FocusMode.Target) Announce("Choose a target.");
+                    _lastMode = mode;
+                }
 
-                if (input != null && _bindingsDumped)
+                if (input != null && _bindingsDumped && DevBridge.Enabled)
                 {
                     foreach (InputActionId id in ActionIds)
                     {
@@ -85,7 +91,7 @@ namespace ShroomAccess
 
                 string line = Describe(current, out string detail);
                 Log("[focus] " + TypeName(current) + " | " + detail);
-                Announce(line);
+                Announce(line, interrupt: mode != FocusMode.Target);
             }
             catch (Exception ex)
             {
@@ -110,8 +116,36 @@ namespace ShroomAccess
                 ICardData data = model != null ? model.IData : null;
                 string name = model != null ? model.CardName : null;
                 string desc = data != null ? data.SingleDescription : null;
-                detail = "card name=" + name + " deck=" + (data != null ? data.DeckType.ToString() : "?") + " desc=" + desc;
-                return StripTags(string.IsNullOrEmpty(desc) ? name : name + ". " + desc);
+                GameplayCardData gameplay = data != null ? data.TryCast<GameplayCardData>() : null;
+                string cost = gameplay != null ? ", cost " + gameplay.EnergyUse : "";
+                detail = "card name=" + name + " deck=" + (data != null ? data.DeckType.ToString() : "?") + cost + " desc=" + desc;
+                return Clean(name + cost + (string.IsNullOrEmpty(desc) ? "" : ". " + desc));
+            }
+
+            CampStructureSpellReceiver receiver = obj.TryCast<CampStructureSpellReceiver>();
+            if (receiver != null)
+            {
+                BaseRoomEncounter encounter = receiver.ParentEncounter;
+                string name = encounter != null ? Humanize(encounter.gameObject.name) : Humanize(receiver.gameObject.name);
+                string accepts = Accepts(Safe(() => receiver.GetPromptsAndInteractions().Item2));
+                detail = "receiver name=" + name + " encounter=" + (encounter != null ? encounter.gameObject.name : "") + " accepts=" + accepts + " interactive=" + receiver.IsInteractive;
+                return Clean(name + (accepts.Length > 0 ? ". " + accepts : ""));
+            }
+
+            V_SpellReceiverDoor door = obj.TryCast<V_SpellReceiverDoor>();
+            if (door != null)
+            {
+                string name = Humanize(door.gameObject.name);
+                string accepts = Accepts(Safe(() => door.GetPromptsAndInteractions().Item2));
+                detail = "door name=" + door.gameObject.name + " accepts=" + accepts + " canUnlock=" + door.CanUnlock;
+                return Clean(name + (accepts.Length > 0 ? ". " + accepts : ""));
+            }
+
+            EncounterStartWorldObject starter = obj.TryCast<EncounterStartWorldObject>();
+            if (starter != null)
+            {
+                detail = "encounterStart " + starter.gameObject.name + " dist=" + starter.PlayerDistance.ToString("F1");
+                return Humanize(starter.gameObject.name);
             }
 
             Component comp = obj.TryCast<Component>();
@@ -124,9 +158,65 @@ namespace ShroomAccess
                     if (!string.IsNullOrWhiteSpace(s)) texts.Add(s.Trim());
                 }
                 detail = PathOf(comp.transform) + " | " + string.Join(" / ", texts);
-                return StripTags(texts.Count > 0 ? string.Join(", ", texts.GetRange(0, Math.Min(3, texts.Count))) : comp.gameObject.name);
+
+                PathSelectionNode path = comp.GetComponentInParent<PathSelectionNode>();
+                if (path != null && texts.Count == 0)
+                    return Humanize(path.gameObject.name) + ", " + Humanize(path.CurrentPathState.ToString());
+
+                return Clean(texts.Count > 0 ? string.Join(", ", texts.GetRange(0, Math.Min(3, texts.Count))) : Humanize(comp.gameObject.name));
             }
             return TypeName(obj);
+        }
+
+        private static T Safe<T>(Func<T> read)
+        {
+            try { return read(); } catch { return default; }
+        }
+
+        // The card actions a world object will accept ("Dig", "Unlock"), as the game names them.
+        private static string Accepts(Il2CppSystem.Collections.Generic.List<OrableWithMeta> list)
+        {
+            if (list == null) return "";
+            var names = new List<string>();
+            for (int i = 0; i < list.Count; i++)
+            {
+                OrableWithMeta item = list[i];
+                if (item == null) continue;
+                if (item.IsMysterious) { names.Add("something unknown"); continue; }
+                OrableCardIntent intent = item.OrableIntent;
+                if (intent == null) continue;
+                string label = intent.EnvironmentPromptTooltip;
+                if (string.IsNullOrWhiteSpace(label)) label = Humanize(intent.name);
+                if (!names.Contains(label)) names.Add(label);
+            }
+            return string.Join(" ", names);
+        }
+
+        // "ShovelChoiceEncounterWorldObject" -> "Shovel Choice"; "UI_PathSeletion_Path_03" -> "Path 03".
+        internal static string Humanize(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return "";
+            string s = raw.Replace("(Clone)", "").Replace("EncounterWorldObject", "").Replace("WorldObject", "")
+                .Replace(" Encounter", "").Replace("PT ", "")
+                .Replace("UI_PathSeletion_", "").Replace("RawImage_", "").Replace("_BG", "").Replace("_", " ").Trim();
+            var sb = new StringBuilder(s.Length + 8);
+            for (int i = 0; i < s.Length; i++)
+            {
+                char c = s[i];
+                if (i > 0 && char.IsUpper(c) && char.IsLower(s[i - 1])) sb.Append(' ');
+                sb.Append(c);
+            }
+            return sb.ToString();
+        }
+
+        // Rich-text tags out, whitespace tidy, no doubled full stops.
+        internal static string Clean(string s)
+        {
+            // The game's prompt strings carry a literal backslash-n as well as real line breaks.
+            s = StripTags(s ?? "").Replace("\\n", " ").Replace("\n", " ");
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"\s+", " ").Trim();
+            while (s.Contains(". .")) s = s.Replace(". .", ".");
+            return s.Replace("..", ".");
         }
 
         // Dev: everything the focus system could currently land on, as text.
@@ -233,6 +323,7 @@ namespace ShroomAccess
                 for (int m = 0; m < maps.Count; m++)
                 {
                     var map = maps[m];
+                    Log("[map] " + map.name + " enabled=" + map.enabled);
                     var actions = map.actions;
                     for (int a = 0; a < actions.Count; a++)
                     {

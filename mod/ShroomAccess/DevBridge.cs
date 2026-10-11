@@ -18,6 +18,7 @@ namespace ShroomAccess
         internal static Action<string> Log = _ => { };
 
         private static string _dir;
+        internal static bool Enabled => _enabled;
         private static bool _enabled;
         private static float _nextCheck;
 
