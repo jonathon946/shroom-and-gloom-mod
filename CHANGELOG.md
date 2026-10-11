@@ -2,6 +2,12 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-11 — Session 01, part 4 — first ear test passed; its three requests built
+
+- The maintainer played the tutorial opening by ear with the real keyboard.
+- New: "Nearby: ..." when something comes into reach; row names with counts when focus moves between hand, nearby things and targets; card offers read as "Offered: ... Enter takes it."
+- "Shovel Choice" is now "Shovel".
+
 ## 2026-10-11 — Session 01, part 3 — the mod runs in the game; tutorial opening playable in tests
 
 - MelonLoader 0.7.3 installed (by the maintainer) and starts under Unity 2022.3.62f3.

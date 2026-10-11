@@ -1,4 +1,4 @@
-# Shroom and Gloom accessibility - first ear test (Session 01).
+# Shroom and Gloom accessibility - second listen (Session 01, part 4).
 #
 # There is nothing to run here except starting the game. Either start it from Steam as usual,
 # or run this file, which starts it for you:
@@ -14,37 +14,22 @@
 #   Escape                  pause menu
 #   W (hold)                walk forward        S (hold)  walk back
 #
-# CHECKLIST - please report what you heard at each letter.
+# CHECKLIST (second listen) - please report what you heard at each letter.
 #
-#   A. Start the game and wait about 20 seconds. Expect: "Shroom Access loaded."
-#      Note: the very first screen may say "Press Space Bar" (not spoken yet). If nothing happens
-#      after 30 seconds, press Space once.
+#   A. Start the game, wait for "Shroom Access loaded", press Enter on "New Run", wait ten seconds.
 #
-#   B. Press Right, then Left, a few times. Expect names such as "New Run",
-#      "Reach the Gloom at the end of the Forgotten Path, undiscovered", "Path 03, coming soon".
-#      Press Up. Expect "Hamburger Button" (that is the menu button; the name will be fixed).
+#   B. Hold W. Expect "Nearby: Dig Site." early on, then, when the game stops you, "Nearby: Shovel."
 #
-#   C. Move to "New Run" and press Enter. Wait about 10 seconds for the forest to load. Nothing is
-#      spoken on arrival yet.
+#   C. Press Up. Expect "Nearby, 2 things. Dig Site. Something is hidden here. Looks diggable."
+#      Press Down. Expect "Shovel". (If Up or Down does nothing the first time, tell me which.)
 #
-#   D. Hold W for about five seconds, then let go. The game stops you near a shovel.
-#      Press Down. Expect "Shovel Choice". (Up may say "Dig Site. Something is hidden here. Looks diggable.")
+#   D. Press Enter on Shovel. Expect "Offered: Rusty Shovel, cost 1. Consume. Enter takes it."
+#      Press Enter. Expect "Your hand, 1 card. Rusty Shovel, cost 1. Consume."
 #
-#   E. With "Shovel Choice" spoken, press Enter. Expect "Rusty Shovel, cost 1. Consume."
-#      Press Enter again to take it. Expect the card to be read again: it is now in your hand.
+#   E. Press Enter on the card. Expect "Choose a target. Dig Site. ..." in one go. Press Enter.
+#      Expect "Offered: Key, cost 0. Consume. Handy. Enter takes it." Press Enter.
 #
-#   F. Press Enter on the shovel card. Expect "Choose a target." then "Dig Site. ..."
-#      Press Enter. Expect, after a few seconds, "Key, cost 0. Consume. Handy."
-#      Press Enter to take the key.
-#
-#   G. Press Enter on the Key card. Expect "Choose a target." then "Catacomb Tutorial Door. Looks unlockable. ..."
-#      Press Enter. The door opens (not spoken yet).
-#
-#   H. Press Escape. Expect "Unpause". Press Down for the other items (Settings, Credits, Main Menu, Quit).
-#      Press Enter on Unpause to go back. You can stop here: quit from the pause menu, or Alt+F4.
-#
-# Also worth telling me: was anything cut off, too slow, too long, or spoken twice? Did any key do
-# nothing, or do something twice?
+#   F. Was anything cut off by the line after it? Is any line too long now?
 #
 # IF THERE IS NO SPEECH AT ALL: tell me, and I will read the log. Nothing else is needed from you.
 

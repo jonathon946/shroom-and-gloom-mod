@@ -19,7 +19,9 @@ namespace ShroomAccess
         private static string _lastState;
         private static bool _bindingsDumped;
         private static IntPtr _lastSelected;
-        private static FocusMode _lastMode;
+        private static string _lastZone = "";
+        private static float _protectUntil;
+        private static readonly HashSet<IntPtr> _knownNearby = new HashSet<IntPtr>();
         private static readonly InputActionId[] ActionIds =
         {
             InputActionId.Confirm, InputActionId.Cancel, InputActionId.Pause, InputActionId.EndTurn,
@@ -54,11 +56,7 @@ namespace ShroomAccess
                     Log("[state] " + state);
                 }
                 FocusMode mode = focus.Mode;
-                if (mode != _lastMode)
-                {
-                    if (mode == FocusMode.Target) Announce("Choose a target.");
-                    _lastMode = mode;
-                }
+                AnnounceArrivals(focus);
 
                 if (input != null && _bindingsDumped && DevBridge.Enabled)
                 {
@@ -86,17 +84,80 @@ namespace ShroomAccess
                 if (current == null)
                 {
                     Log("[focus] none");
+                    _lastZone = "";
                     return;
                 }
 
                 string line = Describe(current, out string detail);
                 Log("[focus] " + TypeName(current) + " | " + detail);
-                Announce(line, interrupt: mode != FocusMode.Target);
+
+                // Name the row the player has just moved into, so they know what they are among:
+                // their own cards, things in the world, valid targets for a cast, or an offer.
+                string zone = ZoneOf(focus, current, mode);
+                string spoken = line;
+                if (zone != _lastZone)
+                {
+                    _lastZone = zone;
+                    if (zone == "hand") spoken = "Your hand, " + Count(HeldCount(focus), "card") + ". " + line;
+                    else if (zone == "nearby") spoken = "Nearby, " + Count(focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0, "thing") + ". " + line;
+                    else if (zone == "targets") spoken = "Choose a target. " + line;
+                    else if (zone == "offer" && current.TryCast<IV_CardInstance>() != null) spoken = "Offered: " + line + " Enter takes it.";
+                }
+                // Let a line that announces an arrival finish before the first focus line follows it.
+                Announce(spoken, interrupt: Time.realtimeSinceStartup > _protectUntil);
             }
             catch (Exception ex)
             {
                 Log("[probe] " + ex.GetType().Name + ": " + ex.Message);
             }
+        }
+
+        private static int HeldCount(S_ControllerFocus focus)
+        {
+            try
+            {
+                IM_Hand hand = focus.PlayerModel != null ? focus.PlayerModel.GetActiveHand() : null;
+                return hand != null && hand.HeldCards != null ? hand.HeldCards.Count : 0;
+            }
+            catch { return 0; }
+        }
+
+        private static string Count(int n, string noun) => n + " " + noun + (n == 1 ? "" : "s");
+
+        private static string ZoneOf(S_ControllerFocus focus, Il2CppSystem.Object current, FocusMode mode)
+        {
+            if (mode == FocusMode.Target) return "targets";
+            bool isCard = current.TryCast<IV_CardInstance>() != null;
+            string scope = TypeName(focus.Scope);
+            if (scope.Contains("LootAll") || scope.Contains("CardChoice")) return "offer";
+            if (isCard) return "hand";
+            if (current.TryCast<IControllerFocusTarget>() != null && current.TryCast<UnityEngine.UI.Selectable>() == null) return "nearby";
+            return "";
+        }
+
+        // Walking stops without a word when the player reaches something. Say what has come into reach.
+        private static void AnnounceArrivals(S_ControllerFocus focus)
+        {
+            WorldFocusCandidates world = focus.WorldFocusCandidates;
+            int n = world != null ? world.Count : 0;
+            if (n == 0) { _knownNearby.Clear(); return; }
+            var fresh = new List<string>();
+            var now = new HashSet<IntPtr>();
+            for (int i = 0; i < n; i++)
+            {
+                IControllerFocusTarget t = world.At(i);
+                if (t == null) continue;
+                now.Add(t.Pointer);
+                if (_knownNearby.Contains(t.Pointer)) continue;
+                string name = Describe(t, out _);
+                int stop = name.IndexOf('.');
+                fresh.Add(stop > 0 ? name.Substring(0, stop) : name);
+            }
+            _knownNearby.Clear();
+            foreach (IntPtr ptr in now) _knownNearby.Add(ptr);
+            if (fresh.Count == 0 || focus.Mode == FocusMode.Target) return;
+            Announce("Nearby: " + string.Join(", ", fresh) + ".", interrupt: false);
+            _protectUntil = Time.realtimeSinceStartup + 1.5f;
         }
 
         // Set by Main when the title screen loads: the time after which the one-off experiments run.
@@ -197,7 +258,7 @@ namespace ShroomAccess
         {
             if (string.IsNullOrEmpty(raw)) return "";
             string s = raw.Replace("(Clone)", "").Replace("EncounterWorldObject", "").Replace("WorldObject", "")
-                .Replace(" Encounter", "").Replace("PT ", "")
+                .Replace(" Encounter", "").Replace("PT ", "").Replace("Choice", "")
                 .Replace("UI_PathSeletion_", "").Replace("RawImage_", "").Replace("_BG", "").Replace("_", " ").Trim();
             var sb = new StringBuilder(s.Length + 8);
             for (int i = 0; i < s.Length; i++)

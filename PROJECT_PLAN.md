@@ -115,6 +115,8 @@ Steps 3 to 6 are a sketch; their order and content are set after Spike 2.
 - **2026-10-11 (Session 01):** **Mod commands stay off the game's cheat key combinations** until those are proven inactive.
 - **2026-10-11 (Session 01):** **Dev tests never type at the desktop.** They inject inside the game.
 
+- **2026-10-11 (Session 01, maintainer, after the first ear test):** **Rows are named when focus crosses into them** (your hand, nearby things, targets, an offer), with a count. **Arrivals are announced** ("Nearby: Shovel.") so walking never just stops. **A card offer says that Enter takes it**, because the separate Take button made the default unclear.
+
 ## Open items / questions
 
 - Whether the game's cheat keys are live in release builds.
