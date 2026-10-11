@@ -4,18 +4,20 @@
 
 ## Open
 
-### Q-01 — May a mod loader be installed into the game folder for Spike 1? — asked 2026-10-11 (Session 01)
-
-Spike 1 puts a loader (MelonLoader first; BepInEx 6 if that fails) into `C:\Program Files (x86)\Steam\steamapps\common\Shroom and Gloom\` and launches the game. No game file is replaced, the added files can be deleted to undo it, and Steam's "verify integrity" restores the folder in the worst case. The game may crash at start during the attempts; that is the thing being tested. The save folder is elsewhere and is not touched.
-
-### Q-02 — Who will play-test by ear, and with which screen reader? — asked 2026-10-11 (Session 01)
-
-The first ear test is one spoken line at the title screen. Knowing the screen reader (NVDA, JAWS, Narrator) decides which Prism backend gets tested first.
-
-### Q-03 — Have you played far enough to say how exploration moves? — asked 2026-10-11 (Session 01)
-
-The class names suggest movement along tunnels with doors as choices, not free walking. If you already know, it saves a guess; otherwise Spike 2 answers it.
+Nothing open.
 
 ## Answered
 
-Nothing yet.
+### Q-01 — May a mod loader be installed into the game folder for Spike 1? — answered 2026-10-11 (Session 01)
+
+Yes. "Go ahead and build whatever you want... any tests you need to do are fine." One condition: at the end of development, reset the game's values so the maintainer can play through from the start as a new player. A copy of the save folder as it was after the first launch is kept in `backups/2026-10-11-fresh-install-SaveData/` for that purpose.
+
+In practice the session's safety check does not let Claude download a loader and unpack it into the game folder, so that one step is run by the maintainer from `paste-commands.ps1`.
+
+### Q-02 — Who will play-test by ear, and with which screen reader? — answered 2026-10-11 (Session 01)
+
+The maintainer, with NVDA. The mod will be distributed to the audio games community, so Prism must stay active and other screen readers such as JAWS must be supported.
+
+### Q-03 — Have you played far enough to say how exploration moves? — answered 2026-10-11 (Session 01)
+
+No: "I know literally nothing about the game itself." Spike 2 finds out, and the mod has to teach the game's rules as it goes, since the player cannot learn them from the screen.

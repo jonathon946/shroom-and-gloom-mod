@@ -28,3 +28,11 @@ Nothing has been tried in the running game yet. The entries below are findings f
 - **LESSON — Write logs to a user-writable folder, never under Program Files** (Class of '09, lessons line 33).
 - **LESSON — Speech is confined to the game's foreground window; compare the foreground window's process to our own** (Dwarf Fortress, lessons lines 126 and 127).
 - **POINTER — Prism specifics** (Dwarf Fortress, lessons lines 379 and 380): one context, best backend, initialise, then speak and stop under one lock; it rejects invalid UTF-8; with NVDA 2026.2 its NVDA backend cannot report "still speaking".
+
+## Building and tooling [Session 01]
+
+- **GOTCHA — `dotnet build` cannot restore here.** No NuGet source is configured, so the .NET 6 reference pack is unavailable (error NU1100). Compile with `tools/Build-Mod.ps1`, which calls `csc.dll` with `-nostdlib` and references the installed .NET 6.0 runtime's managed DLLs directly.
+- **GOTCHA — An MSBuild `-p:` property cannot carry a path with a comma** ("No, I'm not a Human"). Moot now, but the same applies to any tool that splits on commas.
+- **GOTCHA — Windows PowerShell 5.1 reads `0xFAB11BAF` as a negative Int32.** Compare large hex constants as text.
+- **KEY FINDING — Prism 0.18.3 works from C# on the .NET 6 runtime by plain P/Invoke** (verified 2026-10-11 outside the game): `prism_config_init` returns its struct by value without trouble, the best backend was NVDA, features `0xB5` (speak, braille, output, stop; no "is speaking"). Whether the line was audible is unconfirmed.
+- **KEY FINDING — Claude's session will not download third-party code and unpack it into the game folder.** That step goes in `paste-commands.ps1` for the maintainer, with the checksum pinned in the script.

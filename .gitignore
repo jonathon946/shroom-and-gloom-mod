@@ -5,6 +5,9 @@ reference/
 # Third-party binaries fetched at setup (prism.dll, loader archives). Reproducible via docs.
 deps/
 
+# Save-data backups (contain the Steam user ID in file paths; personal data)
+backups/
+
 # IDE
 .vs/
 .vscode/

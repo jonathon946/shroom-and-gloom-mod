@@ -2,6 +2,14 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-11 — Session 01, part 2 — first mod and speech layer built
+
+- Added `mod/ShroomAccess/`: Prism binding, speech singleton, loader entry that speaks one line at the title screen.
+- Added `tools/Build-Mod.ps1` (direct compiler build, no NuGet) and `tools/Deploy-Mod.ps1` (copy into the game, or remove).
+- Added `paste-commands.ps1`: installs MelonLoader 0.7.3 into the game folder with a pinned checksum. Not yet run.
+- Verified outside the game that Prism 0.18.3 starts from C# on .NET 6 and selects NVDA.
+- Recorded the maintainer's answers and decisions. Nothing installed into the game.
+
 ## 2026-10-11 — Session 01 — project set up, game inspected on disk
 
 - Created the project: pickup entry, agent rules, docs map, plan, state, instructions (adopted by reference), lessons, open questions, this changelog.

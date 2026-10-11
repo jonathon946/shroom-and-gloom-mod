@@ -4,7 +4,7 @@
 
 Make Shroom and Gloom (Team Lazerbeam / Devolver Digital; Unity 2022.3.62f3, IL2CPP; Steam Early Access) fully playable by a blind screen-reader user: every menu, both decks, combat, exploration, the map, rewards and shops spoken through Prism and operable from the keyboard.
 
-Nothing is built yet. The project is at reconnaissance, with one gate ahead: proving that a mod loader starts under this Unity version.
+A first test mod exists but has not run in the game. The gate ahead: proving that a mod loader starts under this Unity version.
 
 ## Reading order (start of every session)
 
@@ -21,6 +21,8 @@ Nothing is built yet. The project is at reconnaissance, with one gate ahead: pro
 
 - [docs/recon-2026-10-11.md](docs/recon-2026-10-11.md): what the game is made of, the precedents on this machine, and how Prism is called from C#.
 - [tools/Dump-MetadataNames.ps1](tools/Dump-MetadataNames.ps1): regenerates the game's class and member name lists into `reference/`.
+- [tools/Build-Mod.ps1](tools/Build-Mod.ps1) and [tools/Deploy-Mod.ps1](tools/Deploy-Mod.ps1): compile the mod, and copy it into or remove it from the game.
+- [paste-commands.ps1](paste-commands.ps1): the command the maintainer currently needs to run.
 
 ## Historical records (never edited after the fact)
 
