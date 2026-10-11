@@ -1,7 +1,8 @@
 # Dev test: start the game if needed, wait for the title screen, simulate game actions inside the
 # game, and print what the mod logged. Nothing is typed at the desktop and the game need not be
 # focused: actions go through the mod's dev bridge (DevBridge.cs; needs UserData\ShroomAccess\dev.flag).
-#   -Press FocusNext,Confirm,wait2,Cancel     game action names, or waitN to pause N seconds
+#   -Press FocusNext,Confirm,wait2,forward3   game action names; waitN pauses N seconds;
+#                                             forwardN / backN hold the walk stick for N seconds
 #   -Screenshot <png>  -Tree <txt>            after the presses, save the frame and/or the UI hierarchy
 param(
     [string[]]$Press = @(),
@@ -11,6 +12,9 @@ param(
     [switch]$Restart,
     [string]$Screenshot,
     [string]$Tree,
+    [string]$State,
+    # Dump one GameObject's subtree: -Obj 'file.txt|Object Name'
+    [string]$Obj,
     [string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\Shroom and Gloom'
 )
 $ErrorActionPreference = 'Stop'
@@ -60,12 +64,20 @@ if (-not $proc) {
 if ($proc) {
     foreach ($p in $Press) {
         if ($p -match '^wait(\d+)$') { Start-Sleep -Seconds ([int]$Matches[1]); continue }
+        if ($p -match '^(forward|back)(\d+)$') {
+            $y = if ($Matches[1] -eq 'forward') { 1 } else { -1 }
+            Send-Dev "move 0 $y $($Matches[2])" $null
+            Start-Sleep -Seconds ([int]$Matches[2])
+            continue
+        }
         Send-Dev "press $p" $null
         Start-Sleep -Milliseconds $PressDelayMs
     }
     if ($Press.Count -gt 0) { Start-Sleep -Seconds 1 }
     if ($Screenshot) { Send-Dev "shot $Screenshot" $Screenshot }
     if ($Tree) { Send-Dev "tree $Tree" $Tree }
+    if ($Obj) { $f = ($Obj -split "\|")[0]; Send-Dev "obj $Obj" $f; Get-Content $f }
+    if ($State) { Send-Dev "state $State" $State; Get-Content $State }
 }
 
 if (Test-Path $log) {

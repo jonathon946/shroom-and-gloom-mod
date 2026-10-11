@@ -83,24 +83,9 @@ namespace ShroomAccess
                     return;
                 }
 
-                string type = TypeName(current);
-                string path = "";
-                var texts = new List<string>();
-                Component comp = current.TryCast<Component>();
-                if (comp != null)
-                {
-                    path = PathOf(comp.transform);
-                    foreach (TMP_Text t in comp.GetComponentsInChildren<TMP_Text>(false))
-                    {
-                        string s = t != null ? t.text : null;
-                        if (!string.IsNullOrWhiteSpace(s)) texts.Add(s.Trim());
-                    }
-                }
-                Log("[focus] " + type + " | " + path + " | " + string.Join(" / ", texts));
-
-                string spoken = texts.Count > 0 ? string.Join(", ", texts.GetRange(0, Math.Min(3, texts.Count)))
-                    : (comp != null ? comp.gameObject.name : type);
-                Announce(StripTags(spoken));
+                string line = Describe(current, out string detail);
+                Log("[focus] " + TypeName(current) + " | " + detail);
+                Announce(line);
             }
             catch (Exception ex)
             {
@@ -110,6 +95,126 @@ namespace ShroomAccess
 
         // Set by Main when the title screen loads: the time after which the one-off experiments run.
         internal static float ArmedAt;
+
+        // A short spoken line for any focusable thing, plus a longer diagnostic string for the log.
+        internal static string Describe(Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase item, out string detail)
+        {
+            detail = "";
+            if (item == null) return "nothing";
+            Il2CppSystem.Object obj = item.Cast<Il2CppSystem.Object>();
+
+            IV_CardInstance card = obj.TryCast<IV_CardInstance>();
+            if (card != null)
+            {
+                IM_CardInstance model = card.IModel;
+                ICardData data = model != null ? model.IData : null;
+                string name = model != null ? model.CardName : null;
+                string desc = data != null ? data.SingleDescription : null;
+                detail = "card name=" + name + " deck=" + (data != null ? data.DeckType.ToString() : "?") + " desc=" + desc;
+                return StripTags(string.IsNullOrEmpty(desc) ? name : name + ". " + desc);
+            }
+
+            Component comp = obj.TryCast<Component>();
+            if (comp != null)
+            {
+                var texts = new List<string>();
+                foreach (TMP_Text t in comp.GetComponentsInChildren<TMP_Text>(false))
+                {
+                    string s = t != null ? t.text : null;
+                    if (!string.IsNullOrWhiteSpace(s)) texts.Add(s.Trim());
+                }
+                detail = PathOf(comp.transform) + " | " + string.Join(" / ", texts);
+                return StripTags(texts.Count > 0 ? string.Join(", ", texts.GetRange(0, Math.Min(3, texts.Count))) : comp.gameObject.name);
+            }
+            return TypeName(obj);
+        }
+
+        // Dev: everything the focus system could currently land on, as text.
+        internal static string StateDump()
+        {
+            var sb = new StringBuilder();
+            try
+            {
+                if (!S_ControllerFocus.TryGetFocus(out S_ControllerFocus focus) || focus == null) return "no focus service";
+                sb.AppendLine("mode=" + focus.Mode + " combat=" + focus.InCombat + " blockedBy=" + focus.BlockedBy + " scope=" + TypeName(focus.Scope) + " stack=" + focus.StackDepth);
+                try
+                {
+                    V_Player vp = focus.Player;
+                    sb.AppendLine("nav: pos=" + (vp != null ? vp.transform.position.ToString("F1") : "?") + " stickWalks=" + focus.MoveStickWalks
+                        + " gates=" + focus.GatesPassed + " padOwnsCast=" + focus.PadOwnsCast + " handBusy=" + focus.HandBusy
+                        + " offersHand=" + focus.OffersHandUnasked + " confirmRearm=" + focus._confirmRearmPending + " stepRearm=" + focus._stepRearmPending);
+                }
+                catch (Exception ex) { sb.AppendLine("nav ! " + ex.Message); }
+                try
+                {
+                    S_InitialTutorial tut = UnityEngine.Object.FindObjectOfType<S_InitialTutorial>();
+                    sb.AppendLine("tutorial: " + (tut == null ? "none" : "over=" + tut.IsOver + " active=" + tut._isActive + " stepped=" + tut._hasSteppedForward));
+                    foreach (DrawExploreDeckFromHiddenHandTrigger t in UnityEngine.Object.FindObjectsOfType<DrawExploreDeckFromHiddenHandTrigger>())
+                        sb.AppendLine("drawTrigger: " + PathOf(t.transform) + " pos=" + t.transform.position.ToString("F1") + " once=" + t.TriggerOnlyOnce);
+                    foreach (Trigger t in UnityEngine.Object.FindObjectsOfType<Trigger>())
+                        sb.AppendLine("trigger: " + PathOf(t.transform) + " pos=" + t.transform.position.ToString("F1") + " type=" + TypeName(t));
+                    foreach (EncounterStartWorldObject o in UnityEngine.Object.FindObjectsOfType<EncounterStartWorldObject>())
+                        sb.AppendLine("encounterStart: " + o.gameObject.name + " pos=" + o.transform.position.ToString("F1") + " dist=" + o.PlayerDistance.ToString("F1") + " inRange=" + o.PlayerInRange + " canInteract=" + o.CanInteract + " focusable=" + o.IsFocusable + " clicked=" + o.HasBeenClicked);
+                    foreach (TutorialMissDigSpot t in UnityEngine.Object.FindObjectsOfType<TutorialMissDigSpot>())
+                        sb.AppendLine("missDigSpot: " + PathOf(t.transform) + " pos=" + t.transform.position.ToString("F1") + " inside=" + t._playerInside);
+                }
+                catch (Exception ex) { sb.AppendLine("tutorial ! " + ex.Message); }
+                Il2CppSystem.Object cur = focus.CurrentFocus;
+                sb.AppendLine("focus: " + (cur != null ? TypeName(cur) + " :: " + Describe(cur, out string d0) + " :: " + d0 : "none"));
+
+                try
+                {
+                    Il2CppBackend.M_Player pm = focus.PlayerModel;
+                    if (pm != null)
+                    {
+                        sb.AppendLine("player: hidden=" + pm.IsInHidden + " explore=" + pm.IsInExplore + " combat=" + pm.IsInCombat
+                            + " exploreEncounter=" + pm.IsInExploreEncounter + " startingSeq=" + pm.IsRunningStartingCardSequence
+                            + " hp=" + pm.HealthData.CurrentHealth + "/" + pm.HealthData.MaxHealth + " armour=" + pm.HealthData.Armour
+                            + " energy=" + pm.Energy + "/" + pm.EnergySoftCap + " gunk=" + pm.StoredGunk + " handState=" + pm.CurrentHandState
+                            + " exploreCards=" + pm.NumberOfExploreCards + " combatCards=" + pm.NumberOfCombatCards + " inHand=" + pm.NumberOfCardsInHand);
+                        IM_Hand active = pm.GetActiveHand();
+                        if (active != null)
+                        {
+                            var held = active.HeldCards;
+                            sb.AppendLine("active hand: held=" + (held != null ? held.Count : 0) + " deck=" + active.CardsInDeckCount + " discard=" + active.CardsInDiscardCount);
+                            for (int i = 0; held != null && i < held.Count; i++)
+                            {
+                                IM_CardInstance c = held[i];
+                                ICardData cd = c.IData;
+                                sb.AppendLine("  held[" + i + "] " + c.CardName + " :: " + (cd != null ? cd.SingleDescription : ""));
+                            }
+                        }
+                        else sb.AppendLine("active hand: none");
+                    }
+                    else sb.AppendLine("player: none");
+                }
+                catch (Exception ex) { sb.AppendLine("player ! " + ex.Message); }
+
+                HandFocusCandidates hand = focus.HandFocusCandidates;
+                int hn = hand != null ? hand.Count : 0;
+                sb.AppendLine("hand candidates: " + hn);
+                for (int i = 0; i < hn; i++)
+                {
+                    try { sb.AppendLine("  [" + i + "] " + Describe(hand.At(i), out string d) + " :: " + d); }
+                    catch (Exception ex) { sb.AppendLine("  [" + i + "] ! " + ex.Message); }
+                }
+
+                WorldFocusCandidates world = focus.WorldFocusCandidates;
+                int wn = world != null ? world.Count : 0;
+                sb.AppendLine("world candidates: " + wn);
+                for (int i = 0; i < wn; i++)
+                {
+                    try
+                    {
+                        IControllerFocusTarget t = world.At(i);
+                        sb.AppendLine("  [" + i + "] " + TypeName(t) + " :: " + Describe(t, out string d) + " :: " + d);
+                    }
+                    catch (Exception ex) { sb.AppendLine("  [" + i + "] ! " + ex.Message); }
+                }
+            }
+            catch (Exception ex) { sb.AppendLine("! " + ex); }
+            return sb.ToString();
+        }
 
         // Speech is confined to the game's own window: nothing is spoken while the player is elsewhere.
         internal static void Announce(string text, bool interrupt = true)

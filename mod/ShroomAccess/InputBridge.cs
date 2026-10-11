@@ -61,6 +61,7 @@ namespace ShroomAccess
             Patch(harmony, typeof(S_InputManager), "GetActionDown", postfix: nameof(GetActionDownPostfix));
             Patch(harmony, typeof(S_InputManager), "GetAction", postfix: nameof(GetActionPostfix));
             Patch(harmony, typeof(S_InputManager), "GetActionUp", postfix: nameof(GetActionUpPostfix));
+            Patch(harmony, typeof(S_InputManager), "GetAxis", postfix: nameof(GetAxisPostfix));
         }
 
         // Each hook is resolved by name and patched on its own, so one renamed method after a game
@@ -117,6 +118,49 @@ namespace ShroomAccess
         private static void GetActionUpPostfix(InputActionId actionId, ref bool __result)
         {
             if (!__result && Enabled) __result = Read(actionId, 2);
+        }
+
+        // Walking: W and S (and A, D) stand in for the left stick.
+        private static InputAction _moveUp, _moveDown, _moveLeft, _moveRight;
+        private static UnityEngine.Vector2 _injectedAxis;
+        private static float _injectedAxisUntil;
+
+        internal static void InjectMove(float x, float y, float seconds)
+        {
+            _injectedAxis = new UnityEngine.Vector2(x, y);
+            _injectedAxisUntil = UnityEngine.Time.realtimeSinceStartup + seconds;
+        }
+
+        private static InputAction Button(string name, string control)
+        {
+            var action = new InputAction("ShroomAccess." + name, InputActionType.Button);
+            InputActionSetupExtensions.AddBinding(action, "<Keyboard>/" + control);
+            action.Enable();
+            return action;
+        }
+
+        private static void GetAxisPostfix(InputActionId actionId, ref UnityEngine.Vector2 __result)
+        {
+            if (!Enabled || actionId != InputActionId.Move) return;
+            try
+            {
+                if (UnityEngine.Time.realtimeSinceStartup < _injectedAxisUntil) { __result = _injectedAxis; return; }
+                if (__result.sqrMagnitude > 0.01f || !UnityEngine.Application.isFocused) return;
+                if (_moveUp == null)
+                {
+                    _moveUp = Button("MoveUp", "w"); _moveDown = Button("MoveDown", "s");
+                    _moveLeft = Button("MoveLeft", "a"); _moveRight = Button("MoveRight", "d");
+                }
+                Keyboard kb = Keyboard.current;
+                if (kb != null && kb.ctrlKey.isPressed) return;
+                float x = (_moveRight.IsPressed() ? 1f : 0f) - (_moveLeft.IsPressed() ? 1f : 0f);
+                float y = (_moveUp.IsPressed() ? 1f : 0f) - (_moveDown.IsPressed() ? 1f : 0f);
+                if (x != 0f || y != 0f) __result = new UnityEngine.Vector2(x, y);
+            }
+            catch (Exception ex)
+            {
+                if (!_readFailed) { _readFailed = true; Log("InputBridge.GetAxis: " + ex); }
+            }
         }
 
         // Dev testing: a simulated press of one game action, so tests need neither the keyboard nor

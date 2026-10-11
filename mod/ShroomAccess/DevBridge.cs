@@ -10,6 +10,8 @@ namespace ShroomAccess
     // they drop one command per line into dev-command.txt and the mod carries it out in-game:
     //   shot <path>     save the game's rendered frame as a PNG
     //   tree <path>     write the active UI hierarchy with its text to a file
+    //   move <x> <y> <seconds>  hold the walk stick
+    //   state <path>    write the focus system's state and candidates to a file
     //   press <action>  simulate one press of a game action (Confirm, FocusNext, ...)
     internal static class DevBridge
     {
@@ -58,6 +60,34 @@ namespace ShroomAccess
                         case "tree":
                             File.WriteAllText(arg, UiTree());
                             Log("[dev] tree " + arg);
+                            break;
+                        case "move":
+                        {
+                            string[] parts = arg.Split(' ');
+                            var inv = System.Globalization.CultureInfo.InvariantCulture;
+                            InputBridge.InjectMove(float.Parse(parts[0], inv), float.Parse(parts[1], inv), float.Parse(parts[2], inv));
+                            Log("[dev] move " + arg);
+                            break;
+                        }
+                        case "obj":
+                        {
+                            // obj <file>|<GameObject name>: dump one object's subtree with component types.
+                            string[] parts = arg.Split('|');
+                            GameObject go = GameObject.Find(parts[1]);
+                            var sb = new StringBuilder();
+                            if (go == null) sb.AppendLine("not found: " + parts[1]);
+                            else
+                            {
+                                sb.AppendLine(go.name + " active=" + go.activeInHierarchy);
+                                Walk(go.transform.parent != null ? go.transform.parent : go.transform, 1, sb);
+                            }
+                            File.WriteAllText(parts[0], sb.ToString());
+                            Log("[dev] obj " + parts[1]);
+                            break;
+                        }
+                        case "state":
+                            File.WriteAllText(arg, FocusProbe.StateDump());
+                            Log("[dev] state " + arg);
                             break;
                         case "press":
                             InputBridge.Inject((Il2Cpp.InputActionId)Enum.Parse(typeof(Il2Cpp.InputActionId), arg, true));

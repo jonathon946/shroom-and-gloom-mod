@@ -21,6 +21,7 @@ namespace ShroomAccess
             DevBridge.Log = msg => LoggerInstance.Msg(msg);
             DevBridge.Init(MelonEnvironment.UserDataDirectory);
             InputBridge.Log = msg => LoggerInstance.Msg(msg);
+            WorldAssist.Log = msg => LoggerInstance.Msg(msg);
             InputBridge.Install(HarmonyInstance);
 
             // prism.dll ships in the loader's UserLibs folder.
@@ -47,6 +48,7 @@ namespace ShroomAccess
         public override void OnUpdate()
         {
             FocusProbe.Tick();
+            WorldAssist.Tick();
             DevBridge.Tick();
         }
 
