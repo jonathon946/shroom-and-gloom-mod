@@ -2,6 +2,16 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-11 — Session 01, part 3 — the mod runs in the game; tutorial opening playable in tests
+
+- MelonLoader 0.7.3 installed (by the maintainer) and starts under Unity 2022.3.62f3.
+- `InputBridge`: forces gamepad mode and feeds the game's actions from the keyboard (arrows, Enter, Backspace, Escape, W/S and others).
+- `FocusProbe`: speaks the focused item; descriptions for cards, world objects, doors, buttons, title paths; "Choose a target."
+- `WorldAssist`: objects that need a camera look are focusable when in range.
+- `DevBridge` and `tools/Test-Run.ps1`: in-game screenshots, UI and state dumps, simulated input, all without window focus. `tools/show-type.sh` for type lookups.
+- Speech and keys only while the game window is focused.
+- New: `docs/controls-reference.md`; `paste-commands.ps1` is now the first ear-test checklist.
+
 ## 2026-10-11 — Session 01, part 2 — first mod and speech layer built
 
 - Added `mod/ShroomAccess/`: Prism binding, speech singleton, loader entry that speaks one line at the title screen.

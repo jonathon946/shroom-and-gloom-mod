@@ -1,8 +1,8 @@
-> **Status:** Living reference (deduplicated index of what's been tried and settled; checked before retrying anything). **Last updated:** 2026-10-11, Session 01.
+> **Status:** Living reference (deduplicated index of what's been tried and settled; checked before retrying anything). **Last updated:** 2026-10-11, Session 01 (part 3).
 
 # Lessons & dead ends — Shroom and Gloom accessibility
 
-Nothing has been tried in the running game yet. The entries below are findings from inspection and lessons carried in from sibling projects because they apply directly here. Each carried lesson names its source.
+Findings from inspection, from running the mod in the game, and lessons carried in from sibling projects because they apply directly here. Each carried lesson names its source.
 
 ## Inspecting the game [Session 01]
 
@@ -13,6 +13,7 @@ Nothing has been tried in the running game yet. The entries below are findings f
 
 ## Loader [Session 01]
 
+- **KEY FINDING — MelonLoader 0.7.3 starts under Unity 2022.3.62f3 IL2CPP** (2026-10-11). First start took about two minutes to download Unity support files and generate 156 interop assemblies; later starts are quick. The warning below did not apply to this build.
 - **POINTER — Unity 2022.3.62 IL2CPP is a known trouble spot.** MelonLoader issue 1063 (crash at start on 2022.3.62f2, closed stale, no fix named); the Class of '09 project's `docs/known-issues.md` says BepInEx 6 Bleeding Edge crashed as well. Unconfirmed for 2022.3.62f3. Do not write mod code before Spike 1 passes.
 - **POINTER — BepInEx 6 builds before about be.753 reject metadata version 31.** Use be.755 or later if BepInEx is tried.
 
@@ -36,3 +37,29 @@ Nothing has been tried in the running game yet. The entries below are findings f
 - **GOTCHA — Windows PowerShell 5.1 reads `0xFAB11BAF` as a negative Int32.** Compare large hex constants as text.
 - **KEY FINDING — Prism 0.18.3 works from C# on the .NET 6 runtime by plain P/Invoke** (verified 2026-10-11 outside the game): `prism_config_init` returns its struct by value without trouble, the best backend was NVDA, features `0xB5` (speak, braille, output, stop; no "is speaking"). Whether the line was audible is unconfirmed.
 - **KEY FINDING — Claude's session will not download third-party code and unpack it into the game folder.** That step goes in `paste-commands.ps1` for the maintainer, with the checksum pinned in the script.
+
+## How the game takes input [Session 01]
+
+- **KEY FINDING — The game's focus navigation is switched off unless a gamepad is "driving".** The focus service reports `blockedBy=IsUsingGamepad` in keyboard-and-mouse mode. Calling `BasicInputSource.SetInputContext(Gamepad, ...)` wakes it at once. Any real keyboard or mouse activity flips the context back, so the mod prefixes that method and forces Gamepad.
+- **KEY FINDING — Focus and confirm are bound to gamepad controls only.** Focus Prev/Next/Up/Down, Confirm, Cancel, Pause, Inspect, deck view, paging and sort hand have no keyboard binding. The game reads them through `S_InputManager.GetActionDown / GetAction / GetActionUp / GetAxis`; postfixing those four methods and answering from the keyboard is enough to drive every screen tried so far. No virtual gamepad device is needed.
+- **GOTCHA — Polling a key's "pressed this frame" misses a tap.** A key pressed and released inside one frame reads as never pressed. Use an Input System action per key (`WasPressedThisFrame` on an action is event-driven).
+- **GOTCHA — The game has developer cheat keys on Ctrl combinations and their input map is enabled in the release build.** List in `docs/controls-reference.md`. Whether they act is unverified. Keep mod commands off those keys.
+- **KEY FINDING — Some world objects can only be focused after being looked at.** `EncounterStartWorldObject` carries a `ProximityFocusGate` that passes only once the camera has dwelt on the object. Setting the gate's `_seen` to true when the object reports `PlayerInRange` and `CanInteract` puts it in the focus candidates. This is what stalled the tutorial at the shovel for a long time: the symptom was "movement blocked, hand hidden, nothing to do".
+- **PATTERN — Walking stops at authored points.** A `PauseMovement` trigger halts the player (the focus service then reports `stickWalks=False` and pushing the stick steps focus instead). When walking stops, look for what is in range, not for a wall.
+- **PATTERN — The flow for using a card on something:** focus the card in hand, Confirm (mode becomes Target and the game focuses a valid target by itself), Confirm again. Card offers ("loot") open a list scope with the card and a Take button; Confirm on the card takes it.
+
+## Describing things [Session 01]
+
+- **KEY FINDING — Read models, not the screen.** Cards in the world are 3D objects, not UI text. A card's name is `IV_CardInstance.IModel.CardName`, its rules text `IModel.IData.SingleDescription`, its cost `GameplayCardData.EnergyUse`.
+- **GOTCHA — Card text is TextMeshPro rich text** with colour, `nobr` and `link` tags. The link ids name keyword tooltips (`Card_TOOLTIP_WORD_CONSUME`), which is the route to keyword explanations.
+- **GOTCHA — `CampStructureSpellReceiver.GetName()` returns an internal collider name.** Use the parent encounter's object name instead ("PT Dig Site Encounter(Clone)" becomes "Dig Site").
+- **KEY FINDING — What a world object needs is in `GetPromptsAndInteractions()`**: a list of intents (Dig, Unlock, Break, Feed, Fix, Ignite, Reveal), each with a ready-made sentence in `EnvironmentPromptTooltip` ("Looks diggable."). Those strings contain a literal backslash-n.
+
+## Working without eyes or focus [Session 01]
+
+- **DEAD END — Sending keystrokes at the desktop to test.** The maintainer was working in another window; the keys never reached the game and some went to that window. Never use SendKeys or similar. Tests inject actions inside the game through the dev bridge.
+- **DEAD END — Desktop screenshots.** They come out black (a screen curtain, most likely). The mod saves the game's own frame with `ScreenCapture.CaptureScreenshot`, which works with the window unfocused.
+- **TOOL — The dev bridge** (`DevBridge.cs`, on only when `UserData\ShroomAccess\dev.flag` exists): commands dropped in a text file give screenshots, a UI text dump, a focus and player state dump, an object subtree dump, simulated presses and held walking. `tools/Test-Run.ps1` wraps it. The game keeps running and loading scenes while unfocused.
+- **LESSON — Speech is gated on `Application.isFocused`,** so development does not talk over whatever else the maintainer is doing; the same line is always written to the log as `[say]`.
+- **GOTCHA — A bash here-document holding C# with some quote and backslash mixes fails in this shell.** Write the helper script to a file and run the file.
+- **GOTCHA — Called with `-File`, a PowerShell array parameter given as `a,b,c` arrives as one string.** Split it in the script.

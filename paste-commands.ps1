@@ -1,64 +1,57 @@
-# Shroom and Gloom accessibility - Spike 1, step 1: install the MelonLoader mod loader.
+# Shroom and Gloom accessibility - first ear test (Session 01).
 #
-# Run the whole file from a normal (not administrator) PowerShell window:
+# There is nothing to run here except starting the game. Either start it from Steam as usual,
+# or run this file, which starts it for you:
 #
 #   powershell -ExecutionPolicy Bypass -File "C:\Users\Sam\Documents\projects\shroom and gloom mod\paste-commands.ps1"
 #
-# What it does, in order:
-#   1. Downloads MelonLoader 0.7.3 (x64) from its official GitHub release into this project's deps folder.
-#   2. Checks the download against the SHA256 that GitHub publishes for that release file. Stops if it differs.
-#   3. Writes down what was in the game folder beforehand, so the loader can be removed cleanly.
-#   4. Unpacks the loader into the game folder. No game file is replaced.
+# Keep NVDA running and keep the game window focused. The mod is silent while another window has focus.
 #
-# It does NOT start the game. When it prints INSTALL OK, tell Claude "loader installed".
+# KEYS
+#   Left, Right, Up, Down   move between things
+#   Enter                   choose / confirm
+#   Backspace               cancel / back
+#   Escape                  pause menu
+#   W (hold)                walk forward        S (hold)  walk back
 #
-# To undo by hand at any time: close the game, then delete from the game folder
-#   version.dll, dobby.dll (if present) and the folders MelonLoader, Mods, Plugins, UserData, UserLibs.
-# Or in Steam: Properties, Installed Files, Verify integrity of game files.
+# CHECKLIST - please report what you heard at each letter.
+#
+#   A. Start the game and wait about 20 seconds. Expect: "Shroom Access loaded."
+#      Note: the very first screen may say "Press Space Bar" (not spoken yet). If nothing happens
+#      after 30 seconds, press Space once.
+#
+#   B. Press Right, then Left, a few times. Expect names such as "New Run",
+#      "Reach the Gloom at the end of the Forgotten Path, undiscovered", "Path 03, coming soon".
+#      Press Up. Expect "Hamburger Button" (that is the menu button; the name will be fixed).
+#
+#   C. Move to "New Run" and press Enter. Wait about 10 seconds for the forest to load. Nothing is
+#      spoken on arrival yet.
+#
+#   D. Hold W for about five seconds, then let go. The game stops you near a shovel.
+#      Press Down. Expect "Shovel Choice". (Up may say "Dig Site. Something is hidden here. Looks diggable.")
+#
+#   E. With "Shovel Choice" spoken, press Enter. Expect "Rusty Shovel, cost 1. Consume."
+#      Press Enter again to take it. Expect the card to be read again: it is now in your hand.
+#
+#   F. Press Enter on the shovel card. Expect "Choose a target." then "Dig Site. ..."
+#      Press Enter. Expect, after a few seconds, "Key, cost 0. Consume. Handy."
+#      Press Enter to take the key.
+#
+#   G. Press Enter on the Key card. Expect "Choose a target." then "Catacomb Tutorial Door. Looks unlockable. ..."
+#      Press Enter. The door opens (not spoken yet).
+#
+#   H. Press Escape. Expect "Unpause". Press Down for the other items (Settings, Credits, Main Menu, Quit).
+#      Press Enter on Unpause to go back. You can stop here: quit from the pause menu, or Alt+F4.
+#
+# Also worth telling me: was anything cut off, too slow, too long, or spoken twice? Did any key do
+# nothing, or do something twice?
+#
+# IF THERE IS NO SPEECH AT ALL: tell me, and I will read the log. Nothing else is needed from you.
 
-$ErrorActionPreference = 'Stop'
-
-$project = 'C:\Users\Sam\Documents\projects\shroom and gloom mod'
-$game    = 'C:\Program Files (x86)\Steam\steamapps\common\Shroom and Gloom'
-$url     = 'https://github.com/LavaGang/MelonLoader/releases/download/v0.7.3/MelonLoader.x64.zip'
-$sha256  = '5b2b2f3d1cd42b59ec886c5bdc2663edae87a0097a4f4a8f58c0965a99dda416'
-$deps    = Join-Path $project 'deps\melonloader-0.7.3'
-$zip     = Join-Path $deps 'MelonLoader.x64.zip'
-
-if (-not (Test-Path (Join-Path $game 'GameAssembly.dll'))) { throw "Game not found at $game" }
-if (Get-Process 'Shroom and Gloom' -ErrorAction SilentlyContinue) { throw 'Close Shroom and Gloom first, then run this again.' }
-
-New-Item -ItemType Directory -Force $deps | Out-Null
-
-if (-not (Test-Path $zip)) {
-    Write-Host 'Downloading MelonLoader 0.7.3 (about 20 MB)...'
-    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
-}
-
-$actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
-if ($actual -ne $sha256) {
-    Remove-Item $zip -Confirm:$false
-    throw "Checksum mismatch. Expected $sha256 but got $actual. The download was deleted; nothing was installed."
-}
-Write-Host 'Checksum matches the published release.'
-
-$before = Join-Path $project 'deps\game-root-before-loader.txt'
-if (-not (Test-Path $before)) {
-    Get-ChildItem $game -Force | Select-Object -ExpandProperty Name | Set-Content $before -Encoding utf8
-}
-
-Write-Host 'Unpacking into the game folder...'
-Expand-Archive -Path $zip -DestinationPath $game -Force
-
-$added = Get-ChildItem $game -Force | Select-Object -ExpandProperty Name | Where-Object { (Get-Content $before) -notcontains $_ }
-$added | Set-Content (Join-Path $project 'deps\game-root-added-by-loader.txt') -Encoding utf8
-
-if (Test-Path (Join-Path $game 'version.dll')) {
-    Write-Host ''
-    Write-Host ('Added to the game folder: ' + ($added -join ', '))
-    Write-Host 'INSTALL OK. Tell Claude: loader installed.'
+$game = 'C:\Program Files (x86)\Steam\steamapps\common\Shroom and Gloom'
+if (Get-Process 'Shroom and Gloom' -ErrorAction SilentlyContinue) {
+    Write-Host 'The game is already running. Switch to its window.'
 } else {
-    throw 'version.dll is not in the game folder after unpacking. Tell Claude what this window printed.'
+    Start-Process -FilePath (Join-Path $game 'Shroom and Gloom.exe') -WorkingDirectory $game
+    Write-Host 'Game starting. Switch to its window if it does not take focus, and wait for "Shroom Access loaded".'
 }
