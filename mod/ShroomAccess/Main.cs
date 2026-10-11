@@ -17,6 +17,11 @@ namespace ShroomAccess
         public override void OnInitializeMelon()
         {
             Speaker.Log = msg => LoggerInstance.Msg(msg);
+            FocusProbe.Log = msg => LoggerInstance.Msg(msg);
+            DevBridge.Log = msg => LoggerInstance.Msg(msg);
+            DevBridge.Init(MelonEnvironment.UserDataDirectory);
+            InputBridge.Log = msg => LoggerInstance.Msg(msg);
+            InputBridge.Install(HarmonyInstance);
 
             // prism.dll ships in the loader's UserLibs folder.
             string prism = Path.Combine(MelonEnvironment.UserLibsDirectory, "prism.dll");
@@ -35,8 +40,14 @@ namespace ShroomAccess
             if (_greeted || !Speaker.Ready) return;
             if (sceneName == null || sceneName.IndexOf("Title", StringComparison.OrdinalIgnoreCase) < 0) return;
             _greeted = true;
-            Speaker.Say("Shroom Access loaded. Speech through " + Speaker.BackendName + ".");
-            LoggerInstance.Msg("Greeting spoken.");
+            FocusProbe.ArmedAt = UnityEngine.Time.realtimeSinceStartup + 3f;
+            FocusProbe.Announce("Shroom Access loaded.");
+        }
+
+        public override void OnUpdate()
+        {
+            FocusProbe.Tick();
+            DevBridge.Tick();
         }
 
         public override void OnDeinitializeMelon()
