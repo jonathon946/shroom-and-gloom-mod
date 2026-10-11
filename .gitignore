@@ -1,0 +1,71 @@
+# Game-derived reference material (metadata name dumps, decompiler/interop output, extracted
+# string tables). Copyrighted game content: regenerable with tools/, never committed.
+reference/
+
+# Third-party binaries fetched at setup (prism.dll, loader archives). Reproducible via docs.
+deps/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# ---- Shared baseline (carried from the projects monorepo, 2026-09-12) ----
+# Machine-local Claude Code settings (per-machine permission caches; never shared)
+**/settings.local.json
+**/.claude/.claude/
+
+# Secrets & environment files (credentials live in the 1Password Dev vault)
+.env
+.env.*
+!.env.example
+# `.env.op` files are value-free 1Password reference maps (op:// refs only) and are tracked.
+!.env.op
+!**/.env.op
+*.key
+*.pem
+*.pfx
+*.p8
+*.p12
+*.mobileprovision
+*.cer
+*.certSigningRequest
+
+# Dependencies & virtual environments
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Build output
+dist/
+build/
+out/
+target/
+bin/
+obj/
+DerivedData/
+.build/
+*.xcodeproj/
+*.xcworkspace/
+
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*~
+.idea/
+
+# Large-binary safety net (GitHub rejects files over 100 MB; add an exception when a project needs one)
+*.exe
+*.dll
+*.zip
+*.7z
+*.iso
+*.psd
+*.mp4
+*.mov
+*.ipa
