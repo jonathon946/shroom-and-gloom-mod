@@ -20,6 +20,7 @@ namespace ShroomAccess
         private static bool _bindingsDumped;
         private static IntPtr _lastSelected;
         private static string _lastZone = "";
+        private static string _lastValue = "";
         private static float _protectUntil;
         private static readonly HashSet<IntPtr> _knownNearby = new HashSet<IntPtr>();
         private static readonly InputActionId[] ActionIds =
@@ -86,7 +87,18 @@ namespace ShroomAccess
 
                 Il2CppSystem.Object current = focus.CurrentFocus;
                 IntPtr ptr = current != null ? current.Pointer : IntPtr.Zero;
-                if (ptr == _lastFocus) return;
+                if (ptr == _lastFocus)
+                {
+                    // Same control, new value: the player has just adjusted it.
+                    string value = LiveValue(current);
+                    if (value != _lastValue)
+                    {
+                        _lastValue = value;
+                        if (value.Length > 0) Speak(value);
+                    }
+                    return;
+                }
+                _lastValue = LiveValue(current);
                 _lastFocus = ptr;
                 if (current == null)
                 {
@@ -267,7 +279,29 @@ namespace ShroomAccess
                 if (path != null && texts.Count == 0)
                     return Humanize(path.gameObject.name) + ", " + Humanize(path.CurrentPathState.ToString());
 
-                return Clean(texts.Count > 0 ? string.Join(", ", texts.GetRange(0, Math.Min(3, texts.Count))) : Humanize(comp.gameObject.name));
+                string own = texts.Count > 0 ? string.Join(", ", texts.GetRange(0, Math.Min(3, texts.Count))) : "";
+                string role = ControlRole(comp);
+                string value = ControlValue(comp);
+                // In a settings row the name is the label beside the control and the control's own
+                // text is its current setting ("Ambient occlusion" / "ON").
+                string section = SectionLabel(comp);
+                string label;
+                if (section != null)
+                {
+                    label = section;
+                    if (value.Length == 0) value = own;
+                }
+                else label = own.Length > 0 ? own : ControlLabel(comp);
+                string spoken = Clean(label + (role.Length > 0 ? ", " + role : "") + (value.Length > 0 ? ", " + value : ""));
+                if (comp.gameObject.name == "AllowControllerButton")
+                    spoken += ". Leave this on: the screen reader mod steers the game through its controller support";
+                string heading = HeadingAbove(comp);
+                if (heading != _lastHeading)
+                {
+                    _lastHeading = heading;
+                    if (heading.Length > 0) spoken = heading + ". " + spoken;
+                }
+                return spoken;
             }
             return TypeName(obj);
         }
@@ -338,6 +372,131 @@ namespace ShroomAccess
             }
             catch (Exception ex) { Log("[enemy] statuses: " + ex.Message); }
             return list;
+        }
+
+        // ---- Ordinary controls: sliders, checkboxes, dropdowns, tabs, buttons with no text ----
+
+        // A control with no text of its own is named by the label beside it, else by its object name.
+        private static string ControlLabel(Component comp)
+        {
+            Transform parent = comp.transform.parent;
+            if (parent != null && comp.TryCast<UnityEngine.UI.Button>() == null)
+            {
+                foreach (TMP_Text t in parent.GetComponentsInChildren<TMP_Text>(false))
+                {
+                    if (t == null || string.IsNullOrWhiteSpace(t.text)) continue;
+                    UnityEngine.UI.Selectable owner = t.GetComponentInParent<UnityEngine.UI.Selectable>();
+                    if (owner != null && owner.Pointer != comp.Pointer) continue;
+                    return t.text.Trim();
+                }
+            }
+            string name = Humanize(comp.gameObject.name);
+            if (name.StartsWith("Hamburger")) return "Menu";
+            foreach (string suffix in new[] { " Button", " Slider", " Toggle", " Dropdown" })
+                if (name.EndsWith(suffix)) name = name.Substring(0, name.Length - suffix.Length);
+            return name;
+        }
+
+        private static string ControlRole(Component comp)
+        {
+            if (comp.TryCast<UnityEngine.UI.Slider>() != null) return "slider";
+            if (comp.TryCast<UnityEngine.UI.Toggle>() != null) return "checkbox";
+            if (comp.TryCast<TMP_Dropdown>() != null) return "dropdown";
+            if (comp.gameObject.name.EndsWith("TabButton")) return "tab";
+            // The Controls page rebinds controller buttons; the mod's keys are fixed.
+            if (comp.transform.parent != null && comp.transform.parent.GetComponent<Il2CppControllerNav.FocusRebindSection>() != null) return "controller button, Enter to rebind";
+            return "";
+        }
+
+        private static string _lastHeading = "";
+
+        // Plain text that sits above a row of settings as a heading for the rows below it.
+        private static string HeadingAbove(Component comp)
+        {
+            try
+            {
+                Transform row = comp.transform;
+                for (int depth = 0; row.parent != null && depth < 4; depth++)
+                {
+                    bool isSection = false;
+                    foreach (Component c in row.GetComponents<Component>())
+                        if (c != null && c.GetIl2CppType().Name.EndsWith("Section")) { isSection = true; break; }
+                    if (isSection) break;
+                    row = row.parent;
+                }
+                Transform list = row.parent;
+                if (list == null) return "";
+                for (int i = row.GetSiblingIndex() - 1; i >= 0; i--)
+                {
+                    Transform sibling = list.GetChild(i);
+                    if (!sibling.gameObject.activeInHierarchy) continue;
+                    if (sibling.GetComponentInChildren<UnityEngine.UI.Selectable>() != null) continue;
+                    var parts = new List<string>();
+                    foreach (TMP_Text t in sibling.GetComponentsInChildren<TMP_Text>(false))
+                    {
+                        string text = t != null ? Clean(t.text) : "";
+                        if (text.Length > 1) parts.Add(text.TrimEnd('.', '!').TrimStart('-'));
+                    }
+                    if (parts.Count > 0) return string.Join(". ", parts);
+                }
+            }
+            catch { }
+            return "";
+        }
+
+        // The current setting shown by a control: a slider's position, a checkbox's state, a
+        // dropdown's choice, or the text on a settings button that names its own state ("ON").
+        private static string LiveValue(Il2CppSystem.Object item)
+        {
+            Component control = item != null ? item.TryCast<Component>() : null;
+            if (control == null) return "";
+            string value = ControlValue(control);
+            if (value.Length == 0 && control.TryCast<UnityEngine.UI.Button>() != null && SectionLabel(control) != null)
+            {
+                TMP_Text own = control.GetComponentInChildren<TMP_Text>();
+                value = own != null ? Clean(own.text) : "";
+            }
+            return value;
+        }
+
+        // The label of the settings row a control sits in, if it sits in one.
+        private static string SectionLabel(Component comp)
+        {
+            try
+            {
+                Transform t = comp.transform.parent;
+                for (int depth = 0; t != null && depth < 4; depth++, t = t.parent)
+                {
+                    bool isSection = false;
+                    foreach (Component c in t.GetComponents<Component>())
+                        if (c != null && c.GetIl2CppType().Name.EndsWith("Section")) { isSection = true; break; }
+                    if (!isSection) continue;
+                    for (int i = 0; i < t.childCount; i++)
+                    {
+                        TMP_Text text = t.GetChild(i).GetComponent<TMP_Text>();
+                        if (text != null && !string.IsNullOrWhiteSpace(text.text)) return text.text.Trim();
+                    }
+                    return null;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        internal static string ControlValue(Component comp)
+        {
+            try
+            {
+                UnityEngine.UI.Slider slider = comp.TryCast<UnityEngine.UI.Slider>();
+                if (slider != null)
+                    return slider.wholeNumbers ? ((int)slider.value).ToString() : (int)Math.Round(slider.normalizedValue * 100f) + " percent";
+                UnityEngine.UI.Toggle toggle = comp.TryCast<UnityEngine.UI.Toggle>();
+                if (toggle != null) return toggle.isOn ? "checked" : "not checked";
+                TMP_Dropdown dropdown = comp.TryCast<TMP_Dropdown>();
+                if (dropdown != null && dropdown.captionText != null) return dropdown.captionText.text;
+            }
+            catch { }
+            return "";
         }
 
         private static T Safe<T>(Func<T> read)
@@ -651,8 +810,13 @@ namespace ShroomAccess
                     lines.Clear();
                     foreach (TMP_Text t in generic.GetComponentsInChildren<TMP_Text>(false))
                     {
-                        string text = t != null ? Clean(t.text) : null;
-                        if (!string.IsNullOrWhiteSpace(text) && !lines.Contains(text)) lines.Add(text);
+                        if (t == null || string.IsNullOrWhiteSpace(t.text)) continue;
+                        // One line of the buffer per line of text, so long blocks (the credits) can be stepped through.
+                        foreach (string raw in t.text.Split(new char[] { (char)10 }))
+                        {
+                            string text = Clean(raw);
+                            if (text.Length > 0 && !lines.Contains(text)) lines.Add(text);
+                        }
                     }
                     if (lines.Count == 0) lines.Add(whole);
                 }

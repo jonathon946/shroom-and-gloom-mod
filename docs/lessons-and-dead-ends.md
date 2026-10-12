@@ -77,3 +77,11 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **GOTCHA — The engine's UI input module navigates on arrows and W A S D by itself,** alongside the game's focus navigation and regardless of Ctrl. Setting `InputSystemUIInputModule.move = null` stops it; menus still work because the game's own focus actions drive them.
 - **DEAD END — `EventSystem.sendNavigationEvents = false`.** It also kills submit and cancel. A simulated Pause action did not open the pause menu afterwards, which suggests Escape pauses through the UI cancel path. Left alone.
 - **LESSON — A dev test that injects actions cannot find a bug that needs the real keyboard.** All three of these came from the maintainer's hands, not from replays.
+
+## Menus and passing text [Session 01, part 11]
+
+- **PATTERN — A settings row is an object with a `Focus...Section` component, a label as a direct child, and the control beside it.** The control's own text is its value ("ON", the dropdown's caption). Name the control by the row's label.
+- **PATTERN — The game fades text with canvas groups and leaves the objects active.** "Is this text showing" means multiplying `CanvasGroup.alpha` up the parents, not checking `activeInHierarchy`. The loading screen is always active and usually transparent.
+- **GOTCHA — The game pauses and freezes time when its window loses focus** (`MinimizeResumeHandler` in its log). Dev replays run with the window unfocused, so anything timed can behave differently from real play.
+- **GOTCHA — A simulated Pause action does not open the pause menu; the real Escape key does.** Escape arrives through the UI module's cancel action.
+- **LESSON — A replay that walks a settings screen changes the maintainer's settings.** Left and Right on a slider adjust it. Restore, or avoid.

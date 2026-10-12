@@ -64,6 +64,16 @@ namespace ShroomAccess
             catch (Exception ex) { Log("[messages] " + ex.GetType().Name + ": " + ex.Message); }
         }
 
+        // A label that belongs to a control beside it (a slider's name) is read with that control.
+        private static bool IsControlLabel(Transform t)
+        {
+            Transform parent = t.parent;
+            if (parent == null) return false;
+            foreach (Selectable sibling in parent.GetComponentsInChildren<Selectable>(false))
+                if (sibling != null) return true;
+            return false;
+        }
+
         // The words on a screen that are not on its buttons or cards: headings, questions, notes.
         private static void AnnounceScreen(IFocusScope scope)
         {
@@ -73,6 +83,7 @@ namespace ShroomAccess
             foreach (TMP_Text t in root.GetComponentsInChildren<TMP_Text>(false))
             {
                 if (t == null || t.GetComponentInParent<Selectable>() != null) continue;
+                if (IsControlLabel(t.transform)) continue;
                 if (t.GetComponentInParent<V_GameplayCardInstance>() != null || t.GetComponentInParent<V_ForesightCardInstance>() != null) continue;
                 string text = FocusProbe.Clean(t.text);
                 if (text.Length < 2 || text.Length > 220 || parts.Contains(text)) continue;

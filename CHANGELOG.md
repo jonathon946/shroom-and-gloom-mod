@@ -2,6 +2,15 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-11 — Session 01, part 11 — menus and silent text
+
+- Controls are named by the label of their settings row, with kind and value: "MASTER VOLUME, slider, 55 percent", "WINDOW MODE, dropdown, Windowed", "AMBIENT OCCLUSION, ON". A change of value is spoken as it happens.
+- Headings inside a settings page are read on reaching the rows under them. Controller Support carries a warning to leave it on. Controls-page rows say they rebind a controller button.
+- Unlabelled buttons get plain names ("Menu", "Close").
+- `TextWatch`: text that newly becomes visible on the loading screen, the HUD's banners and the prompt line is spoken ("Loading. Burritos are wraps...").
+- The buffer steps through long text line by line (the credits).
+- `tools/Reset-Save.ps1`; automatic pictures of undescribed things.
+
 ## 2026-10-11 — Session 01, part 10 — first full playthrough reviewed
 
 - Buffers rebuilt: Item, Player, Surroundings, Messages; Ctrl+Up next line, Ctrl+Down previous; reset and return to Item when focus moves.

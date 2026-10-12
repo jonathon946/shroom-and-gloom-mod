@@ -19,25 +19,28 @@
 #   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player, Surroundings, Messages
 #   Ctrl+Page Up / Down     walking voice faster / slower
 #
-# CHECKLIST (after the first full playthrough) - report by letter, as far as you get.
+# CHECKLIST (menus and silent text) - report by letter, as far as you get.
 #
-#   A. At the title, "Continue" resumes your run just after the fight; it is no longer stuck.
-#      "New Run" now reads its question: "END PREVIOUS RUN? A new run ends your previous run..."
+#   A. Title screen. Up to "Menu", Enter. Expect Settings, Credits, Quit with Up and Down.
 #
-#   B. Buffers. Focus a card. Ctrl+Up reads the next line each time, Ctrl+Down goes back.
-#      Move to another card and press Ctrl+Up: it should start from the top of the new card.
-#      Ctrl+Right steps through Player, Surroundings, Messages; Ctrl+Left goes back.
-#      After moving focus you should be back in the Item buffer without doing anything.
+#   B. Settings. Enter on Settings lands on the "SOUND, tab". Left and Right move between the tabs
+#      Sound, Graphics, Game, Controls. Down goes into the tab.
+#      Each row should say its name, what kind of control it is, and its value, for example
+#      "MASTER VOLUME, slider, 55 percent". Left and Right change a slider and say the new value.
+#      Enter on an ON / OFF row flips it and says the new state.
+#      Enter on a dropdown opens its list: tell me what you hear there, I have not tested it.
 #
-#   C. Messages buffer: Ctrl+Right to "Messages" reads the newest line; Ctrl+Up goes back in time.
+#   C. Game tab: after Language you should hear the game's own heading
+#      "ACCESSIBILITY. EXPERIMENTAL/WIP. Probably wont work with big hands..." before Head Bob.
+#      Controller Support carries a warning: leave it on, the mod depends on it.
 #
-#   D. A card that acts on you (Toasty): Enter should now say
-#      "This card acts on you. Enter to play it, Backspace to cancel."
+#   D. Close settings (Up to "Close", Enter, or Backspace). Credits: Enter on Credits, then
+#      Ctrl+Up steps through the credits a line at a time. Backspace or "Skip" leaves.
 #
-#   E. Screens that open (a chest, a foresight choice, the class choice) should read their heading.
-#      Tell me any that stay silent, and press Ctrl+B there.
+#   E. New Run. While it loads expect "Loading." and a tip. If the game waits, "Press Space Bar".
 #
-#   F. Ctrl+Up on Terry, Touchy, Stab or Roast, to the end: a "Looks:" line.
+#   F. In play: any moment where sound happens and nothing is said, press Ctrl+B.
+#      That is now the main thing I need from you.
 #
 # IF THERE IS NO SPEECH AT ALL: tell me, and I will read the log. Nothing else is needed from you.
 
