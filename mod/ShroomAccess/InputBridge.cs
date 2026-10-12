@@ -151,6 +151,26 @@ namespace ShroomAccess
             }
         }
 
+        // Set each frame by Walk: the game will not let the player walk just now.
+        internal static bool WalkBlocked;
+
+        // +1 when W was pressed this frame, -1 for S, else 0.
+        internal static int MovePressed()
+        {
+            if (_moveUp == null || !Application.isFocused || CtrlHeld) return 0;
+            return (_moveUp.WasPressedThisFrame() ? 1 : 0) - (_moveDown.WasPressedThisFrame() ? 1 : 0);
+        }
+
+        internal static float MoveY
+        {
+            get
+            {
+                if (Time.realtimeSinceStartup < _injectedAxisUntil) return _injectedAxis.y;
+                if (_moveUp == null) return 0f;
+                return (_moveUp.IsPressed() ? 1f : 0f) - (_moveDown.IsPressed() ? 1f : 0f);
+            }
+        }
+
         // A key press as the player made it, before the mod or the game has interpreted it.
         // phase: 0 pressed this frame, 1 held, 2 released this frame.
         internal static bool Key(InputActionId id, int phase = 0)
@@ -266,6 +286,7 @@ namespace ShroomAccess
             if (!Enabled || actionId != InputActionId.Move) return;
             try
             {
+                if (WalkBlocked) { __result = Vector2.zero; return; }
                 if (Time.realtimeSinceStartup < _injectedAxisUntil) { __result = _injectedAxis; return; }
                 Vector2 move = Vector2.zero;
                 if (Application.isFocused && _moveUp != null && !CtrlHeld)

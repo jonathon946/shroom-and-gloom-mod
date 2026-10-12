@@ -24,6 +24,8 @@ namespace ShroomAccess
             WorldAssist.Log = msg => LoggerInstance.Msg(msg);
             Navigator.Log = msg => LoggerInstance.Msg(msg);
             Hud.Log = msg => LoggerInstance.Msg(msg);
+            Walk.Log = msg => LoggerInstance.Msg(msg);
+            CardPlay.Log = msg => LoggerInstance.Msg(msg);
             TextWatch.Log = msg => LoggerInstance.Msg(msg);
             Review.Log = msg => LoggerInstance.Msg(msg);
             Review.Init(MelonEnvironment.UserDataDirectory);
@@ -63,6 +65,7 @@ namespace ShroomAccess
         public override void OnUpdate()
         {
             TextWatch.Tick();
+            ShroomAccess.Speech.Speaker.PumpDirect();
             FocusProbe.Tick();
             WorldAssist.Tick();
             DevBridge.Tick();

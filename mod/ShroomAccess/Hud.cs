@@ -86,6 +86,13 @@ namespace ShroomAccess
                 if (_energy != int.MinValue && energy > _energy) Say("Energy " + energy + " of " + p.EnergySoftCap + ".");
                 _energy = energy;
 
+                bool exploring = p.IsInExploreEncounter;
+                if (exploring != _exploring)
+                {
+                    if (exploring && !focus.InCombat) Say("You have stopped at a camp. Cards are dealt; Space ends the turn.");
+                    _exploring = exploring;
+                }
+
                 bool combat = focus.InCombat;
                 if (combat != _combat)
                 {
@@ -122,6 +129,7 @@ namespace ShroomAccess
         private static readonly Dictionary<IntPtr, int> _enemyHp = new Dictionary<IntPtr, int>();
         private static readonly Dictionary<IntPtr, string> _enemyNames = new Dictionary<IntPtr, string>();
         private static bool _combat;
+        private static bool _exploring;
         private static string _phase = "";
 
         private static void WatchEnemies()

@@ -19,28 +19,37 @@
 #   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player, Surroundings, Messages
 #   Ctrl+Page Up / Down     walking voice faster / slower
 #
-# CHECKLIST (menus and silent text) - report by letter, as far as you get.
+# CHECKLIST (after your 23 marks) - report by letter, as far as you get.
+# The save is fresh again: New Run starts the tutorial.
 #
-#   A. Title screen. Up to "Menu", Enter. Expect Settings, Credits, Quit with Up and Down.
+#   A. Walking. W and S should only ever walk. Where the game will not let you walk, pressing W
+#      says "Can't walk right now" and why. Holding W against a dead end gives a low sound and
+#      "Can't go further this way". Does W ever move you between rows now?
 #
-#   B. Settings. Enter on Settings lands on the "SOUND, tab". Left and Right move between the tabs
-#      Sound, Graphics, Game, Controls. Down goes into the tab.
-#      Each row should say its name, what kind of control it is, and its value, for example
-#      "MASTER VOLUME, slider, 55 percent". Left and Right change a slider and say the new value.
-#      Enter on an ON / OFF row flips it and says the new state.
-#      Enter on a dropdown opens its list: tell me what you hear there, I have not tested it.
+#   B. Walking voice: several things coming into reach close together should be read one after
+#      another, none cut off.
 #
-#   C. Game tab: after Language you should hear the game's own heading
-#      "ACCESSIBILITY. EXPERIMENTAL/WIP. Probably wont work with big hands..." before Head Bob.
-#      Controller Support carries a warning: leave it on, the mod depends on it.
+#   C. Rows: each item ends with its place, "2 of 3". At the end of a row you should hear a low
+#      sound and nothing else. Is the sound clear enough? Too loud or too quiet?
 #
-#   D. Close settings (Up to "Close", Enter, or Backspace). Credits: Enter on Credits, then
-#      Ctrl+Up steps through the credits a line at a time. Backspace or "Skip" leaves.
+#   D. At the first camp (after the matchstick and torch): Enter on the Rusted Hammer with no energy
+#      should say "Not enough energy... Space ends the turn." After Space, "New turn." then
+#      "Energy 3 of 3."
 #
-#   E. New Run. While it loads expect "Loading." and a tip. If the game waits, "Press Space Bar".
+#   E. Casting a card should end with "Played <card>." A card that cannot be used says so.
 #
-#   F. In play: any moment where sound happens and nothing is said, press Ctrl+B.
-#      That is now the main thing I need from you.
+#   F. The backpack: expect one line naming all the cards on offer, then the card you are on.
+#
+#   G. Up to Status, then Enter on Health, Energy or the Warmth line: the game's own description.
+#      Ctrl+Right to Player: your foresights are listed at the end.
+#
+#   H. In a camp room, the Nearby row should name plots ("Empty plot, back left") and chests
+#      ("Foresight chest"). When you choose a Camp card, the targets should be those plots.
+#
+#   I. The card-change screen (Strange Geode): after its message, "Choose a card to change".
+#      Enter on a card, then Enter again on the panel to apply. Tell me if that works.
+#
+#   Keep marking with Ctrl+B anywhere sound happens with no speech.
 #
 # IF THERE IS NO SPEECH AT ALL: tell me, and I will read the log. Nothing else is needed from you.
 

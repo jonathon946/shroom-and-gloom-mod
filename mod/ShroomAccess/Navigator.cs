@@ -41,6 +41,13 @@ namespace ShroomAccess
                     if (dr != 0) Settings.NudgeDirectRate(dr);
                 }
 
+                if (_inStatus && rows && !InputBridge.CtrlHeld && InputBridge.Key(InputActionId.Confirm))
+                {
+                    _buffer = 0;
+                    List<string> detail = Lines(focus);
+                    FocusProbe.Speak(detail.Count > 1 ? string.Join(". ", detail.GetRange(1, detail.Count - 1)) : "The game says nothing more about this.");
+                }
+
                 int dx = (InputBridge.Key(InputActionId.FocusNext) ? 1 : 0) - (InputBridge.Key(InputActionId.FocusPrev) ? 1 : 0);
                 int dy = (InputBridge.Key(InputActionId.FocusDown) ? 1 : 0) - (InputBridge.Key(InputActionId.FocusUp) ? 1 : 0);
                 if (dx == 0 && dy == 0) return;
@@ -182,24 +189,46 @@ namespace ShroomAccess
             if (_statusIndex >= items.Count) _statusIndex = 0;
             FocusProbe.LeaveRow();
             FocusChanged();
-            FocusProbe.Announce("Status, " + items.Count + (items.Count == 1 ? " item. " : " items. ") + items[_statusIndex]);
+            FocusProbe.Announce("Status. " + items[_statusIndex] + ", " + (_statusIndex + 1) + " of " + items.Count);
         }
 
         private static void StatusStep(S_ControllerFocus focus, int dx)
         {
             List<string> items = StatusItems(focus);
             int next = _statusIndex + dx;
-            if (next < 0 || next >= items.Count) { FocusProbe.Announce(items[Mathf.Clamp(_statusIndex, 0, items.Count - 1)]); return; }
+            if (next < 0 || next >= items.Count) { Cue.Play(Cue.Edge); return; }
             _statusIndex = next;
             FocusChanged();
-            FocusProbe.Announce(items[_statusIndex]);
+            FocusProbe.Announce(items[_statusIndex] + ", " + (_statusIndex + 1) + " of " + items.Count);
         }
 
-        // At the end of a row: say where the player still is, never nothing.
+        // At the end of a row: a short dull sound. The player has not moved, so nothing is re-read.
         private static void Edge(S_ControllerFocus focus)
         {
-            if (_inStatus) { List<string> items = StatusItems(focus); FocusProbe.Announce(items[Mathf.Clamp(_statusIndex, 0, items.Count - 1)]); }
-            else FocusProbe.Reannounce(rowName: false);
+            Cue.Play(Cue.Edge);
+            Log("[edge]");
+        }
+
+        // Where the focused thing sits in its row, for "2 of 3". 0 when it is not in a row.
+        internal static void RowPosition(S_ControllerFocus focus, Il2CppSystem.Object current, out int index, out int count)
+        {
+            index = 0; count = 0;
+            try
+            {
+                if (current == null) return;
+                if (current.TryCast<IV_CardInstance>() != null)
+                {
+                    HandFocusResolver hand = focus.HandResolver;
+                    count = HeldCount(focus);
+                    index = hand != null ? hand.FocusedIndex + 1 : 0;
+                    if (index < 1 || index > count) { index = 0; count = 0; }
+                    return;
+                }
+                List<IControllerFocusTarget> list = NearbyInOrder(focus);
+                for (int i = 0; i < list.Count; i++)
+                    if (list[i].Pointer == current.Pointer) { index = i + 1; count = list.Count; return; }
+            }
+            catch { }
         }
 
         // ---- Buffers ----
@@ -252,6 +281,18 @@ namespace ShroomAccess
                             for (int i = 0; i < hand.HeldCards.Count; i++) names.Add(hand.HeldCards[i].CardName);
                             lines.Add(names.Count == 0 ? "Hand empty" : "Hand: " + string.Join(", ", names));
                         }
+                        V_ForesightHand foresight = UnityEngine.Object.FindObjectOfType<V_ForesightHand>();
+                        M_ForesightHand fh = foresight != null && foresight.Model != null ? foresight.Model.TryCast<M_ForesightHand>() : null;
+                        var held = fh != null ? fh.Foresights : null;
+                        for (int i = 0; held != null && i < held.Count; i++)
+                        {
+                            M_ForesightCardInstance f = held[i];
+                            if (f == null) continue;
+                            IM_CardInstance im = f.Cast<Il2CppSystem.Object>().TryCast<IM_CardInstance>();
+                            string name = im != null ? im.CardName : "Foresight";
+                            string text = im != null && im.IData != null ? im.IData.SingleDescription : "";
+                            lines.Add("Foresight: " + FocusProbe.Clean(name + ". " + text));
+                        }
                     }
                     catch { }
                     return lines;
@@ -273,6 +314,7 @@ namespace ShroomAccess
                         List<string> items = StatusItems(focus);
                         string item = items[Mathf.Clamp(_statusIndex, 0, items.Count - 1)];
                         var detail = new List<string> { item };
+                        if (item.StartsWith("Warmth")) detail.AddRange(Hud.Tip("End Turn Button"));
                         if (item.StartsWith("Health")) detail.AddRange(Hud.Tip("Health"));
                         else if (item.StartsWith("Energy")) detail.AddRange(Hud.Tip("Energy"));
                         return detail;

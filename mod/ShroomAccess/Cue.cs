@@ -11,6 +11,7 @@ namespace ShroomAccess
         internal static Action<string> Log = _ => { };
 
         internal const int Arrival = 0;
+        internal const int Edge = 1;
 
         private static AudioSource _source;
         private static AudioClip[] _clips;
@@ -45,6 +46,8 @@ namespace ShroomAccess
             {
                 // Something has come into reach: two quick rising notes.
                 Tones("ShroomAccessArrival", new[] { 660f, 990f }, 0.07f),
+                // The end of a row, or a way that is closed: one low, dull note.
+                Tones("ShroomAccessEdge", new[] { 180f }, 0.09f),
             };
         }
 

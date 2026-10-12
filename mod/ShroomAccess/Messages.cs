@@ -37,6 +37,9 @@ namespace ShroomAccess
         }
 
         private static IntPtr _lastScope;
+        private static float _offerDue;
+        private static string _offerKind = "";
+        private static Component _offerRoot;
         private static bool _wasTarget;
 
         internal static void Tick(S_ControllerFocus focus)
@@ -52,6 +55,44 @@ namespace ShroomAccess
                 {
                     _lastScope = ptr;
                     if (scope != null) AnnounceScreen(scope);
+                    string kind = scope != null ? scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name : "";
+                    if (kind.Contains("LootAll") || kind.Contains("CardChoice") || kind.Contains("ForesightChoice"))
+                    {
+                        // The cards are dealt out one after another and the game's focus follows
+                        // each; wait for them, then say once what is on offer.
+                        _offerKind = kind;
+                        _offerRoot = scope.Cast<Il2CppSystem.Object>().TryCast<Component>();
+                        _offerDue = Time.realtimeSinceStartup + 1.4f;
+                        FocusProbe.SuppressFocusUntil = _offerDue;
+                    }
+                }
+
+                if (_offerDue > 0f && Time.realtimeSinceStartup >= _offerDue)
+                {
+                    _offerDue = 0f;
+                    var names = new List<string>();
+                    if (_offerRoot != null)
+                    {
+                        foreach (V_GameplayCardInstance c in _offerRoot.GetComponentsInChildren<V_GameplayCardInstance>(false))
+                        {
+                            IV_CardInstance iv = c != null ? c.Cast<Il2CppSystem.Object>().TryCast<IV_CardInstance>() : null;
+                            if (iv != null && iv.IModel != null) names.Add(iv.IModel.CardName);
+                        }
+                        foreach (V_ForesightCardInstance c in _offerRoot.GetComponentsInChildren<V_ForesightCardInstance>(false))
+                        {
+                            IV_CardInstance iv = c != null ? c.Cast<Il2CppSystem.Object>().TryCast<IV_CardInstance>() : null;
+                            if (iv != null && iv.IModel != null) names.Add(iv.IModel.CardName);
+                        }
+                    }
+                    // One card on offer is read by its own focus line; only a spread needs introducing.
+                    if (names.Count > 1)
+                    {
+                        string lead = _offerKind.Contains("LootAll")
+                            ? "You are offered all of these, " + names.Count + " cards: "
+                            : "Choose one of " + names.Count + ": ";
+                        FocusProbe.Announce(lead + string.Join(", ", names) + ". Left and Right to look, Enter to take.", interrupt: false);
+                    }
+                    FocusProbe.Reannounce();
                 }
 
                 // A card that needs no target (it acts on you) still waits for a second Enter, with

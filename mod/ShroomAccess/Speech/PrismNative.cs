@@ -93,6 +93,9 @@ namespace ShroomAccess.Speech
         internal static extern int prism_backend_get_volume(IntPtr backend, out float volume);
 
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int prism_backend_is_speaking(IntPtr backend, [MarshalAs(UnmanagedType.I1)] out bool speaking);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr prism_error_string(int error);
 
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]

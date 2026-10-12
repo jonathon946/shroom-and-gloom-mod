@@ -2,6 +2,18 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-11 — Session 01, part 12 — fixes from 23 marks
+
+- `Walk`: W and S never step the focus; "Can't walk right now" with the reason when the game blocks walking; an edge sound and "Can't go further this way" when a held walk key moves nothing.
+- The walking voice queues its lines and no longer cuts itself off.
+- Rows say position ("2 of 3"); the end of a row plays a low sound, with no repeat of the line.
+- `CardPlay`: "Not enough energy for X: it costs 1, you have 0. Space ends the turn."; "X can't be played right now."; "Played X."
+- A hand of several cards arriving is "Drew 4 cards."; a multi-card offer is introduced once ("You are offered all of these, 5 cards: ..." or "Choose one of 3: ...") and its dealing-out is not read card by card.
+- "You have stopped at a camp. Cards are dealt; Space ends the turn."; "The door is open. You can walk on."
+- Camp plots, chests (foresight, class card) and the card-change panel have proper descriptions.
+- Player buffer lists foresights. Enter on a status reads the game's description of it.
+- Things in the world with nothing more to read say so.
+
 ## 2026-10-11 — Session 01, part 11 — menus and silent text
 
 - Controls are named by the label of their settings row, with kind and value: "MASTER VOLUME, slider, 55 percent", "WINDOW MODE, dropdown, Windowed", "AMBIENT OCCLUSION, ON". A change of value is spoken as it happens.

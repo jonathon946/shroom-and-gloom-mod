@@ -20,9 +20,11 @@ namespace ShroomAccess
         private static bool _bindingsDumped;
         private static IntPtr _lastSelected;
         private static string _lastZone = "";
+        internal static float SuppressFocusUntil;
         private static string _lastValue = "";
         private static float _protectUntil;
         private static readonly HashSet<IntPtr> _knownNearby = new HashSet<IntPtr>();
+        private static readonly Dictionary<IntPtr, bool> _doorOpen = new Dictionary<IntPtr, bool>();
         private static readonly InputActionId[] ActionIds =
         {
             InputActionId.Confirm, InputActionId.Cancel, InputActionId.Pause, InputActionId.EndTurn,
@@ -60,6 +62,8 @@ namespace ShroomAccess
                 Messages.Tick(focus);
                 Navigator.Tick(focus);
                 Review.Tick(focus);
+                Walk.Tick(focus);
+                CardPlay.Tick(focus);
                 AnnounceArrivals(focus);
                 AnnounceHandChanges(focus);
                 Hud.AnnounceChanges(focus);
@@ -122,12 +126,19 @@ namespace ShroomAccess
                 if (zone != _lastZone)
                 {
                     _lastZone = zone;
-                    if (zone == "hand") spoken = "Your hand, " + Count(HeldCount(focus), "card") + ". " + line;
+                    if (zone == "hand" && TypeName(focus.Scope).Contains("ModifyCard")) spoken = "Choose a card to change, " + Count(HeldCount(focus), "card") + ". " + line;
+                    else if (zone == "hand") spoken = "Your hand, " + Count(HeldCount(focus), "card") + ". " + line;
                     else if (zone == "nearby" && focus.InCombat) spoken = "Enemies, " + (focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0) + ". " + line;
                     else if (zone == "nearby") spoken = "Nearby, " + Count(focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0, "thing") + ". " + line;
                     else if (zone == "targets") spoken = "Choose a target. " + line;
                     else if (zone == "offer" && current.TryCast<IV_CardInstance>() != null) spoken = "Offered: " + line + " Enter takes it.";
                 }
+                if (zone == "hand" || zone == "nearby")
+                {
+                    Navigator.RowPosition(focus, current, out int index, out int count);
+                    if (count > 1) spoken = spoken.TrimEnd('.', ' ') + ", " + index + " of " + count;
+                }
+                if (Time.realtimeSinceStartup < SuppressFocusUntil) { Log("[suppressed] " + spoken); return; }
                 // Let a line that announces an arrival finish before the first focus line follows it.
                 Announce(spoken, interrupt: Time.realtimeSinceStartup > _protectUntil);
             }
@@ -173,6 +184,14 @@ namespace ShroomAccess
                 IControllerFocusTarget t = world.At(i);
                 if (t == null) continue;
                 now.Add(t.Pointer);
+                V_SpellReceiverDoor door = t.Cast<Il2CppSystem.Object>().TryCast<V_SpellReceiverDoor>();
+                if (door != null)
+                {
+                    bool open = Safe(() => door.Door.IsUnlockedAndOpen());
+                    if (_doorOpen.TryGetValue(t.Pointer, out bool was) && open && !was)
+                        Announce("The door is open. You can walk on.", interrupt: false, holdWhileWalking: true);
+                    _doorOpen[t.Pointer] = open;
+                }
                 if (_knownNearby.Contains(t.Pointer)) continue;
                 string name = Describe(t, out _);
                 int stop = name.IndexOf('.');
@@ -230,6 +249,51 @@ namespace ShroomAccess
                 string accepts = open ? "" : Accepts(Safe(() => door.GetPromptsAndInteractions().Item2));
                 detail = "door object=" + door.gameObject.name + " sign=" + sign + " open=" + open + " accepts=" + accepts + " canUnlock=" + door.CanUnlock;
                 return Clean("Door" + (open ? ", open" : "") + (string.IsNullOrWhiteSpace(sign) ? "" : ". " + sign) + (accepts.Length > 0 ? ". " + accepts : ""));
+            }
+
+            SpellReceiverRoom plot = obj.TryCast<SpellReceiverRoom>();
+            if (plot != null)
+            {
+                // A place in a camp where a Camp card can be built, or where something already stands.
+                string where = Humanize(plot.gameObject.name).Replace("Room Spell Target", "").Replace("Floor", "").Replace("  ", " ").Trim().ToLowerInvariant();
+                V_Hazard on = plot.GetComponentInChildren<V_Hazard>();
+                string what;
+                if (on != null) what = Describe(on, out _);
+                else if (Safe(() => plot.IsHoldingAStructure))
+                {
+                    BaseRoomEncounter built = plot.GetComponentInChildren<BaseRoomEncounter>();
+                    what = built != null ? Humanize(built.gameObject.name) : "Something built";
+                }
+                else what = "Empty plot";
+                var badges = new List<string>();
+                foreach (TMP_Text t in plot.GetComponentsInChildren<TMP_Text>(false))
+                    if (t != null && !string.IsNullOrWhiteSpace(t.text)) badges.Add(t.text.Trim());
+                detail = "plot " + plot.gameObject.name + " what=" + what + " badges=" + string.Join("/", badges) + " location=" + plot.Location;
+                return Clean(what + (where.Length > 0 ? ", " + where : "") + (on == null && badges.Count > 0 ? ", marked " + string.Join(" ", badges) : ""));
+            }
+
+            Chest chest = obj.TryCast<Chest>();
+            if (chest != null)
+            {
+                string path = PathOf(chest.transform);
+                string kind = path.Contains("Foresight") ? "Foresight chest" : path.Contains("Class Cards") ? "Class card chest" : "Chest";
+                string accepts = Accepts(Safe(() => chest.GetPromptsAndInteractions().Item2));
+                detail = "chest " + path + " accepts=" + accepts + " interactive=" + Safe(() => chest.IsInteractive);
+                return Clean(kind + (accepts.Length > 0 ? ". " + accepts : ""));
+            }
+
+            ModifyCardEncounterUI modify = obj.TryCast<ModifyCardEncounterUI>();
+            if (modify != null)
+            {
+                var parts = new List<string>();
+                foreach (TMP_Text t in modify.GetComponentsInChildren<TMP_Text>(false))
+                {
+                    if (t == null || string.IsNullOrWhiteSpace(t.text)) continue;
+                    if (t.GetComponentInParent<UnityEngine.UI.Selectable>() != null) continue;
+                    parts.Add(t.text.Trim());
+                }
+                detail = "modify " + string.Join(" / ", parts);
+                return Clean(string.Join(" ", parts) + ". Enter applies it to the card you chose. Backspace goes back");
             }
 
             V_Enemy enemy = obj.TryCast<V_Enemy>();
@@ -547,6 +611,7 @@ namespace ShroomAccess
             s = StripTags(s ?? "").Replace("\\n", " ").Replace("\n", " ");
             s = System.Text.RegularExpressions.Regex.Replace(s, @"\s+", " ").Trim();
             while (s.Contains(". .")) s = s.Replace(". .", ".");
+            s = s.Replace("!.", "!").Replace("?.", "?");
             return s.Replace("..", ".");
         }
 
@@ -753,10 +818,11 @@ namespace ShroomAccess
             Il2CppSystem.Object cur = focus.CurrentFocus;
             IV_CardInstance focused = cur != null ? cur.TryCast<IV_CardInstance>() : null;
             string focusedName = focused != null && focused.IModel != null ? focused.IModel.CardName : null;
-            _pendingAdded.RemoveAll(n => n == focusedName);
+            if (_pendingAdded.Count == 1) _pendingAdded.RemoveAll(n => n == focusedName);
             if (_pendingAdded.Count > 0)
             {
-                Announce("Added to hand: " + string.Join(", ", _pendingAdded) + ".", interrupt: false, holdWhileWalking: true);
+                // A whole hand arriving is a draw; the player reads the cards themselves.
+                Announce(_pendingAdded.Count > 1 ? "Drew " + _pendingAdded.Count + " cards." : "Added to hand: " + _pendingAdded[0] + ".", interrupt: false, holdWhileWalking: true);
                 _protectUntil = Time.realtimeSinceStartup + 1.5f;
             }
             _pendingAdded.Clear();
@@ -821,6 +887,7 @@ namespace ShroomAccess
                     if (lines.Count == 0) lines.Add(whole);
                 }
                 if (lines.Count > 0) AddLooks(lines, "thing", lines[0].Split(',')[0]);
+                if (lines.Count == 1) lines.Add("The game shows nothing more about this");
                 // A thing lying in the world shows a sighted player nothing but itself until it is
                 // opened, so there is nothing more to read here; say how to find out.
                 if (item.TryCast<EncounterStartWorldObject>() != null) lines.Add("Not opened yet. Enter opens it");

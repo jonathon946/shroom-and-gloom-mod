@@ -149,16 +149,37 @@ namespace ShroomAccess.Speech
         }
 
         // Speaks through the direct voice; through the main backend when there is none.
-        internal static void SayDirect(string text, bool interrupt = true)
+        // Lines wait their turn: the Windows voices cut the current line when given another, so
+        // the queue is kept here and each line starts only when the one before has finished.
+        private static readonly System.Collections.Generic.Queue<string> _directQueue = new System.Collections.Generic.Queue<string>();
+        private static long _directStartedAt;
+
+        internal static void SayDirect(string text, bool interrupt = false)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             lock (Gate)
             {
                 if (!Ready) return;
-                if (_direct == IntPtr.Zero) { Say(text, interrupt); return; }
+                if (_direct == IntPtr.Zero) { Say(text, false); return; }
+                if (interrupt) _directQueue.Clear();
+                if (_directQueue.Count < 12) _directQueue.Enqueue(text);
+            }
+        }
+
+        // Call once a frame.
+        internal static void PumpDirect()
+        {
+            lock (Gate)
+            {
+                if (!Ready || _direct == IntPtr.Zero || _directQueue.Count == 0) return;
                 try
                 {
-                    int e = PrismNative.prism_backend_speak(_direct, Utf8(text), interrupt);
+                    // Just after a line is handed over the voice may not report speaking yet.
+                    if (Environment.TickCount64 - _directStartedAt < 250) return;
+                    if (PrismNative.prism_backend_is_speaking(_direct, out bool speaking) == PrismNative.Ok && speaking) return;
+                    string text = _directQueue.Dequeue();
+                    int e = PrismNative.prism_backend_speak(_direct, Utf8(text), false);
+                    _directStartedAt = Environment.TickCount64;
                     if (e != PrismNative.Ok) Log("Speech: direct say failed: " + ErrorText(e));
                 }
                 catch (Exception ex) { Log("Speech: direct say threw: " + ex.Message); }

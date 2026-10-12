@@ -85,3 +85,12 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **GOTCHA — The game pauses and freezes time when its window loses focus** (`MinimizeResumeHandler` in its log). Dev replays run with the window unfocused, so anything timed can behave differently from real play.
 - **GOTCHA — A simulated Pause action does not open the pause menu; the real Escape key does.** Escape arrives through the UI module's cancel action.
 - **LESSON — A replay that walks a settings screen changes the maintainer's settings.** Left and Right on a slider adjust it. Restore, or avoid.
+
+## From the second full playthrough [Session 01, part 12]
+
+- **GOTCHA — The game's walk stick also steps the focus when walking is blocked.** With `MoveStickWalks` false, feeding the Move axis from W and S moved between rows. The axis is now zero while blocked.
+- **GOTCHA — The Windows voices cut the current line when handed another, whatever the interrupt flag.** Queue in the mod and hand over the next line only when `prism_backend_is_speaking` is false.
+- **GOTCHA — When an offer opens, the game's focus visits each card as it is dealt.** Reading each as a focus change produces a pile-up. Suppress focus lines for about 1.4 seconds and then name the spread once.
+- **KEY FINDING — A camp card is cast onto a plot** (`SpellReceiverRoom`), whose object name gives its position ("RoomSpellTargetBackLeft") and whose child text is a threat badge, not a name.
+- **KEY FINDING — The card-change screen is a cast in reverse:** the hand is the list (scope `ModifyCardEncounterUI`, mode Hand), and the "target" of the chosen card is the panel itself.
+- **TOOL — Alt-text pictures:** `[alt-missing]` plus an automatic screenshot per undescribed thing produced 78 pictures in one playthrough, about a third of them menu controls that need no description. Filter by kind before writing.
