@@ -245,7 +245,13 @@ namespace ShroomAccess
                 catch { }
                 return lines;
             }
-            return _inStatus ? StatusItems(focus) : FocusProbe.DetailLines(subject);
+            if (_inStatus)
+            {
+                // On the status row the focused "item" is the one status the player is on.
+                List<string> items = StatusItems(focus);
+                return new List<string> { items[Mathf.Clamp(_statusIndex, 0, items.Count - 1)] };
+            }
+            return FocusProbe.DetailLines(subject);
         }
     }
 }

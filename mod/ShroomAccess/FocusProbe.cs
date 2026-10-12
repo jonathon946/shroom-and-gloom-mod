@@ -494,6 +494,9 @@ namespace ShroomAccess
                 }
                 string whole = Describe(item, out _);
                 foreach (string sentence in Sentences(whole)) lines.Add(sentence);
+                // A thing lying in the world shows a sighted player nothing but itself until it is
+                // opened, so there is nothing more to read here; say how to find out.
+                if (item.TryCast<EncounterStartWorldObject>() != null) lines.Add("Not opened yet. Enter opens it");
             }
             catch (Exception ex) { lines.Add("Could not read this: " + ex.Message); }
             return lines;
