@@ -19,23 +19,21 @@
 #   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player, Surroundings, Messages
 #   Ctrl+Page Up / Down     walking voice faster / slower
 #
-# CHECKLIST (after the shop playthrough) - report by letter, as far as you get.
-# The save is fresh again: New Run starts the tutorial.
+# CHECKLIST (after the sixth playthrough) - report by letter, as far as you get.
+# Your far run is back: Continue resumes it.
 #
-#   A. Density. When several things happen at once you should now hear one run of short sentences
-#      in a steady order: the fight or camp first, then what is nearby, then whose turn, then
-#      "Drew 4 cards", then energy. Better, worse, or still too much? Is anything missing that
-#      you used to hear?
+#   A. In a fight, Left and Right along the Enemies row should give only enemies, no torches.
 #
-#   B. Dealing. When cards are dealt you should hear only "Drew N cards." and then the card you
-#      are on, not every card.
+#   B. Ctrl+Up on an enemy with a status (Seasoning, Vulnerable, Timid): the status line should now
+#      end with what it does. Tell me any status that has no explanation.
 #
-#   C. Toasty (or any card with no target): the first Enter should say
-#      "Toasty is ready. Enter again to play it, Backspace to put it back."
+#   C. Arriving somewhere busy: "Nearby: 2 Doors, 3 Chests..." in one grouped line.
 #
-#   D. The shop, if you reach one. I have not been able to run it myself, so everything there is a
-#      first guess: an instruction line on entry, "For sale: n food" on each card, "Forget a card",
-#      and the bowl. Please mark (Ctrl+B) each step you try: choosing a card, paying, leaving.
+#   D. A shop: each card says "For sale", its price, and its place ("top row, 2 of 4").
+#      Enter on a card; the mole says how much food. Your hand is then "Your food".
+#      Enter on a food card, Enter on the bowl. Repeat until paid. Mark each step that is unclear.
+#
+#   E. Ctrl+Up to the end on any card or creature for its "Looks:" line. 103 are written.
 #
 #   Keep marking with Ctrl+B anywhere sound happens with no speech.
 #

@@ -130,7 +130,7 @@ namespace ShroomAccess
         // ---- Nearby row ----
 
         // Left to right as the player would see them.
-        private static List<IControllerFocusTarget> NearbyInOrder(S_ControllerFocus focus)
+        internal static List<IControllerFocusTarget> NearbyInOrder(S_ControllerFocus focus)
         {
             var list = new List<IControllerFocusTarget>();
             WorldFocusCandidates world = focus.WorldFocusCandidates;
@@ -140,6 +140,8 @@ namespace ShroomAccess
             {
                 IControllerFocusTarget t = world.At(i);
                 if (t == null) continue;
+                // In a fight the game keeps the room's furniture in its list but will not focus it.
+                if (focus.InCombat && !WorldFocusCandidates.InCombatScope(t)) continue;
                 float x = i;
                 try { if (cam != null) x = cam.WorldToViewportPoint(t.FocusWorldPosition).x; } catch { }
                 keyed.Add(new KeyValuePair<float, IControllerFocusTarget>(x, t));

@@ -26,7 +26,7 @@ namespace ShroomAccess
             if (string.IsNullOrWhiteSpace(name)) return null;
             name = name.Trim();
             if (_table == null) Load();
-            if (_table.TryGetValue(name, out string text)) return text;
+            if (_table.TryGetValue(Key(name), out string text)) return text;
             if (_missing.Add(name))
             {
                 Log("[alt-missing] " + kind + ": " + name);
@@ -71,6 +71,14 @@ namespace ShroomAccess
             _shotPath = null;
         }
 
+        // Names are matched on their letters and digits only, so "Go-To Snack" finds "Go To Snack".
+        private static string Key(string name)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (char c in name) if (char.IsLetterOrDigit(c)) sb.Append(char.ToLowerInvariant(c));
+            return sb.ToString();
+        }
+
         private static void Load()
         {
             _table = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -83,7 +91,7 @@ namespace ShroomAccess
                     if (line.Length == 0 || line.StartsWith("#")) continue;
                     int eq = line.IndexOf('=');
                     if (eq <= 0) continue;
-                    _table[line.Substring(0, eq).Trim()] = line.Substring(eq + 1).Trim();
+                    _table[Key(line.Substring(0, eq))] = line.Substring(eq + 1).Trim();
                 }
                 Log("Alt text: " + _table.Count + " descriptions.");
             }

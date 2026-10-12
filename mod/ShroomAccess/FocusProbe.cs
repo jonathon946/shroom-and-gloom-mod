@@ -147,12 +147,19 @@ namespace ShroomAccess
                 if (zone != _lastZone)
                 {
                     _lastZone = zone;
-                    if (zone == "hand" && TypeName(focus.Scope).Contains("ModifyCard")) spoken = "Choose a card to change, " + Count(HeldCount(focus), "card") + ". " + line;
+                    if (zone == "food") spoken = "Your food, " + Count(HeldCount(focus), "card") + ". Enter on one, then Enter on the bowl, pays one food. " + line;
+                    else if (zone == "shop") spoken = "For sale. " + line;
+                    else if (zone == "hand" && TypeName(focus.Scope).Contains("ModifyCard")) spoken = "Choose a card to change, " + Count(HeldCount(focus), "card") + ". " + line;
                     else if (zone == "hand") spoken = "Your hand, " + Count(HeldCount(focus), "card") + ". " + line;
-                    else if (zone == "nearby" && focus.InCombat) spoken = "Enemies, " + (focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0) + ". " + line;
+                    else if (zone == "nearby" && focus.InCombat) spoken = "Enemies, " + Navigator.NearbyInOrder(focus).Count + ". " + line;
                     else if (zone == "nearby") spoken = "Nearby, " + Count(focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0, "thing") + ". " + line;
                     else if (zone == "targets") spoken = "Choose a target. " + line;
                     else if (zone == "offer" && current.TryCast<IV_CardInstance>() != null) spoken = "Offered: " + line + " Enter takes it.";
+                }
+                if (zone == "shop")
+                {
+                    string place = ShopPlace(focus, current);
+                    if (place.Length > 0) spoken = spoken.TrimEnd('.', ' ') + ", " + place;
                 }
                 if (zone == "hand" || zone == "nearby")
                 {
@@ -179,6 +186,42 @@ namespace ShroomAccess
             catch { return 0; }
         }
 
+        // A shop lays its cards out in rows. Say which row and where along it.
+        private static string ShopPlace(S_ControllerFocus focus, Il2CppSystem.Object current)
+        {
+            try
+            {
+                Component root = focus.Scope.Cast<Il2CppSystem.Object>().TryCast<Component>();
+                Component me = current.TryCast<Component>();
+                Camera cam = focus.FocusCamera != null ? focus.FocusCamera : Camera.main;
+                if (root == null || me == null || cam == null) return "";
+                Vector3 mine = cam.WorldToViewportPoint(me.transform.position);
+                var rows = new List<float>();
+                int before = 0, inRow = 0;
+                foreach (V_GameplayCardInstance c in root.GetComponentsInChildren<V_GameplayCardInstance>(false))
+                {
+                    if (c == null || ShopPrice(c).Length == 0) continue;
+                    Vector3 at = cam.WorldToViewportPoint(c.transform.position);
+                    bool known = false;
+                    foreach (float y in rows) if (Mathf.Abs(y - at.y) < 0.08f) { known = true; break; }
+                    if (!known) rows.Add(at.y);
+                    if (Mathf.Abs(at.y - mine.y) < 0.08f)
+                    {
+                        inRow++;
+                        if (at.x < mine.x - 0.01f) before++;
+                    }
+                }
+                if (inRow == 0) return "";
+                rows.Sort();
+                rows.Reverse();
+                int row = 1;
+                for (int i = 0; i < rows.Count; i++) if (Mathf.Abs(rows[i] - mine.y) < 0.08f) row = i + 1;
+                string rowName = rows.Count < 2 ? "" : row == 1 ? "top row, " : row == rows.Count ? "bottom row, " : "row " + row + ", ";
+                return rowName + (before + 1) + " of " + inRow;
+            }
+            catch { return ""; }
+        }
+
         private static string Count(int n, string noun) => n + " " + noun + (n == 1 ? "" : "s");
 
         private static string ZoneOf(S_ControllerFocus focus, Il2CppSystem.Object current, FocusMode mode)
@@ -187,6 +230,7 @@ namespace ShroomAccess
             bool isCard = current.TryCast<IV_CardInstance>() != null;
             string scope = TypeName(focus.Scope);
             if (scope.Contains("LootAll") || scope.Contains("CardChoice")) return "offer";
+            if (scope.Contains("BowlShop")) return isCard ? (mode.ToString() == "Hand" ? "food" : "shop") : "shop-buttons";
             if (isCard) return "hand";
             if (current.TryCast<IControllerFocusTarget>() != null && current.TryCast<UnityEngine.UI.Selectable>() == null) return "nearby";
             return "";
@@ -204,6 +248,7 @@ namespace ShroomAccess
             {
                 IControllerFocusTarget t = world.At(i);
                 if (t == null) continue;
+                if (focus.InCombat && !WorldFocusCandidates.InCombatScope(t)) continue;
                 now.Add(t.Pointer);
                 V_SpellReceiverDoor door = t.Cast<Il2CppSystem.Object>().TryCast<V_SpellReceiverDoor>();
                 if (door != null && !_doors.ContainsKey(t.Pointer)) { _doors[t.Pointer] = door; _doorOpen[t.Pointer] = Safe(() => door.Door.IsUnlockedAndOpen()); }
@@ -821,7 +866,22 @@ namespace ShroomAccess
                 nearby.Add(l.Substring(8).TrimEnd('.'));
                 return true;
             });
-            if (nearby.Count > 0) lines.Add("Nearby: " + string.Join(", ", nearby) + ".");
+            if (nearby.Count > 0)
+            {
+                var names = new List<string>();
+                var counts = new Dictionary<string, int>();
+                foreach (string group in nearby)
+                    foreach (string raw in group.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        string name = raw.Trim();
+                        if (!counts.ContainsKey(name)) { counts[name] = 0; names.Add(name); }
+                        counts[name]++;
+                    }
+                var parts = new List<string>();
+                foreach (string name in names)
+                    parts.Add(counts[name] == 1 ? name : counts[name] + " " + (name.EndsWith("s") ? name : name.EndsWith("x") || name.EndsWith("ch") ? name + "es" : name + "s"));
+                lines.Add("Nearby: " + string.Join(", ", parts) + ".");
+            }
 
             var ordered = new List<string>();
             for (int tier = 0; tier <= 5; tier++)
@@ -966,7 +1026,7 @@ namespace ShroomAccess
                     lines.Add(EnemyHealth(m));
                     foreach (string intent in EnemyIntents(m, brief: false)) lines.Add("Intends: " + intent);
                     if (lines.Count == 2) lines.Add("No intent showing");
-                    foreach (string status in EnemyStatuses(m)) lines.Add(status);
+                    foreach (string status in EnemyStatuses(m)) lines.Add(status + StatusTip(status));
                     AddLooks(lines, "enemy", EnemyName(enemy, m));
                     return lines;
                 }
@@ -997,6 +1057,31 @@ namespace ShroomAccess
             }
             catch (Exception ex) { lines.Add("Could not read this: " + ex.Message); }
             return lines;
+        }
+
+        // "Vulnerable 3" -> ": WILL RECEIVE 150% MORE DAMAGE." from the game's keyword text.
+        internal static string StatusTip(string status)
+        {
+            try
+            {
+                string name = status, number = "";
+                int space = status.LastIndexOf(' ');
+                if (space > 0 && int.TryParse(status.Substring(space + 1), out _)) { name = status.Substring(0, space); number = status.Substring(space + 1); }
+                string id = name.Trim().ToUpperInvariant().Replace(' ', '_');
+                foreach (string key in new[] { "Enemy_TOOLTIP_STATUS_" + id + (number.Length > 0 ? "[[N]=" + number + "]" : ""), "Enemy_TOOLTIP_STATUS_" + id, "Card_TOOLTIP_WORD_" + id })
+                {
+                    if (KeywordTooltipRegistry.TryGetTooltipFromLinkID(key, out string tip) && !string.IsNullOrWhiteSpace(tip))
+                    {
+                        string text = Clean(tip);
+                        // The tooltip usually begins with the status's own name; do not say it twice.
+                        int colon = text.IndexOf(':');
+                        if (colon > 0 && colon < name.Length + 4) text = text.Substring(colon + 1).Trim();
+                        return ": " + text;
+                    }
+                }
+            }
+            catch (Exception ex) { Log("[status] " + status + ": " + ex.Message); }
+            return "";
         }
 
         private static void AddLooks(List<string> lines, string kind, string name)

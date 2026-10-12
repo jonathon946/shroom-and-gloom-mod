@@ -93,7 +93,8 @@ namespace ShroomAccess
                     _exploring = exploring;
                 }
 
-                bool combat = focus.InCombat;
+                // The player's own state, not the focus system's: a shop sets the focus system's flag too.
+                bool combat = p.IsInCombat;
                 if (combat != _combat)
                 {
                     Say(combat ? "Combat." : "Combat over.");

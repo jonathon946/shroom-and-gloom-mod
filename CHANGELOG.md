@@ -2,6 +2,16 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-12 — Session 01, part 16 — sixth playthrough: fights, shop, statuses
+
+- In a fight the Enemies row holds only what the game will focus; room furniture no longer appears in it and bounces the focus back.
+- Arrivals are grouped: "Nearby: 2 Doors, Class card chest, Foresight chest, Chest."
+- Enemy statuses in the buffer carry the game's own explanation ("Vulnerable 3: WILL RECEIVE 150% MORE DAMAGE").
+- Shop: "For sale" with row and place ("top row, 2 of 4"); the paying hand is "Your food"; the shopkeeper's changing lines are read; no false "Combat."; the entry line is said once.
+- Text on an open screen that changes while it is open is read.
+- A screen's heading is not re-read on returning to it within 30 seconds.
+- 33 more appearance descriptions (103 in all); lookups ignore punctuation.
+
 ## 2026-10-12 — Session 01, part 15 — reading a pile of offered cards
 
 - In an offer of several cards taken together (a backpack), Left and Right step through the cards with their place in the pile, and the buffers read the card stepped to. The game itself lets a gamepad focus only the top card and the Take button.

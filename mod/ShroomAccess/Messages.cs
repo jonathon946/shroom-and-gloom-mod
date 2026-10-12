@@ -37,6 +37,12 @@ namespace ShroomAccess
         }
 
         private static IntPtr _lastScope;
+        private static float _shopSaidAt = -100f;
+        private static float _liveNext;
+        private static IntPtr _liveScope;
+        private static List<string> _liveText = new List<string>();
+        private static string _lastScreenText = "";
+        private static float _lastScreenAt;
         private static float _offerDue;
         private static float _offerGiveUp;
         private static bool _offerWaitSaid;
@@ -57,7 +63,7 @@ namespace ShroomAccess
                 {
                     _lastScope = ptr;
                     if (scope != null) AnnounceScreen(scope);
-                    if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "BowlShopEncounterUI")
+                    if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "BowlShopEncounterUI" && Time.realtimeSinceStartup - _shopSaidAt > 30f && (_shopSaidAt = Time.realtimeSinceStartup) > 0f)
                         FocusProbe.Announce("A shop. Cards are paid for with food. Enter on a card to choose it, then Enter on a food card in your hand and Enter on the bowl to pay.", interrupt: false);
                     if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "S_MapReminder")
                         FocusProbe.Announce("The map is open. Reading the map is not built yet. Press M to put it away.", interrupt: false);
@@ -119,6 +125,24 @@ namespace ShroomAccess
                     FocusProbe.Reannounce();
                 }
 
+                if (scope != null && Time.realtimeSinceStartup >= _liveNext)
+                {
+                    _liveNext = Time.realtimeSinceStartup + 0.6f;
+                    List<string> now = ScreenText(scope, 6);
+                    if (_liveScope == ptr)
+                    {
+                        var fresh = new List<string>();
+                        foreach (string part in now) if (!_liveText.Contains(part)) fresh.Add(part);
+                        if (fresh.Count > 0 && fresh.Count <= 3)
+                        {
+                            Log("[screen-change] " + string.Join(" | ", fresh));
+                            FocusProbe.Announce(string.Join(". ", fresh).Replace("!.", "!").Replace("?.", "?"), interrupt: false);
+                        }
+                    }
+                    _liveScope = ptr;
+                    _liveText = now;
+                }
+
                 // A card that needs no target (it acts on you) still waits for a second Enter, with
                 // nothing focused; say so, or the first Enter seems to do nothing.
                 bool target = focus.Mode == FocusMode.Target;
@@ -140,11 +164,11 @@ namespace ShroomAccess
         }
 
         // The words on a screen that are not on its buttons or cards: headings, questions, notes.
-        private static void AnnounceScreen(IFocusScope scope)
+        private static List<string> ScreenText(IFocusScope scope, int limit)
         {
-            Component root = scope.Cast<Il2CppSystem.Object>().TryCast<Component>();
-            if (root == null) return;
             var parts = new List<string>();
+            Component root = scope.Cast<Il2CppSystem.Object>().TryCast<Component>();
+            if (root == null) return parts;
             foreach (TMP_Text t in root.GetComponentsInChildren<TMP_Text>(false))
             {
                 if (t == null || t.GetComponentInParent<Selectable>() != null) continue;
@@ -152,12 +176,23 @@ namespace ShroomAccess
                 if (t.GetComponentInParent<V_GameplayCardInstance>() != null || t.GetComponentInParent<V_ForesightCardInstance>() != null) continue;
                 string text = FocusProbe.Clean(t.text);
                 if (text.Length < 2 || text.Length > 220 || parts.Contains(text)) continue;
-                // The pause menu prints build and session identifiers; nobody needs those read out.
-                if (text.StartsWith("UserID") || text.StartsWith("SessionID") || text.StartsWith("V 0.") || text.StartsWith("V 1.")) continue;
+                // Price tags belong to the cards; the pause menu prints build and session identifiers.
+                if (text.StartsWith("COST") || text.StartsWith("UserID") || text.StartsWith("SessionID") || text.StartsWith("V 0.") || text.StartsWith("V 1.")) continue;
                 parts.Add(text);
-                if (parts.Count == 4) break;
+                if (parts.Count == limit) break;
             }
+            return parts;
+        }
+
+        private static void AnnounceScreen(IFocusScope scope)
+        {
+            List<string> parts = ScreenText(scope, 4);
             if (parts.Count == 0) return;
+            // Coming back to a screen (from the pause menu, or from a step inside it) is not news.
+            string joined = string.Join(" | ", parts);
+            if (joined == _lastScreenText && Time.realtimeSinceStartup - _lastScreenAt < 30f) return;
+            _lastScreenText = joined;
+            _lastScreenAt = Time.realtimeSinceStartup;
             Log("[screen] " + string.Join(" | ", parts));
             var sb = new System.Text.StringBuilder();
             foreach (string part in parts)
