@@ -28,7 +28,11 @@ namespace ShroomAccess
             {
                 bool ctrl = InputBridge.CtrlHeld;
                 foreach (InputActionId id in InputBridge.MappedIds)
-                    if (InputBridge.Key(id)) Log("[key] " + (ctrl ? "Ctrl+" : "") + id);
+                    if (InputBridge.Key(id))
+                    {
+                        InputBridge.LastKeyAt = Time.realtimeSinceStartup;
+                        Log("[key] " + (ctrl ? "Ctrl+" : "") + id);
+                    }
 
                 if (ctrl && InputBridge.NamedKey("b")) Mark(focus);
             }

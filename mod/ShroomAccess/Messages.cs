@@ -52,6 +52,8 @@ namespace ShroomAccess
         private static Component _offerRoot;
         private static bool _wasTarget;
 
+        private static IntPtr _introSaidFor;
+
         internal static void Tick(S_ControllerFocus focus)
         {
             try
@@ -64,7 +66,9 @@ namespace ShroomAccess
                 if (ptr != _lastScope)
                 {
                     _lastScope = ptr;
-                    if (scope != null) AnnounceScreen(scope);
+                    if (scope == null) _introSaidFor = IntPtr.Zero;
+                    if (scope != null && !Rewards.Handles(scope)) AnnounceScreen(scope);
+                    if (scope != null) Rewards.ScreenOpened(scope);
                     if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "BowlShopEncounterUI" && Time.realtimeSinceStartup - _shopSaidAt > 30f && (_shopSaidAt = Time.realtimeSinceStartup) > 0f)
                         FocusProbe.Announce("A shop. Cards are paid for with food. Enter on a card to choose it, then Enter on a food card in your hand and Enter on the bowl to pay.", interrupt: false);
                     if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "S_MapReminder")
@@ -74,11 +78,11 @@ namespace ShroomAccess
                         FocusProbe.Announce(map[0] + ". Control Up reads each area. M puts the map away.", interrupt: false);
                     }
                     string kind = scope != null ? scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name : "";
-                    if (kind.Contains("ModifyCard"))
+                    if (kind.Contains("ModifyCard") && ptr != _introSaidFor)
                     {
                         _introScope = ptr;
                         _introDue = Time.realtimeSinceStartup + 0.8f;
-                        _introGiveUp = Time.realtimeSinceStartup + 8f;
+                        _introGiveUp = Time.realtimeSinceStartup + 2.5f;
                         FocusProbe.SuppressFocusUntil = _introDue + 0.2f;
                     }
                     if (kind.Contains("LootAll") || kind.Contains("CardChoice") || kind.Contains("ForesightChoice"))
@@ -105,13 +109,14 @@ namespace ShroomAccess
                     else
                     {
                         _introDue = 0f;
+                        _introSaidFor = _introScope;
                         if (words.Count > 0)
                         {
                             _liveScope = ptr;
                             _liveText = ScreenText(scope, 6);
                             _lastScreenText = string.Join(" | ", ScreenText(scope, 4));
                             _lastScreenAt = Time.realtimeSinceStartup;
-                            FocusProbe.Announce(string.Join(" ", words) + ". Left and Right choose one of your cards, Enter picks it. Down is No thanks.", interrupt: false);
+                            FocusProbe.Announce(string.Join(" ", words) + ". Left and Right choose one of your cards, Enter picks it. Up is No thanks.", interrupt: false);
                         }
                         FocusProbe.Reannounce();
                     }

@@ -2,6 +2,21 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-12 — Session 03 — seventh playthrough: voices take turns, fights and camps in one line, death screens
+
+- The two voices never speak together: a line asked for with a key is said at once and the walking voice repeats its own afterwards; other lines wait for the walking voice to finish.
+- While walking, things coming into reach make the sound only. They are listed when the walk stops: "You have stopped at a camp. Seen nearby: ...", or "You have stopped. Seen nearby: ...".
+- A fight opens with one line: "Combat started. Enemies: ... Also here: ... Drew N cards." What was seen on the way in is read with "Combat over."
+- Later arrivals in a fight: "Joined the fight: ...".
+- An arrow key is never silenced by a hold; an arrow that moves nothing plays the edge sound.
+- Card-change screens: no eight-second silence after the pause menu; the result says "Enter takes it."; "Up is No thanks".
+- Enemy intents in the buffer: "Will deal 3 damage" (was "Will DEALS 3 DAMAGE").
+- Death: "You have died."; "Space continues."; the page of numbers read in full and held in the Item buffer; a sealed card pack opens with Enter and its cards are read.
+- Pausing, or choosing a target, no longer repeats the whole Nearby list.
+- The first-landing note speaks only in the tutorial forest.
+- Help: two more lines (arrival sounds; death and the card pack).
+- Dev: `die`, `roundup`, `pack`, `polled`.
+
 ## 2026-10-12 — Session 02 — tooling, then the backlog
 
 - Tools: `Snapshot.ps1` (named save copies); dev bridge commands `addcard`, `energy`, `heal`, `killall`, `list`, `focus TEXT`; `Test-Run.ps1` tokens `dev:<command>` and `until:<regex>`.

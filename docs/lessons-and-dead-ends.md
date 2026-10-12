@@ -108,3 +108,14 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **GOTCHA — A buffer's name is spoken before its first line.** A first line that starts with the name says it twice.
 - **DEAD END — Walking forward from the snapshot to find a fight.** The camp must be dealt with first; eighteen seconds of walking reached nothing. To test fight wording, take a snapshot just before a fight during a playthrough.
 - **KEY FINDING — Some instructions are pictures.** A new game opens on a note showing a stick pushed forward, with no text anywhere in the scene. Screen-text hooks cannot find such things; old mark screenshots did.
+
+## From the seventh playthrough [Session 03]
+
+- **KEY FINDING — Two voices need an arbiter, not just two queues.** The walking voice can be asked whether it is speaking; the screen reader cannot, so its speech is timed from the length of the text. Lines the player asked for with a key go first and cut the walking voice, which repeats its line afterwards.
+- **GOTCHA — A hold on speech must have a short, fixed limit and must not cover the arrow keys.** An eight-second "wait for the text" hold, re-armed by returning from the pause menu, made a working screen seem dead.
+- **GOTCHA — The world's focus list shrinks to the valid targets while a target is chosen, and is empty under a menu.** Treating either as "everything left" made the whole Nearby list repeat afterwards.
+- **GOTCHA — Some things answer only to a mouse.** The card pack implements `OnPointerClick` and nothing else; the gamepad cannot reach it. Search the UI tree for a collider or a pointer handler when a screen has no focus at all.
+- **DEAD END — Sending Confirm, EndTurn or Interact as game actions to get past the death words.** None works; the routine polls nothing through `S_InputManager` (`GetActionDown`, `GetAction`, `GetActionUp` and `TryGetAction` were all watched). It must read the device directly. The real Space key works.
+- **GOTCHA — A check that looks for the tutorial object is true in every run.** `S_InitialTutorial` exists and is "active" at the start of any run; the scene name (`PT_T00`) is what marks the tutorial.
+- **GOTCHA — `Test-Run.ps1 -Close` returns before the game has exited.** A deploy or snapshot straight after it fails with "Close Shroom and Gloom first". Wait for the process.
+- **GOTCHA — The far-run save rolls its room again on every load.** Do not count key presses to a target from an earlier replay; step and read the log.

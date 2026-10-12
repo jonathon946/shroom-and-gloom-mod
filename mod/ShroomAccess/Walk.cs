@@ -18,6 +18,8 @@ namespace ShroomAccess
         private static Vector3 _holdFrom;
         private static bool _toldStuck;
 
+        internal static string Scene = "";
+        private static bool _wasBlocked;
         private static bool _noteDone;
         private static float _noteCheckAt;
 
@@ -28,9 +30,13 @@ namespace ShroomAccess
                 bool blocked = !focus.MoveStickWalks;
                 InputBridge.WalkBlocked = blocked;
 
+                // The game has halted the walk while the key is still down.
+                if (blocked && !_wasBlocked && InputBridge.MoveHeld) FocusProbe.Stopped();
+                _wasBlocked = blocked;
+
                 // A new game opens on a hand holding up a note: a picture of a stick pushed forward.
                 // It has no words, so it is said once, until the player has taken a step.
-                if (!_noteDone && !blocked && Time.realtimeSinceStartup > _noteCheckAt)
+                if (!_noteDone && !blocked && Scene.Contains("PT_T00") && Time.realtimeSinceStartup > _noteCheckAt)
                 {
                     _noteCheckAt = Time.realtimeSinceStartup + 1f;
                     S_InitialTutorial tutorial = UnityEngine.Object.FindObjectOfType<S_InitialTutorial>();
@@ -70,7 +76,7 @@ namespace ShroomAccess
                         {
                             _toldStuck = true;
                             Cue.Play(Cue.Edge);
-                            string text = InputBridge.MoveY < 0 ? "Can't go back from here." : "Can't go further this way.";
+                            string text = (InputBridge.MoveY < 0 ? "Can't go back from here." : "Can't go further this way.") + FocusProbe.TakeSeen();
                             Log("[say-direct] " + text);
                             if (Application.isFocused) Speaker.SayDirect(text);
                         }

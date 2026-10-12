@@ -71,6 +71,7 @@ namespace ShroomAccess
             Patch(harmony, typeof(S_InputManager), "GetAction", postfix: nameof(GetActionPostfix));
             Patch(harmony, typeof(S_InputManager), "GetActionUp", postfix: nameof(GetActionUpPostfix));
             Patch(harmony, typeof(S_InputManager), "GetAxis", postfix: nameof(GetAxisPostfix));
+            if (DevBridge.Enabled) Patch(harmony, typeof(S_InputManager), "TryGetAction", postfix: nameof(TryGetActionPostfix));
         }
 
         // Each hook is resolved by name and patched on its own, so one renamed method after a game
@@ -219,6 +220,10 @@ namespace ShroomAccess
         // does, the game sees an arrow only when the navigator forwards one.
         internal static bool NavigatorOwnsArrows;
 
+        // When the player last pressed a key the mod acts on (not the walk keys).
+        internal static float LastKeyAt = -100f;
+        internal static bool JustPressed => Time.realtimeSinceStartup - LastKeyAt < 0.6f;
+
         private static InputActionId _forwarded = InputActionId.None;
         private static int _forwardedFrame;
 
@@ -253,18 +258,29 @@ namespace ShroomAccess
             return false;
         }
 
+        // Dev: which actions the game is asking about right now.
+        internal static readonly System.Collections.Generic.HashSet<string> Polled = new System.Collections.Generic.HashSet<string>();
+
         private static void GetActionDownPostfix(InputActionId actionId, ref bool __result)
         {
+            if (DevBridge.Enabled) Polled.Add("down:" + actionId);
             if (!__result && Enabled) __result = Read(actionId, 0);
         }
 
         private static void GetActionPostfix(InputActionId actionId, ref bool __result)
         {
+            if (DevBridge.Enabled) Polled.Add("held:" + actionId);
             if (!__result && Enabled) __result = Read(actionId, 1);
+        }
+
+        private static void TryGetActionPostfix(InputActionId actionId)
+        {
+            if (DevBridge.Enabled) Polled.Add("try:" + actionId);
         }
 
         private static void GetActionUpPostfix(InputActionId actionId, ref bool __result)
         {
+            if (DevBridge.Enabled) Polled.Add("up:" + actionId);
             if (!__result && Enabled) __result = Read(actionId, 2);
         }
 

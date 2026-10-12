@@ -30,10 +30,12 @@ KEYS
 Up and Down arrows     move between rows: Status, Nearby (or Enemies), Your hand
 Left and Right arrows  move along a row
 Enter                  choose, play, confirm
+                       opens a sealed pack of cards (a reward after a run)
 Backspace              cancel, go back
 Escape                 pause menu
 W and S (hold)         walk forward and back
 Space                  end turn; at a camp, rest for the night
+                       after a death, move through the words on screen
 M                      map
 Tab                    deck
 Control Up and Down    read the next and previous line of the current buffer

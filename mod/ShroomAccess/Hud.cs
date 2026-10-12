@@ -89,7 +89,7 @@ namespace ShroomAccess
                 bool exploring = p.IsInExploreEncounter;
                 if (exploring != _exploring)
                 {
-                    if (exploring && !focus.InCombat) Say("You have stopped at a camp. Cards are dealt; Space ends the turn.");
+                    if (exploring && !focus.InCombat) FocusProbe.CampReached();
                     _exploring = exploring;
                 }
 
@@ -97,7 +97,7 @@ namespace ShroomAccess
                 bool combat = p.IsInCombat;
                 if (combat != _combat)
                 {
-                    Say(combat ? "Combat." : "Combat over.");
+                    if (combat) FocusProbe.CombatStarted(); else FocusProbe.CombatEnded();
                     _combat = combat;
                     _phase = "";
                 }

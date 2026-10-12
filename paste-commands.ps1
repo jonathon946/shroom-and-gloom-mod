@@ -1,4 +1,4 @@
-# Shroom and Gloom accessibility - listening checklist for the Session 02 build (2026-10-12).
+# Shroom and Gloom accessibility - listening checklist for the Session 03 build (2026-10-12).
 #
 # There is nothing to run here except starting the game. Either start it from Steam as usual,
 # or run this file, which starts it for you:
@@ -19,34 +19,35 @@
 #   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player, Surroundings, Messages, Help
 #   Ctrl+Page Up / Down     walking voice faster / slower
 #
-# CHECKLIST (Session 02 build) - report by letter, as far as you get.
-# Your far run is back: Continue resumes it at a camp with a Grimoire.
+# CHECKLIST (Session 03 build) - report by letter, as far as you get.
+# Your save is as you left it: no run in progress, so the title offers New Run.
 #
-#   A. Help. Ctrl+Right four times reaches the Help buffer; Ctrl+Up reads on. Is anything
-#      missing, wrong, or too long?
+#   A. The two voices. Do they ever talk over each other now? If they do, mark it (Ctrl+B) and
+#      tell me which one started second. If the walking voice waits too long after NVDA has
+#      finished, or starts before NVDA has finished, tell me which.
 #
-#   B. The Grimoire (or a Strange Geode or Practice Dummy). You should hear the message first,
-#      then your cards. Enter on a card, Enter on the panel. Then: "The card is now: ...
-#      Enter takes it. Left is No thanks."
+#   B. Walking. Things coming into reach should make the sound and nothing else. When you stop
+#      at a camp: "You have stopped at a camp. Seen nearby: ..." Is that enough, or do you miss
+#      hearing things as you pass?
 #
-#   C. In a fight, an enemy should say "Will attack for 5" or "Will block 3" in place of
-#      "Intends Deal Damage 5".
+#   C. A fight starting: one line, "Combat started. Enemies: ... Drew 4 cards", then the card
+#      you are on. After the fight: "Combat over. Seen nearby: ..."
 #
-#   D. When you have a status on yourself (Burning Sensation or any other): Ctrl+Right to the
-#      Player buffer, Ctrl+Up through it. The status should be listed with what it does.
+#   D. A Grimoire, Strange Geode or Practice Dummy: message, then your cards. Enter on a card
+#      says "Choose a target ... Enter applies it". Enter again: "The card is now: ... Enter
+#      takes it." No silent step. Arrows on that last screen make the edge sound.
 #
-#   E. Still unheard from last time: in a fight, the Enemies row holds only enemies; arriving
-#      somewhere busy gives one grouped "Nearby:" line; an enemy status ends with what it does.
+#   E. Ctrl+Up on an enemy: "Will deal 3 damage" (not "will deals").
 #
-#   F. A shop: each card says "For sale", its price, and its place ("top row, 2 of 4").
-#      Enter on a card; the mole says how much food. Your hand is then "Your food".
-#      Enter on a food card, Enter on the bowl. Repeat until paid. Mark each unclear step.
+#   F. Dying. You should hear "You have died", then words and "Space continues". Space until
+#      the page of numbers is read. If a quest finished: "A sealed pack of cards. Enter opens
+#      it", then the cards, then Enter on "Woo". Then Enter on Continue. Tell me where that
+#      leaves you, and whether Enter also works where I say Space.
 #
-#   G. The map (M). The first line gives the number of areas and where you are; Ctrl+Up reads
-#      each area. Does M close it again?
+#   G. Still unheard: a shop ("For sale", price, "top row, 2 of 4"; Enter on a card, then pay
+#      with food cards on the bowl), and the map (M; Ctrl+Up reads each area; does M close it?).
 #
-#   H. Only if you start a new run: the class screen should say "locked" on the two locked
-#      characters. (A brand-new game also says "A hand holds up a note..." at the very start.)
+#   H. On the class screen the two locked characters should say "locked".
 #
 #   Keep marking with Ctrl+B anywhere sound happens with no speech.
 #

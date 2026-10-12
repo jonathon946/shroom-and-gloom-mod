@@ -12,7 +12,8 @@ The mod does not invent its own navigation. The game already has a full set of g
 - **Ctrl+Right / Ctrl+Left:** next / previous buffer: Item, Player, Surroundings, Messages, Help. Moving focus returns to Item. The Help buffer lists these keys in the game; `mod/README.txt` carries the same list for players and must be kept in step.
 - **Ctrl+Page Up / Ctrl+Page Down:** walking voice faster / slower.
 - **Ctrl+B:** drop a mark for later review (says "Mark 1", and so on).
-- **Space:** end turn; in camp, rest for the night.
+- **Space:** end turn; in camp, rest for the night. After a death, Space moves through the words on screen.
+- **Enter on a sealed card pack** (a quest reward after a run): opens it. The game itself opens it only on a mouse click.
 - **Enter** (main or numpad): confirm. On a card in hand it starts a cast; on a target it casts; on a button it presses it.
 - **Backspace:** cancel or back.
 - **Escape:** pause menu.

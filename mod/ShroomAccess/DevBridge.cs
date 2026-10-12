@@ -101,6 +101,28 @@ namespace ShroomAccess
                             Player().CMDAddCardByName(arg);
                             Log("[dev] addcard " + arg);
                             break;
+                        case "polled":
+                            Log("[dev] polled " + string.Join(" ", InputBridge.Polled));
+                            InputBridge.Polled.Clear();
+                            break;
+                        case "roundup":
+                        {
+                            Il2Cpp.RoundUpUIManager roundUp = UnityEngine.Object.FindObjectOfType<Il2Cpp.RoundUpUIManager>(true);
+                            if (roundUp != null) roundUp.ShowRoundUp();
+                            Log("[dev] roundup " + (roundUp != null));
+                            break;
+                        }
+                        case "die":
+                            Player().CMDDie();
+                            Log("[dev] die");
+                            break;
+                        case "pack":
+                        {
+                            Il2Cpp.CardUnlockPack pack = UnityEngine.Object.FindObjectOfType<Il2Cpp.CardUnlockPack>();
+                            if (pack != null) pack.OnPointerClick(new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current));
+                            Log("[dev] pack " + (pack != null ? "clicked enabled=" + pack.EnabledForClick : "none"));
+                            break;
+                        }
                         case "energy":
                             Player().AddEnergy(int.Parse(arg));
                             Log("[dev] energy +" + arg);

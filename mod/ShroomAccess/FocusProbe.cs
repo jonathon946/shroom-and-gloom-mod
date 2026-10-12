@@ -16,6 +16,11 @@ namespace ShroomAccess
         internal static Action<string> Log = _ => { };
 
         private static IntPtr _lastFocus;
+        private static IntPtr _lastLoggedFocus;
+        private static float _flickerUntil;
+        private static float _arrowAt;
+        private static IntPtr _arrowFrom;
+        private static string _arrowValue = "";
         private static string _lastState;
         private static bool _bindingsDumped;
         private static IntPtr _lastSelected;
@@ -88,6 +93,8 @@ namespace ShroomAccess
                 WatchDoors();
                 AnnounceHandChanges(focus);
                 Hud.AnnounceChanges(focus);
+                Rewards.Tick(focus);
+                Summaries(focus);
                 AltText.Tick();
                 FlushHeld();
 
@@ -112,6 +119,25 @@ namespace ShroomAccess
 
                 Il2CppSystem.Object current = focus.CurrentFocus;
                 IntPtr ptr = current != null ? current.Pointer : IntPtr.Zero;
+                if (!InputBridge.NavigatorOwnsArrows && !InputBridge.CtrlHeld && ptr != IntPtr.Zero && !Navigator.InStatusRow
+                    && (InputBridge.Key(InputActionId.FocusPrev) || InputBridge.Key(InputActionId.FocusNext) || InputBridge.Key(InputActionId.FocusUp) || InputBridge.Key(InputActionId.FocusDown)))
+                {
+                    _arrowAt = Time.realtimeSinceStartup;
+                    _arrowFrom = ptr;
+                    _arrowValue = LiveValue(current);
+                }
+                // Applying a card change makes the game's focus skip across three things in a second.
+                if (mode == FocusMode.Target && TypeName(focus.Scope).Contains("ModifyCard") && InputBridge.Key(InputActionId.Confirm))
+                    _flickerUntil = Time.realtimeSinceStartup + 1.6f;
+                if (_arrowAt > 0f && Time.realtimeSinceStartup - _arrowAt > 0.25f)
+                {
+                    if (ptr == _arrowFrom && LiveValue(current) == _arrowValue && Time.realtimeSinceStartup >= SuppressFocusUntil)
+                    {
+                        Log("[cue] edge: the arrow moved nothing");
+                        Cue.Play(Cue.Edge);
+                    }
+                    _arrowAt = 0f;
+                }
                 if (ptr == _lastFocus)
                 {
                     // Same control, new value: the player has just adjusted it.
@@ -127,13 +153,14 @@ namespace ShroomAccess
                 _lastFocus = ptr;
                 if (current == null)
                 {
+                    _lastLoggedFocus = IntPtr.Zero;
                     Log("[focus] none");
                     _lastZone = "";
                     return;
                 }
 
                 string line = Describe(current, out string detail);
-                Log("[focus] " + TypeName(current) + " | " + detail);
+                if (ptr != _lastLoggedFocus) { _lastLoggedFocus = ptr; Log("[focus] " + TypeName(current) + " | " + detail); }
                 Navigator.FocusChanged();
                 Navigator.VirtualSubject = null;
                 // Looking the thing up notes it if it has no appearance description yet.
@@ -164,7 +191,12 @@ namespace ShroomAccess
                     if (button != null && button.gameObject.name == "Take It Button")
                     {
                         string result = Messages.ModifyResult(focus, button);
-                        if (!string.IsNullOrWhiteSpace(result)) spoken = "The card is now: " + result.TrimEnd('.', ' ') + ". Enter takes it. Left is No thanks.";
+                        if (!string.IsNullOrWhiteSpace(result)) 
+                        {
+                            GameObject decline = GameObject.Find("No Thanks Button");
+                            spoken = "The card is now: " + result.TrimEnd('.', ' ') + ". Enter takes it."
+                                + (decline != null && decline.activeInHierarchy ? " Left is No thanks." : "");
+                        }
                     }
                 }
                 if (zone == "shop")
@@ -177,7 +209,7 @@ namespace ShroomAccess
                     Navigator.RowPosition(focus, current, out int index, out int count);
                     if (count > 1) spoken = spoken.TrimEnd('.', ' ') + ", " + index + " of " + count;
                 }
-                if (Time.realtimeSinceStartup < SuppressFocusUntil)
+                if ((Time.realtimeSinceStartup < SuppressFocusUntil && !InputBridge.JustPressed) || Time.realtimeSinceStartup < _flickerUntil)
                 {
                     if (_suppressedLogged != ptr) { _suppressedLogged = ptr; Log("[suppressed] " + spoken); }
                     _lastFocus = IntPtr.Zero;
@@ -258,8 +290,13 @@ namespace ShroomAccess
         {
             WorldFocusCandidates world = focus.WorldFocusCandidates;
             int n = world != null ? world.Count : 0;
-            if (n == 0) { _knownNearby.Clear(); return; }
+            // An empty list is a menu over the world, not the world emptied: keep what is known.
+            if (n == 0) return;
+            // While a target is being chosen the list holds only what the card can be used on.
+            if (focus.Mode == FocusMode.Target) return;
             var fresh = new List<string>();
+            var freshOthers = new List<string>();
+            var freshEnemies = new List<string>();
             var now = new HashSet<IntPtr>();
             for (int i = 0; i < n; i++)
             {
@@ -270,14 +307,33 @@ namespace ShroomAccess
                 V_SpellReceiverDoor door = t.Cast<Il2CppSystem.Object>().TryCast<V_SpellReceiverDoor>();
                 if (door != null && !_doors.ContainsKey(t.Pointer)) { _doors[t.Pointer] = door; _doorOpen[t.Pointer] = Safe(() => door.Door.IsUnlockedAndOpen()); }
                 if (_knownNearby.Contains(t.Pointer)) continue;
-                string name = Describe(t, out _);
-                int stop = name.IndexOf('.');
-                fresh.Add(stop > 0 ? name.Substring(0, stop) : name);
+                string name = FirstSentence(Describe(t, out _));
+                fresh.Add(name);
+                if (t.Cast<Il2CppSystem.Object>().TryCast<V_Enemy>() != null) freshEnemies.Add(name);
+                else if (_seenEver.Add(t.Pointer)) freshOthers.Add(name);
             }
             _knownNearby.Clear();
             foreach (IntPtr ptr in now) _knownNearby.Add(ptr);
             if (fresh.Count == 0 || focus.Mode == FocusMode.Target) return;
+
+            float time = Time.realtimeSinceStartup;
+            if (_inFight)
+            {
+                // The opening line names who is there; later arrivals have joined.
+                _seen.AddRange(freshOthers);
+                if (time - _combatStartAt < CombatOpening || freshEnemies.Count == 0) return;
+                Cue.Play(Cue.Arrival);
+                Announce("Joined the fight: " + Group(freshEnemies) + ".", interrupt: false, holdWhileWalking: true);
+                return;
+            }
             Cue.Play(Cue.Arrival);
+            // On the move, or with a summary about to be given, the sound is enough.
+            if (InputBridge.MoveHeld || time - _lastWalkAt < 1.5f || _summaryDue > 0f)
+            {
+                _seen.AddRange(freshOthers);
+                Log("[seen] " + string.Join(", ", fresh));
+                return;
+            }
             Announce("Nearby: " + string.Join(", ", fresh) + ".", interrupt: false, holdWhileWalking: true);
             _protectUntil = Time.realtimeSinceStartup + 1.5f;
         }
@@ -525,11 +581,26 @@ namespace ShroomAccess
                     string text = null;
                     if (!brief) text = Safe(() => pair.Intent.GetIntentToolTipText("ShroomAccess", pair, m.StatusEffects));
                     if (string.IsNullOrWhiteSpace(text)) text = label + (pair.ModifiedNumber != 0 ? " " + pair.ModifiedNumber : "");
+                    else text = AfterWill(Clean(text));
                     list.Add(Clean(text));
                 }
             }
             catch (Exception ex) { Log("[enemy] intents: " + ex.Message); }
             return list;
+        }
+
+        // The game words what an enemy will do as "DEALS 3 DAMAGE", "SHIELDS SELF". After "Will"
+        // that needs the plain verb.
+        private static string AfterWill(string sentence)
+        {
+            string s = sentence.Trim().TrimEnd('.').ToLowerInvariant();
+            if (s.StartsWith("will ")) s = s.Substring(5);
+            int space = s.IndexOf(' ');
+            string verb = space > 0 ? s.Substring(0, space) : s;
+            string rest = space > 0 ? s.Substring(space) : "";
+            if (verb.EndsWith("ies") && verb.Length > 4) verb = verb.Substring(0, verb.Length - 3) + "y";
+            else if (verb.EndsWith("s") && !verb.EndsWith("ss") && verb.Length > 3) verb = verb.Substring(0, verb.Length - 1);
+            return verb + rest;
         }
 
         internal static List<string> EnemyStatuses(M_Enemy m)
@@ -736,7 +807,7 @@ namespace ShroomAccess
             if (string.IsNullOrEmpty(raw)) return "";
             string s = raw.Replace("(Clone)", "").Replace("EncounterWorldObject", "").Replace("WorldObject", "")
                 .Replace(" Encounter", "").Replace("PT ", "").Replace("Choice", "")
-                .Replace("UI_PathSeletion_", "").Replace("RawImage_", "").Replace("_BG", "").Replace("_", " ").Trim();
+                .Replace("UI_PathSeletion_", "").Replace("Button_", "").Replace("RawImage_", "").Replace("_BG", "").Replace("_", " ").Trim();
             var sb = new StringBuilder(s.Length + 8);
             for (int i = 0; i < s.Length; i++)
             {
@@ -851,6 +922,17 @@ namespace ShroomAccess
         internal static void Announce(string text, bool interrupt = true, bool holdWhileWalking = false)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
+            if (!interrupt && Time.realtimeSinceStartup - _combatStartAt < CombatOpening)
+            {
+                // The opening line of a fight names the enemies; the turn and the energy go without saying.
+                if (text.StartsWith("Nearby:") || text.StartsWith("Energy ") || text.StartsWith("New turn") || text.StartsWith("Your turn"))
+                {
+                    Log("[folded] " + text);
+                    return;
+                }
+                // The hand is dealt: let the card under the cursor be read after this line.
+                if (text.StartsWith("Drew ")) SuppressFocusUntil = Mathf.Min(SuppressFocusUntil, Time.realtimeSinceStartup + 0.8f);
+            }
             if (!interrupt)
             {
                 // Things that happen together (a fight starting, cards dealt, enemies appearing)
@@ -863,7 +945,136 @@ namespace ShroomAccess
             FlushBatch(force: true);
             Log("[say] " + text);
             Remember(text);
-            if (Application.isFocused) Speaker.Say(text, Time.realtimeSinceStartup > _protectUntil);
+            if (Application.isFocused) Speaker.Say(text, Time.realtimeSinceStartup > _protectUntil, asked: InputBridge.JustPressed);
+        }
+
+        // ---- Arrivals, fights and camps ----
+        // Walking: things coming into reach make the arrival sound and are remembered, not spoken.
+        // Stopping at a camp: one line says what was seen. A fight: one line names the enemies, and
+        // what was seen on the way in is kept until the fight is over.
+        private const float CombatOpening = 4.5f;
+        private static readonly List<string> _seen = new List<string>();
+        // Things already counted towards a summary; a thing that drops out of reach and comes back is not listed twice.
+        private static readonly HashSet<IntPtr> _seenEver = new HashSet<IntPtr>();
+        private static float _combatStartAt = -100f;
+        private static bool _combatLinePending;
+        private static bool _inFight;
+        private static float _summaryDue;
+        private static string _summaryLead = "";
+        private static string _summaryTail = "";
+        private static float _lastWalkAt = -100f;
+
+        internal static void SceneChanged()
+        {
+            _seen.Clear();
+            _seenEver.Clear();
+            _knownNearby.Clear();
+            _summaryDue = 0f;
+            _combatLinePending = false;
+            _inFight = false;
+        }
+
+        // The game has stopped the walk at something that is not a camp (an offer on the path, a
+        // closed way). Said only when there is something to list.
+        internal static void Stopped()
+        {
+            if (_inFight || _summaryDue > 0f) return;
+            _summaryLead = "You have stopped.";
+            _summaryTail = "";
+            _summaryDue = Time.realtimeSinceStartup + 1.2f;
+        }
+
+        // What has been seen since the last summary, for a line that is being said anyway.
+        internal static string TakeSeen()
+        {
+            if (_seen.Count == 0 || _inFight) return "";
+            string text = " Seen nearby: " + Group(_seen) + ".";
+            _seen.Clear();
+            return text;
+        }
+
+        internal static void CampReached()
+        {
+            if (_summaryDue > 0f && _summaryLead.StartsWith("Combat over")) _summaryLead += " You have stopped at a camp.";
+            else _summaryLead = "You have stopped at a camp.";
+            _summaryTail = "Cards are dealt; Space ends the turn.";
+            _summaryDue = Time.realtimeSinceStartup + 1f;
+        }
+
+        internal static void CombatStarted()
+        {
+            _inFight = true;
+            _combatStartAt = Time.realtimeSinceStartup;
+            _combatLinePending = true;
+            _summaryDue = 0f;
+            SuppressFocusUntil = Time.realtimeSinceStartup + CombatOpening;
+            // Lines gathered a moment ago that the opening line replaces.
+            _batch.RemoveAll(l => l.StartsWith("Nearby:") || l.StartsWith("Energy ") || l.StartsWith("New turn") || l.StartsWith("Your turn"));
+        }
+
+        internal static void CombatEnded()
+        {
+            _inFight = false;
+            _combatLinePending = false;
+            _summaryLead = "Combat over.";
+            _summaryTail = "";
+            _summaryDue = Time.realtimeSinceStartup + 1.2f;
+        }
+
+        // "Door, Door, Chest" -> "2 Doors, Chest"
+        internal static string Group(IEnumerable<string> things)
+        {
+            var names = new List<string>();
+            var counts = new Dictionary<string, int>();
+            foreach (string raw in things)
+            {
+                string name = raw.Trim();
+                if (name.Length == 0) continue;
+                if (!counts.ContainsKey(name)) { counts[name] = 0; names.Add(name); }
+                counts[name]++;
+            }
+            var parts = new List<string>();
+            foreach (string name in names)
+                parts.Add(counts[name] == 1 ? name : counts[name] + " " + (name.EndsWith("s") ? name : name.EndsWith("x") || name.EndsWith("ch") ? name + "es" : name + "s"));
+            return string.Join(", ", parts);
+        }
+
+        private static string FirstSentence(string line)
+        {
+            int stop = line.IndexOf('.');
+            return stop > 0 ? line.Substring(0, stop) : line;
+        }
+
+        private static void Summaries(S_ControllerFocus focus)
+        {
+            float now = Time.realtimeSinceStartup;
+            if (InputBridge.MoveHeld) _lastWalkAt = now;
+
+            // Wait a moment for the enemies to step in, and for the walk key to be let go so the
+            // screen reader can say it; if the key stays down the walking voice says it instead.
+            if (_combatLinePending && ((now >= _combatStartAt + 1.2f && !InputBridge.MoveHeld) || now >= _combatStartAt + 3f))
+            {
+                _combatLinePending = false;
+                var enemies = new List<string>();
+                var others = new List<string>();
+                foreach (IControllerFocusTarget t in Navigator.NearbyInOrder(focus))
+                {
+                    string name = FirstSentence(Describe(t, out _));
+                    if (t.Cast<Il2CppSystem.Object>().TryCast<V_Enemy>() != null) enemies.Add(name); else others.Add(name);
+                }
+                Announce("Combat started."
+                    + (enemies.Count > 0 ? " Enemies: " + Group(enemies) + "." : "")
+                    + (others.Count > 0 ? " Also here: " + Group(others) + "." : ""), interrupt: false);
+            }
+
+            if (_summaryDue > 0f && now >= _summaryDue && !_inFight)
+            {
+                _summaryDue = 0f;
+                if (_seen.Count == 0 && _summaryLead == "You have stopped.") return;
+                string line = _summaryLead + (_seen.Count > 0 ? " Seen nearby: " + Group(_seen) + "." : "") + " " + _summaryTail;
+                _seen.Clear();
+                Announce(line.Trim(), interrupt: false);
+            }
         }
 
         private static readonly List<string> _batch = new List<string>();

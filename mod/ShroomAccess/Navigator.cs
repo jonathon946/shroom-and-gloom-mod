@@ -300,6 +300,8 @@ namespace ShroomAccess
             "A card with no target is played by pressing Enter twice",
             "Backspace cancels or goes back. Escape opens the pause menu",
             "Hold W to walk forward and S to walk back. A second voice speaks while you walk",
+            "While you walk, a sound marks each thing that comes into reach. They are listed when you stop at a camp, and after a fight",
+            "When you die, Space moves through the words on screen. A sealed pack of cards is opened with Enter",
             "Space ends your turn. At a camp, Space rests for the night and refills your energy",
             "M opens and closes the map. With the map open, Control Up reads each area",
             "Tab opens your deck. I inspects. O sorts your hand",
@@ -407,6 +409,8 @@ namespace ShroomAccess
                     }
                     // With the map held up, the thing being looked at is the map.
                     if (focus.Scope != null && focus.Scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "S_MapReminder") return MapReader.Lines();
+                    List<string> stats = Rewards.StatLines(focus.Scope);
+                    if (stats != null) return stats;
                     Il2CppSystem.Object subject = VirtualSubject ?? focus.CurrentFocus;
                     if (subject == null) return new List<string> { "Nothing focused" };
                     return FocusProbe.DetailLines(subject);

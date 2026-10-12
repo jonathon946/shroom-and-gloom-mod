@@ -26,6 +26,7 @@ namespace ShroomAccess
             Hud.Log = msg => LoggerInstance.Msg(msg);
             Walk.Log = msg => LoggerInstance.Msg(msg);
             MapReader.Log = msg => LoggerInstance.Msg(msg);
+            Rewards.Log = msg => LoggerInstance.Msg(msg);
             CardPlay.Log = msg => LoggerInstance.Msg(msg);
             TextWatch.Log = msg => LoggerInstance.Msg(msg);
             Review.Log = msg => LoggerInstance.Msg(msg);
@@ -56,6 +57,9 @@ namespace ShroomAccess
         public override void OnSceneWasInitialized(int buildIndex, string sceneName)
         {
             LoggerInstance.Msg("Scene initialised: " + buildIndex + " " + sceneName);
+            Walk.Scene = sceneName ?? "";
+            FocusProbe.SceneChanged();
+            if (Walk.Scene.Contains("DeathWorld")) FocusProbe.Announce("You have died.", interrupt: false);
             if (_greeted || !Speaker.Ready) return;
             if (sceneName == null || sceneName.IndexOf("Title", StringComparison.OrdinalIgnoreCase) < 0) return;
             _greeted = true;
