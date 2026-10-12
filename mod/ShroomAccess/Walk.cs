@@ -32,7 +32,11 @@ namespace ShroomAccess
                     string why = focus.InCombat ? " You are in a fight."
                         : p != null && p.IsInExploreEncounter ? " Use your cards on what is nearby, or press Space to end the turn."
                         : " Something nearby needs dealing with first.";
-                    FocusProbe.Speak("Can't walk right now." + why);
+                    // In the voice a held key cannot silence: the player is very likely still holding W.
+                    string blockedText = "Can't walk right now." + why;
+                    Log("[say-direct] " + blockedText);
+                    Cue.Play(Cue.Edge);
+                    if (Application.isFocused) Speaker.SayDirect(blockedText, interrupt: true);
                     return;
                 }
 

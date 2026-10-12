@@ -25,6 +25,25 @@ namespace ShroomAccess
         private static float _protectUntil;
         private static readonly HashSet<IntPtr> _knownNearby = new HashSet<IntPtr>();
         private static readonly Dictionary<IntPtr, bool> _doorOpen = new Dictionary<IntPtr, bool>();
+        private static readonly Dictionary<IntPtr, V_SpellReceiverDoor> _doors = new Dictionary<IntPtr, V_SpellReceiverDoor>();
+
+        private static void WatchDoors()
+        {
+            var gone = new List<IntPtr>();
+            foreach (var pair in _doors)
+            {
+                V_SpellReceiverDoor door = pair.Value;
+                bool alive = false, open = false;
+                try { alive = door != null && door.gameObject != null; if (alive) open = door.Door.IsUnlockedAndOpen(); } catch { alive = false; }
+                if (!alive) { gone.Add(pair.Key); continue; }
+                if (open && !_doorOpen[pair.Key])
+                {
+                    _doorOpen[pair.Key] = true;
+                    Announce("The door is open. You can walk on.", interrupt: false, holdWhileWalking: true);
+                }
+            }
+            foreach (IntPtr key in gone) { _doors.Remove(key); _doorOpen.Remove(key); }
+        }
         private static readonly InputActionId[] ActionIds =
         {
             InputActionId.Confirm, InputActionId.Cancel, InputActionId.Pause, InputActionId.EndTurn,
@@ -65,6 +84,7 @@ namespace ShroomAccess
                 Walk.Tick(focus);
                 CardPlay.Tick(focus);
                 AnnounceArrivals(focus);
+                WatchDoors();
                 AnnounceHandChanges(focus);
                 Hud.AnnounceChanges(focus);
                 AltText.Tick();
@@ -185,13 +205,7 @@ namespace ShroomAccess
                 if (t == null) continue;
                 now.Add(t.Pointer);
                 V_SpellReceiverDoor door = t.Cast<Il2CppSystem.Object>().TryCast<V_SpellReceiverDoor>();
-                if (door != null)
-                {
-                    bool open = Safe(() => door.Door.IsUnlockedAndOpen());
-                    if (_doorOpen.TryGetValue(t.Pointer, out bool was) && open && !was)
-                        Announce("The door is open. You can walk on.", interrupt: false, holdWhileWalking: true);
-                    _doorOpen[t.Pointer] = open;
-                }
+                if (door != null && !_doors.ContainsKey(t.Pointer)) { _doors[t.Pointer] = door; _doorOpen[t.Pointer] = Safe(() => door.Door.IsUnlockedAndOpen()); }
                 if (_knownNearby.Contains(t.Pointer)) continue;
                 string name = Describe(t, out _);
                 int stop = name.IndexOf('.');

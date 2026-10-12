@@ -31,7 +31,10 @@ namespace ShroomAccess
             try
             {
                 FocusMode mode = focus.Mode;
-                bool rows = focus.Scope == null && (mode == FocusMode.Free || IsWorld(mode) || IsHand(mode));
+                // A screen that offers nothing to focus (the map held up, a chest still rising) leaves
+                // the player with no row at all unless the status row stays reachable.
+                bool idleScreen = focus.Scope != null && mode == FocusMode.Suppressed;
+                bool rows = (focus.Scope == null && (mode == FocusMode.Free || IsWorld(mode) || IsHand(mode))) || idleScreen;
                 InputBridge.NavigatorOwnsArrows = rows;
                 if (!rows) _inStatus = false;
 
@@ -57,6 +60,8 @@ namespace ShroomAccess
 
                 int world = focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0;
                 int hand = HeldCount(focus);
+
+                if (idleScreen && !_inStatus) { EnterStatus(focus); return; }
 
                 if (_inStatus)
                 {

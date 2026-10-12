@@ -19,14 +19,27 @@ namespace ShroomAccess
             _next = Time.realtimeSinceStartup + 0.25f;
             try
             {
+                Vector3? player = null;
+                if (S_ControllerFocus.TryGetFocus(out S_ControllerFocus focus) && focus != null && focus.Player != null)
+                    player = focus.Player.transform.position;
+
                 foreach (ProximityFocusGate gate in UnityEngine.Object.FindObjectsOfType<ProximityFocusGate>())
                 {
                     if (gate == null || gate._seen) continue;
                     EncounterStartWorldObject obj = gate._focusOnSeenBehaviour;
                     if (obj == null) obj = gate.GetComponent<EncounterStartWorldObject>();
-                    if (obj == null || !obj.PlayerInRange || !obj.CanInteract) continue;
+                    if (obj != null)
+                    {
+                        if (!obj.PlayerInRange || !obj.CanInteract) continue;
+                    }
+                    else
+                    {
+                        // Other gated things (a chest that rises from the ground) have no range of
+                        // their own to ask; use distance from the player.
+                        if (player == null || (gate.transform.position - player.Value).sqrMagnitude > 10f * 10f) continue;
+                    }
                     gate._seen = true;
-                    Log("[assist] marked seen: " + obj.gameObject.name);
+                    Log("[assist] marked seen: " + gate.gameObject.name);
                 }
             }
             catch (Exception ex)

@@ -38,6 +38,8 @@ namespace ShroomAccess
 
         private static IntPtr _lastScope;
         private static float _offerDue;
+        private static float _offerGiveUp;
+        private static bool _offerWaitSaid;
         private static string _offerKind = "";
         private static Component _offerRoot;
         private static bool _wasTarget;
@@ -55,6 +57,8 @@ namespace ShroomAccess
                 {
                     _lastScope = ptr;
                     if (scope != null) AnnounceScreen(scope);
+                    if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "S_MapReminder")
+                        FocusProbe.Announce("The map is open. Reading the map is not built yet. Press M to put it away.", interrupt: false);
                     string kind = scope != null ? scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name : "";
                     if (kind.Contains("LootAll") || kind.Contains("CardChoice") || kind.Contains("ForesightChoice"))
                     {
@@ -63,6 +67,8 @@ namespace ShroomAccess
                         _offerKind = kind;
                         _offerRoot = scope.Cast<Il2CppSystem.Object>().TryCast<Component>();
                         _offerDue = Time.realtimeSinceStartup + 1.4f;
+                        _offerGiveUp = Time.realtimeSinceStartup + 25f;
+                        _offerWaitSaid = false;
                         FocusProbe.SuppressFocusUntil = _offerDue;
                     }
                 }
@@ -83,6 +89,19 @@ namespace ShroomAccess
                             IV_CardInstance iv = c != null ? c.Cast<Il2CppSystem.Object>().TryCast<IV_CardInstance>() : null;
                             if (iv != null && iv.IModel != null) names.Add(iv.IModel.CardName);
                         }
+                    }
+                    // A chest can take several seconds to rise and deal. Keep looking until the cards
+                    // are there, and tell the player to wait, or the screen seems dead.
+                    if (names.Count == 0 && focus.Scope != null && Time.realtimeSinceStartup < _offerGiveUp)
+                    {
+                        if (!_offerWaitSaid)
+                        {
+                            _offerWaitSaid = true;
+                            FocusProbe.Announce("Wait: the cards are still being dealt. Stay in the game window until they are read.", interrupt: false);
+                        }
+                        _offerDue = Time.realtimeSinceStartup + 0.5f;
+                        FocusProbe.SuppressFocusUntil = _offerDue;
+                        return;
                     }
                     // One card on offer is read by its own focus line; only a spread needs introducing.
                     if (names.Count > 1)

@@ -2,6 +2,16 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-12 — Session 01, part 13 — fourth playthrough
+
+- "Can't walk right now" is spoken in the walking voice with the edge sound, so holding W does not cut it.
+- "The door is open. You can walk on." now fires when the opened door has left the nearby row.
+- On a screen with nothing to focus, the arrows reach the status row.
+- Offers wait for their cards (up to 25 seconds) and say "Wait: the cards are still being dealt."
+- Things gated behind a camera look that are not encounter objects (a rising chest) are made focusable within ten units.
+- "The map is open. Reading the map is not built yet. Press M to put it away."
+- One-time description of the logo and the three doorways on the title screen.
+
 ## 2026-10-11 — Session 01, part 12 — fixes from 23 marks
 
 - `Walk`: W and S never step the focus; "Can't walk right now" with the reason when the game blocks walking; an edge sound and "Can't go further this way" when a held walk key moves nothing.
