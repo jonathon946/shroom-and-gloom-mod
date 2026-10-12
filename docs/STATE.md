@@ -1,4 +1,4 @@
-> **Status:** Evergreen (rolling single source of truth; edited in place at every close). **Last updated:** 2026-10-11, Session 01 (part 7). Three ear tests done. The walking voice and arrival sound are confirmed by ear. Fixed after the third test and waiting for a listen: arrow keys no longer walk, and Ctrl+arrows no longer move the menu cursor. Next: the torch and hazards, a surroundings buffer, then first combat.
+> **Status:** Evergreen (rolling single source of truth; edited in place at every close). **Last updated:** 2026-10-11, Session 01 (part 8). Four ear tests done; rows, buffers, walking voice, Escape all confirmed by ear. Built since and waiting for a listen: full card text, hazards and doors by their real names and signs, the warmth and threat readout, turn, energy and health announcements, and a first pass at combat (enemy names, health, intents, statuses, hits and deaths, whose turn). Dev replays have played from the title through the first fight. Next: listen, then the surroundings buffer, the map, deck view, rewards after a fight.
 
 # Current state — Shroom and Gloom accessibility
 
@@ -21,7 +21,7 @@ Not built yet: combat, the map, deck view, inspect and keyword explanations, hea
 
 ## Resume point
 
-1. **Maintainer's third listen** (run sheet in `paste-commands.ps1`): rows, the status row, the buffers, held announcements, and the torch.
+1. **Maintainer's listen through the first fight** (run sheet in `paste-commands.ps1`).
 2. Then, in order: health/energy/hand query keys; keyword explanations from the game's tooltip registry; the hazard ("Torch Hazard Off") just past the tutorial door; first combat.
 3. Before any of that, if the game build has changed: regenerate `reference/` and re-check the hooks listed in the log at start ("Hooked ..." lines).
 
@@ -41,6 +41,9 @@ Not built yet: combat, the map, deck view, inspect and keyword explanations, hea
 - **Dev bridge must be off in a release:** it is enabled only by `UserData\ShroomAccess\dev.flag`, which exists on this machine. Do not ship that file.
 - **Distribution** (maintainer asked 2026-10-11): the game has no Steam Workshop support, so the route is a public download plus an update check inside the mod. Design and build that at the packaging stage; the repository is private today.
 - **Walking and speech** (decided with the maintainer, part 6): lines that arrive while a walk key is held are spoken at once through a direct Windows voice (OneCore, else SAPI) that the screen reader cannot cancel, with a two-note sound on arrival. The voice's rate starts from NVDA's configured rate and is adjusted with Ctrl+Page Up / Ctrl+Page Down. The rate match is approximate: this machine's NVDA uses the Eloquence synthesizer, whose rate number does not mean the same speed in a Windows voice. A walk toggle was considered and dropped as the default.
+- **What the game is, as learned so far** (the maintainer knows nothing of it; keep this current): you walk a path forward and back. Things on the path take cards from your explore hand: a shovel digs, a key unlocks, a match lights or reveals, a hammer fixes or breaks. Lighting a torch makes camp: warmth against threat ("Safe for 3"), and ending the turn there (Space) rests for the night and refills energy. Doors carry a sign saying what lies behind. A backpack gives the explore deck. Fights use a separate combat deck; enemies stand in lanes, show what they intend, and you spend energy on cards, then end the turn.
+- **Enemy intent wording** uses the intent's internal name ("Deal Damage 3"); the game's own tooltip sentence is used in the buffer. Statuses are named but not yet explained.
+- **Parity:** the maintainer wants the mod to match what a sighted player can know; unopened things are not peeked into.
 - **Escape and the pause menu:** a simulated Pause action does not open the pause menu, so Escape reaches it by another route (probably the UI module's cancel action). That route is left untouched; find out what it is before changing anything near it.
 - **Surroundings buffer** (maintainer asked for a look or scan command): planned as one more Ctrl+Left/Right buffer; needs a check of what distance and direction the game exposes.
 - The torch is read as "Torch Hazard Off"; hazards need a proper description and, on Enter, a result line.

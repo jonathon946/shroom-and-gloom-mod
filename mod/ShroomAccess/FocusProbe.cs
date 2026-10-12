@@ -59,6 +59,7 @@ namespace ShroomAccess
                 Navigator.Tick(focus);
                 AnnounceArrivals(focus);
                 AnnounceHandChanges(focus);
+                Hud.AnnounceChanges(focus);
                 FlushHeld();
 
                 if (input != null && _bindingsDumped && DevBridge.Enabled)
@@ -104,6 +105,7 @@ namespace ShroomAccess
                 {
                     _lastZone = zone;
                     if (zone == "hand") spoken = "Your hand, " + Count(HeldCount(focus), "card") + ". " + line;
+                    else if (zone == "nearby" && focus.InCombat) spoken = "Enemies, " + (focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0) + ". " + line;
                     else if (zone == "nearby") spoken = "Nearby, " + Count(focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0, "thing") + ". " + line;
                     else if (zone == "targets") spoken = "Choose a target. " + line;
                     else if (zone == "offer" && current.TryCast<IV_CardInstance>() != null) spoken = "Offered: " + line + " Enter takes it.";
@@ -185,8 +187,9 @@ namespace ShroomAccess
                 string desc = data != null ? data.SingleDescription : null;
                 GameplayCardData gameplay = data != null ? data.TryCast<GameplayCardData>() : null;
                 string cost = gameplay != null ? ", cost " + gameplay.EnergyUse : "";
-                detail = "card name=" + name + " deck=" + (data != null ? data.DeckType.ToString() : "?") + cost + " desc=" + desc;
-                return Clean(name + cost + (string.IsNullOrEmpty(desc) ? "" : ". " + desc));
+                string uses = CardUses(gameplay);
+                detail = "card name=" + name + " deck=" + (data != null ? data.DeckType.ToString() : "?") + cost + " uses=" + uses + " desc=" + desc;
+                return Clean(name + cost + (uses.Length > 0 ? ". " + uses : "") + (string.IsNullOrEmpty(desc) ? "" : ". " + desc));
             }
 
             CampStructureSpellReceiver receiver = obj.TryCast<CampStructureSpellReceiver>();
@@ -202,9 +205,37 @@ namespace ShroomAccess
             V_SpellReceiverDoor door = obj.TryCast<V_SpellReceiverDoor>();
             if (door != null)
             {
-                string name = Humanize(door.gameObject.name);
-                string accepts = Accepts(Safe(() => door.GetPromptsAndInteractions().Item2));
-                detail = "door name=" + door.gameObject.name + " accepts=" + accepts + " canUnlock=" + door.CanUnlock;
+                BaseDoor baseDoor = Safe(() => door.Door);
+                // The sign on a door says what lies behind it.
+                string sign = baseDoor != null && baseDoor.Tooltip != null ? Safe(() => baseDoor.Tooltip.Text) : null;
+                bool open = baseDoor != null && Safe(() => baseDoor.IsUnlockedAndOpen());
+                string accepts = open ? "" : Accepts(Safe(() => door.GetPromptsAndInteractions().Item2));
+                detail = "door object=" + door.gameObject.name + " sign=" + sign + " open=" + open + " accepts=" + accepts + " canUnlock=" + door.CanUnlock;
+                return Clean("Door" + (open ? ", open" : "") + (string.IsNullOrWhiteSpace(sign) ? "" : ". " + sign) + (accepts.Length > 0 ? ". " + accepts : ""));
+            }
+
+            V_Enemy enemy = obj.TryCast<V_Enemy>();
+            if (enemy != null)
+            {
+                M_Enemy m = Safe(() => enemy.Model);
+                detail = "enemy object=" + enemy.gameObject.name;
+                if (m == null) return Humanize(enemy.gameObject.name);
+                string line = EnemyName(enemy, m) + ". " + EnemyHealth(m);
+                string intent = string.Join(", ", EnemyIntents(m, brief: true));
+                if (intent.Length > 0) line += ". Intends " + intent;
+                string statuses = string.Join(", ", EnemyStatuses(m));
+                if (statuses.Length > 0) line += ". " + statuses;
+                return Clean(line);
+            }
+
+            V_Hazard hazard = obj.TryCast<V_Hazard>();
+            if (hazard != null)
+            {
+                string name = Safe(() => hazard.Model.NiceName.GetText());
+                if (string.IsNullOrWhiteSpace(name)) name = Safe(() => hazard.HazardName);
+                if (string.IsNullOrWhiteSpace(name)) name = Humanize(hazard.gameObject.name);
+                string accepts = Accepts(Safe(() => hazard.GetPromptsAndInteractions().Item2));
+                detail = "hazard name=" + name + " object=" + hazard.gameObject.name + " accepts=" + accepts;
                 return Clean(name + (accepts.Length > 0 ? ". " + accepts : ""));
             }
 
@@ -233,6 +264,74 @@ namespace ShroomAccess
                 return Clean(texts.Count > 0 ? string.Join(", ", texts.GetRange(0, Math.Min(3, texts.Count))) : Humanize(comp.gameObject.name));
             }
             return TypeName(obj);
+        }
+
+        // What the card does when cast on something in the world, as printed on its face ("Fix or Break").
+        private static string CardUses(GameplayCardData gameplay)
+        {
+            if (gameplay == null) return "";
+            try
+            {
+                string text = gameplay.BuildOrableDescription(out string _);
+                return string.IsNullOrWhiteSpace(text) ? "" : Clean(text).TrimEnd('.');
+            }
+            catch { return ""; }
+        }
+
+        internal static string EnemyName(V_Enemy view, M_Enemy m)
+        {
+            string name = Safe(() => m.GetName());
+            if (string.IsNullOrWhiteSpace(name) || name.Contains("(Clone)")) name = Safe(() => m.LocalizedEnemyName.GetText());
+            if (string.IsNullOrWhiteSpace(name)) name = Humanize(view.gameObject.name);
+            return Clean(name.Replace("(Clone)", ""));
+        }
+
+        internal static string EnemyHealth(M_Enemy m)
+        {
+            EnemyHealthData h = m.HealthData;
+            return "Health " + h.CurrentHealth + " of " + h.MaxHealth + (h.Armour > 0 ? ", armour " + h.Armour : "");
+        }
+
+        // What the enemy will do on its turn. brief: "Deal Damage 3"; otherwise the game's own sentence.
+        internal static List<string> EnemyIntents(M_Enemy m, bool brief)
+        {
+            var list = new List<string>();
+            try
+            {
+                EnemyTurnAction action = m.CurrentTurnAction;
+                var pairs = action != null ? action.EnemyIntentPairs : null;
+                for (int i = 0; pairs != null && i < pairs.Count; i++)
+                {
+                    EnemyIntentPair pair = pairs[i];
+                    if (pair == null || pair.Intent == null) continue;
+                    string label = Humanize(pair.Intent.name).Replace("Enemy Intent", "").Replace("  ", " ").Trim();
+                    if (label.StartsWith("Enemy ")) label = label.Substring(6);
+                    if (label.Length == 0 || label == "Nothing") continue;
+                    string text = null;
+                    if (!brief) text = Safe(() => pair.Intent.GetIntentToolTipText("ShroomAccess", pair, m.StatusEffects));
+                    if (string.IsNullOrWhiteSpace(text)) text = label + (pair.ModifiedNumber != 0 ? " " + pair.ModifiedNumber : "");
+                    list.Add(Clean(text));
+                }
+            }
+            catch (Exception ex) { Log("[enemy] intents: " + ex.Message); }
+            return list;
+        }
+
+        internal static List<string> EnemyStatuses(M_Enemy m)
+        {
+            var list = new List<string>();
+            try
+            {
+                var effects = m.StatusEffects;
+                for (int i = 0; effects != null && i < effects.Count; i++)
+                {
+                    StatusEffectPair pair = effects[i];
+                    if (pair == null || pair.HiddenFromDisplay || pair.StatusEffect == null) continue;
+                    list.Add(Humanize(pair.StatusEffect.name) + (pair.Number != 0 ? " " + pair.Number : ""));
+                }
+            }
+            catch (Exception ex) { Log("[enemy] statuses: " + ex.Message); }
+            return list;
         }
 
         private static T Safe<T>(Func<T> read)
@@ -486,10 +585,23 @@ namespace ShroomAccess
                     lines.Add(Clean(model != null ? model.CardName : "Card"));
                     GameplayCardData gameplay = data != null ? data.TryCast<GameplayCardData>() : null;
                     if (gameplay != null) lines.Add("Cost " + gameplay.EnergyUse + " energy");
-                    if (data != null) lines.Add(Humanize(data.DeckType.ToString()) + " deck");
+                    if (data != null) lines.Add(Humanize(data.ClassType.ToString()) + ", " + Humanize(data.DeckType.ToString()).ToLowerInvariant() + " deck");
+                    string uses = CardUses(gameplay);
+                    if (uses.Length > 0) lines.Add(uses);
                     string desc = data != null ? data.SingleDescription : null;
                     foreach (string sentence in Sentences(Clean(desc))) lines.Add(sentence);
                     foreach (string keyword in KeywordLines(desc)) lines.Add(keyword);
+                    return lines;
+                }
+                V_Enemy enemy = item.TryCast<V_Enemy>();
+                if (enemy != null && Safe(() => enemy.Model) != null)
+                {
+                    M_Enemy m = enemy.Model;
+                    lines.Add(EnemyName(enemy, m));
+                    lines.Add(EnemyHealth(m));
+                    foreach (string intent in EnemyIntents(m, brief: false)) lines.Add("Intends: " + intent);
+                    if (lines.Count == 2) lines.Add("No intent showing");
+                    foreach (string status in EnemyStatuses(m)) lines.Add(status);
                     return lines;
                 }
                 string whole = Describe(item, out _);

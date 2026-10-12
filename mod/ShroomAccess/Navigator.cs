@@ -173,6 +173,8 @@ namespace ShroomAccess
             items.Add("Energy " + p.Energy + " of " + p.EnergySoftCap);
             items.Add("Gunk " + p.StoredGunk);
             IM_Hand hand = p.GetActiveHand();
+            string threat = Hud.Threat();
+            if (threat.Length > 0) items.Add(threat);
             if (hand != null) items.Add("Draw pile " + hand.CardsInDeckCount + ", discard pile " + hand.CardsInDiscardCount);
             return items;
         }
@@ -249,7 +251,12 @@ namespace ShroomAccess
             {
                 // On the status row the focused "item" is the one status the player is on.
                 List<string> items = StatusItems(focus);
-                return new List<string> { items[Mathf.Clamp(_statusIndex, 0, items.Count - 1)] };
+                string item = items[Mathf.Clamp(_statusIndex, 0, items.Count - 1)];
+                var detail = new List<string> { item };
+                // The game's own hover text for that display, where it has one.
+                if (item.StartsWith("Health")) detail.AddRange(Hud.Tip("Health"));
+                else if (item.StartsWith("Energy")) detail.AddRange(Hud.Tip("Energy"));
+                return detail;
             }
             return FocusProbe.DetailLines(subject);
         }

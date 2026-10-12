@@ -2,6 +2,15 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-11 — Session 01, part 8 — hazards, doors, the camp readout, first combat
+
+- Fourth ear test: rows, buffers and Escape confirmed. Buffer on the status row made consistent; unopened objects say "Not opened yet. Enter opens it".
+- Cards read their face text ("Fix OR Break", "Reveal OR Ignite") and type.
+- Hazards use the game's display name ("Torch"); doors read "Door", whether open, and their sign.
+- `Hud`: warmth and threat line from the game's own hover text, in the status row and announced when it changes; health changes; energy refills; new turn.
+- Combat: "Combat.", "Your turn.", "Enemy turn."; enemies by name with health, intent and statuses; "takes 3, 2 left", "dies"; the nearby row is called Enemies in a fight.
+- Space ends the turn.
+
 ## 2026-10-11 — Session 01, part 7 — third ear test; arrows no longer walk
 
 - Confirmed by ear: the walking voice and the arrival sound.

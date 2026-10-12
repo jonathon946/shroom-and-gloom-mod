@@ -1,4 +1,4 @@
-# Shroom and Gloom accessibility - third listen (Session 01, part 5).
+# Shroom and Gloom accessibility - listen through the first fight (Session 01, part 8).
 #
 # There is nothing to run here except starting the game. Either start it from Steam as usual,
 # or run this file, which starts it for you:
@@ -13,36 +13,36 @@
 #   Enter                   choose / confirm          Backspace   cancel / back
 #   Escape                  pause menu
 #   W (hold)                walk forward              S (hold)    walk back
+#   Space                   end turn (in camp: rest for the night)
 #   Ctrl+Down, Ctrl+Up      read the next / previous line about the focused thing
 #   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player
 #   Ctrl+Page Up / Down     walking voice faster / slower
 #
-# CHECKLIST (third listen) - please report what you heard at each letter.
+# CHECKLIST (listen through the first fight) - report what you heard, by letter, as far as you get.
 #
-#   A. New Run, then hold W and KEEP HOLDING. Expect, while still walking: a short two-note sound
-#      and a different voice saying "Nearby: Dig Site." and later "Nearby: Shovel."
-#      That second voice is a Windows voice, used only while a walk key is down.
-#      Ctrl+Page Up makes it faster, Ctrl+Page Down slower; it says the new rate. Set it to taste.
-#      Tell me: could you hear it over the footsteps? Was the starting speed close to your own?
+#   A. Play the opening as before: shovel, dig, key, door. Cards now read their use, for example
+#      "Rusty Shovel, cost 1. Dig. Consume." The door reads "Door. This is a door! Looks unlockable..."
 #
-#   B. Press Right. Expect "Nearby, 2 things." and one of them. Press Left and Right: they should
-#      only ever move between the dig site and the shovel, and repeat the item at each end.
+#   B. Walk on. Expect "Nearby: Torch, Door." Keep walking until the game stops you and gives you a
+#      Matchstick. Press Enter on it, Enter on the Torch. Expect, a moment later,
+#      "Warmth: 3. Threat: 0. Safe for 3." and a Rusted Hammer in your hand.
 #
-#   C. Press Up. Expect "Status, 3 items. Health 25 of 25". Right: "Energy 1 of 3". Right: "Gunk 10".
-#      Press Down to return to the Nearby row.
+#   C. Up twice to the Status row and Right along it. Expect Health, Energy, Gunk, the warmth line,
+#      and the piles. Ctrl+Down on Health or Energy reads the game's own description of it.
 #
-#   D. Take the shovel (Enter on Shovel, Enter on the offer). With the card focused in your hand,
-#      press Ctrl+Down several times. Expect one line each: the name, "Cost 1 energy",
-#      "Explore deck", "CONSUME", then "CONSUME: This card will be destroyed upon being played."
-#      Ctrl+Up goes back. Ctrl+Right: "Player. Health 25 of 25". Ctrl+Left: back to "Item".
+#   D. The hammer costs 1 and you have 0 energy. Press Space to rest for the night.
+#      Expect "New turn." and, a few seconds later, "Energy 3 of 3."
 #
-#   E. From the hand, press Up: Nearby row. Press Down: back to your hand.
+#   E. Enter on the hammer, Enter on the Door. Walk on (W). Expect new things nearby, a Backpack
+#      among them. Open it, take what it offers, and carry on as you see fit.
 #
-#   F. Dig, take the key, open the door, hold W through it, let go. Expect "Nearby: ..." naming the torch.
-#      Go to the torch and press Enter. Tell me what you hear, if anything, and whether
-#      "Added to hand: ..." is spoken.
+#   F. When a fight starts expect "Combat." Up goes to the "Enemies" row; each enemy reads its name,
+#      health, what it intends, and any status. Ctrl+Down gives the detail.
+#      Play a card on an enemy: expect "<name> takes 3, 2 left." or "<name> dies."
+#      Space ends your turn: expect "Enemy turn.", any health you lose, then "Your turn."
 #
-#   G. Does Ctrl+arrow behave with NVDA (Ctrl on its own stops speech)? Anything spoken twice?
+#   G. The questions: is the fight too chatty? Is anything said in the wrong order, or cut off?
+#      Is there anything you could not find out that you needed?
 #
 # IF THERE IS NO SPEECH AT ALL: tell me, and I will read the log. Nothing else is needed from you.
 

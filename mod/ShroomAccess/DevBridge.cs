@@ -138,6 +138,12 @@ namespace ShroomAccess
                     string type = comp.GetIl2CppType().Name;
                     if (type == "RectTransform" || type == "CanvasRenderer" || type == "Transform") continue;
                     sb.Append(" [").Append(type).Append(']');
+                    if (type == "TooltipUI")
+                    {
+                        string tip = null;
+                        try { tip = comp.TryCast<Il2Cpp.TooltipUI>().GetTooltip(); } catch { }
+                        if (!string.IsNullOrWhiteSpace(tip)) sb.Append(" tip=\"").Append(tip.Replace("\n", "\\n")).Append('"');
+                    }
                     var text = comp.TryCast<Il2CppTMPro.TMP_Text>();
                     if (text != null && !string.IsNullOrWhiteSpace(text.text))
                         sb.Append(" \"").Append(text.text.Replace("\n", "\\n")).Append('"');

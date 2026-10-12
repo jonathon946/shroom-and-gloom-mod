@@ -29,6 +29,7 @@ namespace ShroomAccess
             { InputActionId.FocusDown, new[] { "downArrow" } },
             { InputActionId.Confirm, new[] { "enter", "numpadEnter" } },
             { InputActionId.Cancel, new[] { "backspace" } },
+            { InputActionId.EndTurn, new[] { "space" } },
             { InputActionId.Pause, new[] { "escape" } },
             { InputActionId.Inspect, new[] { "i" } },
             { InputActionId.ToggleDeckView, new[] { "tab" } },
