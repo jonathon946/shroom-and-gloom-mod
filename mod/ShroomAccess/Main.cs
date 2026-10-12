@@ -28,6 +28,7 @@ namespace ShroomAccess
             Review.Init(MelonEnvironment.UserDataDirectory);
             AltText.Log = msg => LoggerInstance.Msg(msg);
             AltText.Init(MelonEnvironment.ModsDirectory);
+            if (DevBridge.Enabled) AltText.EnableShots(MelonEnvironment.UserDataDirectory);
             InputBridge.Install(HarmonyInstance);
             Messages.Log = msg => LoggerInstance.Msg(msg);
             Messages.Install(HarmonyInstance);

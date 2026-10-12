@@ -27,8 +27,48 @@ namespace ShroomAccess
             name = name.Trim();
             if (_table == null) Load();
             if (_table.TryGetValue(name, out string text)) return text;
-            if (_missing.Add(name)) Log("[alt-missing] " + kind + ": " + name);
+            if (_missing.Add(name))
+            {
+                Log("[alt-missing] " + kind + ": " + name);
+                QueueShot(kind, name);
+            }
             return null;
+        }
+
+        // On the developer's machine, a thing with no description yet gets its picture taken the
+        // first time it is focused, so the description can be written from it later.
+        private static string _shotDir;
+        private static string _shotPath;
+        private static float _shotAt;
+
+        internal static void EnableShots(string userDataDir)
+        {
+            _shotDir = Path.Combine(userDataDir, "ShroomAccess", "alt-shots");
+        }
+
+        private static void QueueShot(string kind, string name)
+        {
+            if (_shotDir == null) return;
+            var safe = new System.Text.StringBuilder();
+            foreach (char c in name) safe.Append(char.IsLetterOrDigit(c) ? c : '-');
+            string path = Path.Combine(_shotDir, kind + "-" + safe + ".png");
+            if (File.Exists(path)) return;
+            _shotPath = path;
+            // Let the card or creature finish moving into view first.
+            _shotAt = UnityEngine.Time.realtimeSinceStartup + 0.9f;
+        }
+
+        internal static void Tick()
+        {
+            if (_shotPath == null || UnityEngine.Time.realtimeSinceStartup < _shotAt) return;
+            try
+            {
+                Directory.CreateDirectory(_shotDir);
+                UnityEngine.ScreenCapture.CaptureScreenshot(_shotPath);
+                Log("[alt-shot] " + _shotPath);
+            }
+            catch (Exception ex) { Log("[alt-shot] failed: " + ex.Message); }
+            _shotPath = null;
         }
 
         private static void Load()

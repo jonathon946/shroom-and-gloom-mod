@@ -62,6 +62,7 @@ namespace ShroomAccess
                 AnnounceArrivals(focus);
                 AnnounceHandChanges(focus);
                 Hud.AnnounceChanges(focus);
+                AltText.Tick();
                 FlushHeld();
 
                 if (input != null && _bindingsDumped && DevBridge.Enabled)
@@ -97,6 +98,8 @@ namespace ShroomAccess
                 string line = Describe(current, out string detail);
                 Log("[focus] " + TypeName(current) + " | " + detail);
                 Navigator.FocusChanged();
+                // Looking the thing up notes it if it has no appearance description yet.
+                try { DetailLines(current); } catch { }
                 if (Navigator.InStatusRow) return;
 
                 // Name the row the player has just moved into, so they know what they are among:
