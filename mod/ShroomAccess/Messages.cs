@@ -43,6 +43,8 @@ namespace ShroomAccess
         private static List<string> _liveText = new List<string>();
         private static string _lastScreenText = "";
         private static float _lastScreenAt;
+        private static float _introDue, _introGiveUp;
+        private static IntPtr _introScope;
         private static float _offerDue;
         private static float _offerGiveUp;
         private static bool _offerWaitSaid;
@@ -72,6 +74,13 @@ namespace ShroomAccess
                         FocusProbe.Announce(map[0] + ". Control Up reads each area. M puts the map away.", interrupt: false);
                     }
                     string kind = scope != null ? scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name : "";
+                    if (kind.Contains("ModifyCard"))
+                    {
+                        _introScope = ptr;
+                        _introDue = Time.realtimeSinceStartup + 0.8f;
+                        _introGiveUp = Time.realtimeSinceStartup + 8f;
+                        FocusProbe.SuppressFocusUntil = _introDue + 0.2f;
+                    }
                     if (kind.Contains("LootAll") || kind.Contains("CardChoice") || kind.Contains("ForesightChoice"))
                     {
                         // The cards are dealt out one after another and the game's focus follows
@@ -82,6 +91,29 @@ namespace ShroomAccess
                         _offerGiveUp = Time.realtimeSinceStartup + 25f;
                         _offerWaitSaid = false;
                         FocusProbe.SuppressFocusUntil = _offerDue;
+                    }
+                }
+
+                if (_introDue > 0f && Time.realtimeSinceStartup >= _introDue)
+                {
+                    List<string> words = scope != null && ptr == _introScope ? ScreenText(scope, 4) : new List<string>();
+                    if (words.Count == 0 && scope != null && ptr == _introScope && Time.realtimeSinceStartup < _introGiveUp)
+                    {
+                        _introDue = Time.realtimeSinceStartup + 0.3f;
+                        FocusProbe.SuppressFocusUntil = _introDue + 0.2f;
+                    }
+                    else
+                    {
+                        _introDue = 0f;
+                        if (words.Count > 0)
+                        {
+                            _liveScope = ptr;
+                            _liveText = ScreenText(scope, 6);
+                            _lastScreenText = string.Join(" | ", ScreenText(scope, 4));
+                            _lastScreenAt = Time.realtimeSinceStartup;
+                            FocusProbe.Announce(string.Join(" ", words) + ". Left and Right choose one of your cards, Enter picks it. Down is No thanks.", interrupt: false);
+                        }
+                        FocusProbe.Reannounce();
                     }
                 }
 
@@ -129,7 +161,7 @@ namespace ShroomAccess
                     FocusProbe.Reannounce();
                 }
 
-                if (scope != null && Time.realtimeSinceStartup >= _liveNext)
+                if (scope != null && _introDue == 0f && Time.realtimeSinceStartup >= _liveNext)
                 {
                     _liveNext = Time.realtimeSinceStartup + 0.6f;
                     List<string> now = ScreenText(scope, 6);
@@ -155,6 +187,37 @@ namespace ShroomAccess
                 _wasTarget = target;
             }
             catch (Exception ex) { Log("[messages] " + ex.GetType().Name + ": " + ex.Message); }
+        }
+
+        // After a change is applied the game shows the new card with a Take button under it. The card
+        // cannot be focused, so it is read with the button.
+        internal static string ModifyResult(S_ControllerFocus focus, Component button)
+        {
+            try
+            {
+                var inHand = new HashSet<IntPtr>();
+                IM_Hand hand = focus.PlayerModel != null ? focus.PlayerModel.GetActiveHand() : null;
+                for (int i = 0; hand != null && hand.HeldCards != null && i < hand.HeldCards.Count; i++)
+                    if (hand.HeldCards[i] != null) inHand.Add(hand.HeldCards[i].Pointer);
+
+                Camera cam = focus.FocusCamera != null ? focus.FocusCamera : Camera.main;
+                Vector3 at = cam != null ? cam.WorldToViewportPoint(button.transform.position) : Vector3.zero;
+                V_GameplayCardInstance best = null;
+                float bestDistance = float.MaxValue;
+                foreach (V_GameplayCardInstance card in UnityEngine.Object.FindObjectsOfType<V_GameplayCardInstance>())
+                {
+                    if (card == null || !card.gameObject.activeInHierarchy) continue;
+                    IV_CardInstance view = card.Cast<Il2CppSystem.Object>().TryCast<IV_CardInstance>();
+                    if (view == null || view.IModel == null || inHand.Contains(view.IModel.Pointer)) continue;
+                    Vector3 p = cam != null ? cam.WorldToViewportPoint(card.transform.position) : Vector3.zero;
+                    if (p.z < 0f) continue;
+                    float d = (new Vector2(p.x, p.y) - new Vector2(at.x, at.y)).sqrMagnitude;
+                    if (d < bestDistance) { bestDistance = d; best = card; }
+                }
+                if (best != null && bestDistance < 0.2f) return FocusProbe.Describe(best, out _);
+            }
+            catch (Exception ex) { Log("[messages] result: " + ex.Message); }
+            return null;
         }
 
         // A label that belongs to a control beside it (a slider's name) is read with that control.
@@ -183,8 +246,10 @@ namespace ShroomAccess
                 // Price tags belong to the cards; the pause menu prints build and session identifiers.
                 if (text.StartsWith("COST") || text.StartsWith("UserID") || text.StartsWith("SessionID") || text.StartsWith("V 0.") || text.StartsWith("V 1.")) continue;
                 parts.Add(text);
-                if (parts.Count == limit) break;
+                if (parts.Count == limit + 2) break;
             }
+            parts.RemoveAll(part => parts.Exists(other => other.Length > part.Length && other.Contains(part.TrimEnd(':', '.', ' '))));
+            if (parts.Count > limit) parts.RemoveRange(limit, parts.Count - limit);
             return parts;
         }
 
@@ -203,7 +268,7 @@ namespace ShroomAccess
             {
                 sb.Append(part);
                 char last = part[part.Length - 1];
-                sb.Append(last == '.' || last == '?' || last == '!' ? " " : ". ");
+                sb.Append(last == '.' || last == '?' || last == '!' || last == ':' ? " " : ". ");
             }
             FocusProbe.Announce(sb.ToString().Trim(), interrupt: false);
         }

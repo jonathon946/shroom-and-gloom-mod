@@ -31,6 +31,7 @@ namespace ShroomAccess
 
         internal static void Tick()
         {
+            if (_enabled) TickPending();
             if (!_enabled || Time.realtimeSinceStartup < _nextCheck) return;
             _nextCheck = Time.realtimeSinceStartup + 0.25f;
             string file = Path.Combine(_dir, "dev-command.txt");
@@ -95,6 +96,29 @@ namespace ShroomAccess
                             Log("[dev] click " + arg + (button != null ? "" : " (no such button)"));
                             break;
                         }
+                        // ---- Setting up a situation to test, using the game's own debug entry points ----
+                        case "addcard":
+                            Player().CMDAddCardByName(arg);
+                            Log("[dev] addcard " + arg);
+                            break;
+                        case "energy":
+                            Player().AddEnergy(int.Parse(arg));
+                            Log("[dev] energy +" + arg);
+                            break;
+                        case "heal":
+                            Player().CMDFullHeal();
+                            Log("[dev] heal");
+                            break;
+                        case "killall":
+                            Player().DebugKillAll();
+                            Log("[dev] killall");
+                            break;
+                        case "list":
+                            Log("[dev] " + Listing());
+                            break;
+                        case "focus":
+                            Log("[dev] focus " + arg + " -> " + FocusOn(arg));
+                            break;
                         case "state":
                             File.WriteAllText(arg, FocusProbe.StateDump());
                             Log("[dev] state " + arg);
@@ -119,6 +143,73 @@ namespace ShroomAccess
                     Log("[dev] " + cmd + " failed: " + ex.GetType().Name + ": " + ex.Message);
                 }
             }
+        }
+
+        private static Il2CppControllerNav.S_ControllerFocus Focus()
+        {
+            Il2CppControllerNav.S_ControllerFocus.TryGetFocus(out Il2CppControllerNav.S_ControllerFocus focus);
+            if (focus == null) throw new InvalidOperationException("no focus service");
+            return focus;
+        }
+
+        private static Il2CppBackend.M_Player Player()
+        {
+            Il2CppBackend.M_Player p = Focus().PlayerModel;
+            if (p == null) throw new InvalidOperationException("no player yet");
+            return p;
+        }
+
+        // What can be focused right now, by name: the hand and what is nearby.
+        private static string Listing()
+        {
+            var focus = Focus();
+            var hand = new System.Collections.Generic.List<string>();
+            Il2Cpp.IM_Hand active = focus.PlayerModel != null ? focus.PlayerModel.GetActiveHand() : null;
+            for (int i = 0; active != null && active.HeldCards != null && i < active.HeldCards.Count; i++) hand.Add(active.HeldCards[i].CardName);
+            var near = new System.Collections.Generic.List<string>();
+            foreach (var t in Navigator.NearbyInOrder(focus)) near.Add(FocusProbe.Describe(t, out _).Split('.')[0]);
+            return "mode=" + focus.Mode + " hand=[" + string.Join(", ", hand) + "] nearby=[" + string.Join(", ", near) + "]";
+        }
+
+        // Put the game's focus on a card in hand or a thing nearby whose name contains the text,
+        // so a test can say "the Grimoire" and not "Right three times".
+        private static Il2CppControllerNav.IControllerFocusTarget _pendingTarget;
+        private static int _pendingFrames;
+
+        private static string FocusOn(string text)
+        {
+            var focus = Focus();
+            Il2Cpp.IM_Hand active = focus.PlayerModel != null ? focus.PlayerModel.GetActiveHand() : null;
+            for (int i = 0; active != null && active.HeldCards != null && i < active.HeldCards.Count; i++)
+            {
+                if (active.HeldCards[i].CardName.IndexOf(text, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                if (focus.Mode.ToString() != "Hand" && focus.Mode != Il2CppControllerNav.FocusMode.Target) focus.TryPushHand();
+                if (focus.Mode == Il2CppControllerNav.FocusMode.Target) focus.TargetResolver.SetCardFocus(i, "dev");
+                else focus.HandResolver.SetFocus(i);
+                return "hand card " + i + " " + active.HeldCards[i].CardName;
+            }
+            foreach (var t in Navigator.NearbyInOrder(focus))
+            {
+                string name = FocusProbe.Describe(t, out _);
+                if (name.IndexOf(text, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                if (focus.Mode.ToString() == "World" || focus.Mode == Il2CppControllerNav.FocusMode.Target) focus.WorldResolver.SetFocus(t, "dev");
+                else
+                {
+                    // Step into the world row the way the player would, then land on the thing.
+                    InputBridge.Forward(Il2Cpp.InputActionId.FocusUp);
+                    _pendingTarget = t;
+                    _pendingFrames = 6;
+                }
+                return "nearby " + name.Split('.')[0];
+            }
+            return "nothing matches";
+        }
+
+        private static void TickPending()
+        {
+            if (_pendingTarget == null || --_pendingFrames > 0) return;
+            try { Focus().WorldResolver.SetFocus(_pendingTarget, "dev"); } catch { }
+            _pendingTarget = null;
         }
 
         // Every active canvas, indented, with component type names and any text.

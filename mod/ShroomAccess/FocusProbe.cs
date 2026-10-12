@@ -21,6 +21,7 @@ namespace ShroomAccess
         private static IntPtr _lastSelected;
         private static string _lastZone = "";
         internal static float SuppressFocusUntil;
+        private static IntPtr _suppressedLogged;
         private static string _lastValue = "";
         private static float _protectUntil;
         private static readonly HashSet<IntPtr> _knownNearby = new HashSet<IntPtr>();
@@ -141,6 +142,7 @@ namespace ShroomAccess
 
                 // Name the row the player has just moved into, so they know what they are among:
                 // their own cards, things in the world, valid targets for a cast, or an offer.
+                string zoneBefore = _lastZone;
                 string zone = ZoneOf(focus, current, mode);
                 if (zone == "offer") _offerSeenAt = Time.realtimeSinceStartup;
                 string spoken = line;
@@ -156,6 +158,15 @@ namespace ShroomAccess
                     else if (zone == "targets") spoken = "Choose a target. " + line;
                     else if (zone == "offer" && current.TryCast<IV_CardInstance>() != null) spoken = "Offered: " + line + " Enter takes it.";
                 }
+                if (TypeName(focus.Scope).Contains("ModifyCard"))
+                {
+                    Component button = current.TryCast<Component>();
+                    if (button != null && button.gameObject.name == "Take It Button")
+                    {
+                        string result = Messages.ModifyResult(focus, button);
+                        if (!string.IsNullOrWhiteSpace(result)) spoken = "The card is now: " + result.TrimEnd('.', ' ') + ". Enter takes it. Left is No thanks.";
+                    }
+                }
                 if (zone == "shop")
                 {
                     string place = ShopPlace(focus, current);
@@ -166,7 +177,13 @@ namespace ShroomAccess
                     Navigator.RowPosition(focus, current, out int index, out int count);
                     if (count > 1) spoken = spoken.TrimEnd('.', ' ') + ", " + index + " of " + count;
                 }
-                if (Time.realtimeSinceStartup < SuppressFocusUntil) { Log("[suppressed] " + spoken); return; }
+                if (Time.realtimeSinceStartup < SuppressFocusUntil)
+                {
+                    if (_suppressedLogged != ptr) { _suppressedLogged = ptr; Log("[suppressed] " + spoken); }
+                    _lastFocus = IntPtr.Zero;
+                    _lastZone = zoneBefore;
+                    return;
+                }
                 // Let a line that announces an arrival finish before the first focus line follows it.
                 Announce(spoken, interrupt: true);
             }
@@ -231,7 +248,7 @@ namespace ShroomAccess
             string scope = TypeName(focus.Scope);
             if (scope.Contains("LootAll") || scope.Contains("CardChoice")) return "offer";
             if (scope.Contains("BowlShop")) return isCard ? (mode.ToString() == "Hand" ? "food" : "shop") : "shop-buttons";
-            if (isCard) return "hand";
+            if (isCard) return mode.ToString() == "Hand" ? "hand" : "";
             if (current.TryCast<IControllerFocusTarget>() != null && current.TryCast<UnityEngine.UI.Selectable>() == null) return "nearby";
             return "";
         }
@@ -312,6 +329,15 @@ namespace ShroomAccess
                 string accepts = open ? "" : Accepts(Safe(() => door.GetPromptsAndInteractions().Item2));
                 detail = "door object=" + door.gameObject.name + " sign=" + sign + " open=" + open + " accepts=" + accepts + " canUnlock=" + door.CanUnlock;
                 return Clean("Door" + (open ? ", open" : "") + (string.IsNullOrWhiteSpace(sign) ? "" : ". " + sign) + (accepts.Length > 0 ? ". " + accepts : ""));
+            }
+
+            CharacterSelection_Button character = obj.TryCast<CharacterSelection_Button>();
+            if (character != null)
+            {
+                string name = character._className != null ? character._className.text : Humanize(character.gameObject.name);
+                bool unlocked = Safe(() => character._isUnlocked);
+                detail = "character " + name + " unlocked=" + unlocked;
+                return Clean(name + (unlocked ? "" : ", locked"));
             }
 
             SwapOutObjectButton swap = obj.TryCast<SwapOutObjectButton>();
@@ -610,6 +636,7 @@ namespace ShroomAccess
         {
             try
             {
+                if (comp.GetComponentInParent<GameSettingsUI>() == null) return null;
                 Transform t = comp.transform.parent;
                 for (int depth = 0; t != null && depth < 4; depth++, t = t.parent)
                 {

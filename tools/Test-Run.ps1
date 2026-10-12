@@ -3,6 +3,9 @@
 # focused: actions go through the mod's dev bridge (DevBridge.cs; needs UserData\ShroomAccess\dev.flag).
 #   -Press FocusNext,Confirm,wait2,forward3   game action names; waitN pauses N seconds;
 #                                             forwardN / backN hold the walk stick for N seconds
+#                                             dev:<command> sends a dev bridge command (addcard NAME,
+#                                             energy N, heal, killall, list, focus TEXT, click OBJECT);
+#                                             until:<regex> waits for a log line
 #   -Screenshot <png>  -Tree <txt>            after the presses, save the frame and/or the UI hierarchy
 param(
     [string[]]$Press = @(),
@@ -68,6 +71,17 @@ if ($proc) {
             $y = if ($Matches[1] -eq 'forward') { 1 } else { -1 }
             Send-Dev "move 0 $y $($Matches[2])" $null
             Start-Sleep -Seconds ([int]$Matches[2])
+            continue
+        }
+        # dev:<command>   any dev bridge command, e.g. "dev:addcard Flashlight", "dev:focus Grimoire", "dev:energy 3"
+        if ($p -match '^dev:(.+)$') { Send-Dev $Matches[1] $null; Start-Sleep -Milliseconds $PressDelayMs; continue }
+        # until:<regex>   wait (up to 25 s) for a new log line matching the pattern
+        if ($p -match '^until:(.+)$') {
+            $pattern = $Matches[1]; $stop = (Get-Date).AddSeconds(25); $from = (Get-Content $log).Count
+            while ((Get-Date) -lt $stop) {
+                if (Get-Content $log | Select-Object -Skip $from | Where-Object { $_ -match $pattern }) { break }
+                Start-Sleep -Milliseconds 300
+            }
             continue
         }
         if ($p -match '^click:(.+)$') { Send-Dev "click $($Matches[1])" $null; Start-Sleep -Milliseconds $PressDelayMs; continue }

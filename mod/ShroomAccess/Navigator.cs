@@ -20,6 +20,7 @@ namespace ShroomAccess
     {
         internal static Action<string> Log = _ => { };
 
+        private static Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppArrayBase<StatusEffect> _allStatuses;
         private static bool _inStatus;
         private static int _statusIndex;
 
@@ -331,6 +332,17 @@ namespace ShroomAccess
                             var names = new List<string>();
                             for (int i = 0; i < hand.HeldCards.Count; i++) names.Add(hand.HeldCards[i].CardName);
                             lines.Add(names.Count == 0 ? "Hand empty" : "Hand: " + string.Join(", ", names));
+                        }
+                        // Statuses on the player. The model answers "do you have this one" but keeps
+                        // no list, so every status the game defines is asked about.
+                        if (_allStatuses == null) _allStatuses = Resources.FindObjectsOfTypeAll<StatusEffect>();
+                        Il2CppBackend.M_Player me = focus.PlayerModel;
+                        foreach (StatusEffect effect in _allStatuses)
+                        {
+                            if (effect == null || me == null || !me.HasStatusEffect(effect)) continue;
+                            int amount = me.GetStatusEffectAmount(effect);
+                            string status = FocusProbe.Humanize(effect.name) + (amount != 0 ? " " + amount : "");
+                            lines.Add("Status: " + status + FocusProbe.StatusTip(status));
                         }
                         V_ForesightHand foresight = UnityEngine.Object.FindObjectOfType<V_ForesightHand>();
                         M_ForesightHand fh = foresight != null && foresight.Model != null ? foresight.Model.TryCast<M_ForesightHand>() : null;
