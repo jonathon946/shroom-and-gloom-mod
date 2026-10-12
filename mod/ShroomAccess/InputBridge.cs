@@ -17,6 +17,7 @@ namespace ShroomAccess
         internal static Action<string> Log = _ => { };
         internal static bool Enabled = true;
         private static bool _readFailed;
+        private static IntPtr _uiModuleDone;
 
         // Keyboard controls that stand in for each game action, as Input System control paths.
         // Ctrl is reserved for mod commands.
@@ -98,6 +99,19 @@ namespace ShroomAccess
             try
             {
                 EnsureActions();
+                // The engine's UI module moves the selected control on arrow keys and W A S D by
+                // itself, Ctrl or not, on top of the game's focus navigation. The focus navigation
+                // is the one we drive, so the module's move action is taken away. Its submit and
+                // cancel actions are left alone: Escape reaches the pause menu through them.
+                var events = UnityEngine.EventSystems.EventSystem.current;
+                var module = events != null && events.currentInputModule != null
+                    ? events.currentInputModule.TryCast<UnityEngine.InputSystem.UI.InputSystemUIInputModule>() : null;
+                if (module != null && module.Pointer != _uiModuleDone)
+                {
+                    module.move = null;
+                    _uiModuleDone = module.Pointer;
+                    Log("UI module key navigation off.");
+                }
                 if (input.CurrentDeviceType == InputDeviceType.Gamepad) return;
                 BasicInputSource src = input._inputSourceBehaviour != null ? input._inputSourceBehaviour.TryCast<BasicInputSource>() : null;
                 if (src != null) src.SetInputContext(InputDeviceType.Gamepad, GamepadFamily.Xbox);
@@ -228,18 +242,31 @@ namespace ShroomAccess
             _injectedAxisUntil = Time.realtimeSinceStartup + seconds;
         }
 
+        // The game's own Move action is also bound to the arrow keys, and to W A S D with no regard
+        // for Ctrl. Arrows belong to the rows and Ctrl+arrows to the buffers, so the game's answer is
+        // thrown away and walking is rebuilt from W A S D alone (or a real gamepad's stick).
         private static void GetAxisPostfix(InputActionId actionId, ref Vector2 __result)
         {
             if (!Enabled || actionId != InputActionId.Move) return;
             try
             {
                 if (Time.realtimeSinceStartup < _injectedAxisUntil) { __result = _injectedAxis; return; }
-                if (__result.sqrMagnitude > 0.01f || !Application.isFocused || _moveUp == null) return;
-                Keyboard kb = Keyboard.current;
-                if (kb != null && kb.ctrlKey.isPressed) return;
-                float x = (_moveRight.IsPressed() ? 1f : 0f) - (_moveLeft.IsPressed() ? 1f : 0f);
-                float y = (_moveUp.IsPressed() ? 1f : 0f) - (_moveDown.IsPressed() ? 1f : 0f);
-                if (x != 0f || y != 0f) __result = new Vector2(x, y);
+                Vector2 move = Vector2.zero;
+                if (Application.isFocused && _moveUp != null && !CtrlHeld)
+                {
+                    move.x = (_moveRight.IsPressed() ? 1f : 0f) - (_moveLeft.IsPressed() ? 1f : 0f);
+                    move.y = (_moveUp.IsPressed() ? 1f : 0f) - (_moveDown.IsPressed() ? 1f : 0f);
+                }
+                if (move == Vector2.zero)
+                {
+                    Gamepad pad = Gamepad.current;
+                    if (pad != null)
+                    {
+                        Vector2 stick = pad.leftStick.ReadValue();
+                        if (stick.sqrMagnitude > 0.04f) move = stick;
+                    }
+                }
+                __result = move;
             }
             catch (Exception ex)
             {

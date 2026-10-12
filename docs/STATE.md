@@ -1,4 +1,4 @@
-> **Status:** Evergreen (rolling single source of truth; edited in place at every close). **Last updated:** 2026-10-11, Session 01 (part 6). Two ear tests done. Waiting for the third listen, which now also covers live announcements while walking: a direct Windows voice and an arrival sound, so nothing waits for W to be released. Next after that: the torch and hazards, a surroundings buffer, then first combat.
+> **Status:** Evergreen (rolling single source of truth; edited in place at every close). **Last updated:** 2026-10-11, Session 01 (part 7). Three ear tests done. The walking voice and arrival sound are confirmed by ear. Fixed after the third test and waiting for a listen: arrow keys no longer walk, and Ctrl+arrows no longer move the menu cursor. Next: the torch and hazards, a surroundings buffer, then first combat.
 
 # Current state — Shroom and Gloom accessibility
 
@@ -27,7 +27,7 @@ Not built yet: combat, the map, deck view, inspect and keyword explanations, hea
 
 ## Verification status
 
-- **Confirmed by ear** (maintainer, NVDA, real keyboard, 2026-10-11): the greeting; title screen navigation with arrows; taking the shovel; digging; taking the key; unlocking the door.
+- **Confirmed by ear** (maintainer, NVDA, real keyboard, 2026-10-11): the greeting; title screen navigation with arrows; taking the shovel; digging; taking the key; unlocking the door. Third test: the walking voice spoke while W was held without talking over NVDA, and the arrival sound fired.
 - **Verified by data** (mod log, game state dumps, in-game screenshots): everything under "What works" above.
 - **Unverified:**
   - Part 5 (rows, status row, buffers, held speech, added-to-hand): checked in the log, not yet heard. Part 4's wording was heard and judged fine: nothing cut off, verbosity fine.
@@ -41,6 +41,7 @@ Not built yet: combat, the map, deck view, inspect and keyword explanations, hea
 - **Dev bridge must be off in a release:** it is enabled only by `UserData\ShroomAccess\dev.flag`, which exists on this machine. Do not ship that file.
 - **Distribution** (maintainer asked 2026-10-11): the game has no Steam Workshop support, so the route is a public download plus an update check inside the mod. Design and build that at the packaging stage; the repository is private today.
 - **Walking and speech** (decided with the maintainer, part 6): lines that arrive while a walk key is held are spoken at once through a direct Windows voice (OneCore, else SAPI) that the screen reader cannot cancel, with a two-note sound on arrival. The voice's rate starts from NVDA's configured rate and is adjusted with Ctrl+Page Up / Ctrl+Page Down. The rate match is approximate: this machine's NVDA uses the Eloquence synthesizer, whose rate number does not mean the same speed in a Windows voice. A walk toggle was considered and dropped as the default.
+- **Escape and the pause menu:** a simulated Pause action does not open the pause menu, so Escape reaches it by another route (probably the UI module's cancel action). That route is left untouched; find out what it is before changing anything near it.
 - **Surroundings buffer** (maintainer asked for a look or scan command): planned as one more Ctrl+Left/Right buffer; needs a check of what distance and direction the game exposes.
 - The torch is read as "Torch Hazard Off"; hazards need a proper description and, on Enter, a result line.
 - A stray focus line is sometimes spoken just before an offer opens (the game moves focus first).

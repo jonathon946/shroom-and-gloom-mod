@@ -2,6 +2,12 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-11 — Session 01, part 7 — third ear test; arrows no longer walk
+
+- Confirmed by ear: the walking voice and the arrival sound.
+- Fixed: the arrow keys also walked (the game binds them to movement), so moving between rows moved the character; walking is now rebuilt from W A S D only, and not while Ctrl is held.
+- Fixed: Ctrl+arrows in an offer moved the cursor as well as reading the buffer; the engine UI module's own arrow navigation is now switched off (its submit and cancel are kept).
+
 ## 2026-10-11 — Session 01, part 6 — live announcements while walking
 
 - A direct Windows voice (OneCore, else SAPI) through Prism, used for unasked lines while a walk key is held; the screen reader cannot cancel it.

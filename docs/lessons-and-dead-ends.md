@@ -70,3 +70,10 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **KEY FINDING — Prism can run two backends at once.** The screen reader backend and a OneCore or SAPI backend created with `prism_registry_create` both speak; the second is not affected by the screen reader's cancel. Their rate is 0 to 1 with 0.5 as the voice's normal speed (`prism_backend_set_rate`); the screen reader backends report no rate at all.
 - **GOTCHA — The player's screen reader rate is only readable for NVDA,** from `%APPDATA%\nvda\nvda.ini` (`[speech]`, `synth = X`, then `[[X]]`, `rate = N` out of 100). The number is specific to the synthesizer.
 - **PATTERN — Generated sounds.** `AudioClip.Create` plus `SetData` with an `Il2CppStructArray<float>`, played with `PlayOneShot` on an `AudioSource` on a `DontDestroyOnLoad` object, works under IL2CPP with no asset files.
+
+## Keys the game also listens to [Session 01, part 7]
+
+- **GOTCHA — The game's Move action is bound to the arrow keys as well as W A S D, and ignores Ctrl.** Up and Down between rows walked the character out of reach of the shovel, and "Nearby: Shovel" was heard on entering the status row because Up had walked forward. The `GetAxis` hook now discards the game's answer for Move and returns W A S D (without Ctrl) or a real gamepad stick.
+- **GOTCHA — The engine's UI input module navigates on arrows and W A S D by itself,** alongside the game's focus navigation and regardless of Ctrl. Setting `InputSystemUIInputModule.move = null` stops it; menus still work because the game's own focus actions drive them.
+- **DEAD END — `EventSystem.sendNavigationEvents = false`.** It also kills submit and cancel. A simulated Pause action did not open the pause menu afterwards, which suggests Escape pauses through the UI cancel path. Left alone.
+- **LESSON — A dev test that injects actions cannot find a bug that needs the real keyboard.** All three of these came from the maintainer's hands, not from replays.
