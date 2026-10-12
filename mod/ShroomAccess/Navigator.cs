@@ -370,6 +370,8 @@ namespace ShroomAccess
                         else if (item.StartsWith("Energy")) detail.AddRange(Hud.Tip("Energy"));
                         return detail;
                     }
+                    // With the map held up, the thing being looked at is the map.
+                    if (focus.Scope != null && focus.Scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "S_MapReminder") return MapReader.Lines();
                     Il2CppSystem.Object subject = VirtualSubject ?? focus.CurrentFocus;
                     if (subject == null) return new List<string> { "Nothing focused" };
                     return FocusProbe.DetailLines(subject);

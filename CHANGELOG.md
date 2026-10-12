@@ -2,6 +2,13 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-12 — Session 01, part 17 — the map; session close
+
+- `MapReader`: with the map open, the first line gives the number of areas, how many are explored and where the player is; Ctrl+Up reads each area (what it holds, fight won or ahead, unexplored).
+- Automatic pictures are taken only of cards, creatures and things in the world, no longer of menu controls.
+- Dev: `click <object>` presses a UI button (`Test-Run.ps1 -Press click:Map`).
+- Session closed with the backlog recorded in STATE in the agreed order.
+
 ## 2026-10-12 — Session 01, part 16 — sixth playthrough: fights, shop, statuses
 
 - In a fight the Enemies row holds only what the game will focus; room furniture no longer appears in it and bounces the focus back.

@@ -86,6 +86,15 @@ namespace ShroomAccess
                             Log("[dev] obj " + parts[1]);
                             break;
                         }
+                        case "click":
+                        {
+                            // click <GameObject name>: press a UI button as a mouse click would.
+                            GameObject target = GameObject.Find(arg);
+                            UnityEngine.UI.Button button = target != null ? target.GetComponent<UnityEngine.UI.Button>() : null;
+                            if (button != null) button.onClick.Invoke();
+                            Log("[dev] click " + arg + (button != null ? "" : " (no such button)"));
+                            break;
+                        }
                         case "state":
                             File.WriteAllText(arg, FocusProbe.StateDump());
                             Log("[dev] state " + arg);

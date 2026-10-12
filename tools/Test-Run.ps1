@@ -70,6 +70,7 @@ if ($proc) {
             Start-Sleep -Seconds ([int]$Matches[2])
             continue
         }
+        if ($p -match '^click:(.+)$') { Send-Dev "click $($Matches[1])" $null; Start-Sleep -Milliseconds $PressDelayMs; continue }
         Send-Dev "press $p" $null
         Start-Sleep -Milliseconds $PressDelayMs
     }

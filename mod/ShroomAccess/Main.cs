@@ -25,6 +25,7 @@ namespace ShroomAccess
             Navigator.Log = msg => LoggerInstance.Msg(msg);
             Hud.Log = msg => LoggerInstance.Msg(msg);
             Walk.Log = msg => LoggerInstance.Msg(msg);
+            MapReader.Log = msg => LoggerInstance.Msg(msg);
             CardPlay.Log = msg => LoggerInstance.Msg(msg);
             TextWatch.Log = msg => LoggerInstance.Msg(msg);
             Review.Log = msg => LoggerInstance.Msg(msg);

@@ -1049,7 +1049,8 @@ namespace ShroomAccess
                     }
                     if (lines.Count == 0) lines.Add(whole);
                 }
-                if (lines.Count > 0) AddLooks(lines, "thing", lines[0].Split(',')[0]);
+                // Appearance lines are for things in the world, not for buttons and sliders.
+                if (lines.Count > 0 && item.TryCast<IControllerFocusTarget>() != null && item.TryCast<UnityEngine.UI.Selectable>() == null) AddLooks(lines, "thing", lines[0].Split(',')[0]);
                 if (lines.Count == 1) lines.Add("The game shows nothing more about this");
                 // A thing lying in the world shows a sighted player nothing but itself until it is
                 // opened, so there is nothing more to read here; say how to find out.
