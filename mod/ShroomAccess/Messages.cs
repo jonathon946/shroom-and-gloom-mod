@@ -111,7 +111,10 @@ namespace ShroomAccess
                         string lead = _offerKind.Contains("LootAll")
                             ? "You are offered all of these, " + names.Count + " cards: "
                             : "Choose one of " + names.Count + ": ";
-                        FocusProbe.Announce(lead + string.Join(", ", names) + ". Left and Right to look, Enter to take.", interrupt: false);
+                        string how = _offerKind.Contains("LootAll")
+                            ? ". Left and Right read each card. Enter, or Down to Take, takes them all."
+                            : ". Left and Right to look, Enter to choose.";
+                        FocusProbe.Announce(lead + string.Join(", ", names) + how, interrupt: false);
                     }
                     FocusProbe.Reannounce();
                 }

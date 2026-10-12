@@ -56,6 +56,15 @@ namespace ShroomAccess
                 if (dx == 0 && dy == 0) return;
 
                 if (InputBridge.CtrlHeld) { Buffers(focus, dx, dy); return; }
+
+                // A pile of cards offered all together (a backpack): the game shows them fanned out
+                // but lets a gamepad focus only the pile and the Take button. Left and Right walk
+                // the pile here, so each card can be read and inspected before taking.
+                if (dx != 0 && focus.Scope != null && focus.Scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name.Contains("LootAll"))
+                {
+                    Il2CppSystem.Object onNow = focus.CurrentFocus;
+                    if (onNow != null && onNow.TryCast<IV_CardInstance>() != null) { PileStep(focus, dx); return; }
+                }
                 if (!rows) return;
 
                 int world = focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0;
@@ -236,6 +245,41 @@ namespace ShroomAccess
             catch { }
         }
 
+        // ---- A pile of offered cards ----
+
+        private static int _pileIndex = -1;
+        private static IntPtr _pileScope;
+
+        // The card the player is reading in a pile, when that is not the game's own focus.
+        internal static Il2CppSystem.Object VirtualSubject;
+
+        private static void PileStep(S_ControllerFocus focus, int dx)
+        {
+            Component root = focus.Scope.Cast<Il2CppSystem.Object>().TryCast<Component>();
+            if (root == null) return;
+            var cards = root.GetComponentsInChildren<V_GameplayCardInstance>(false);
+            int count = cards.Length;
+            if (count == 0) return;
+
+            if (_pileScope != focus.Scope.Pointer || _pileIndex < 0 || _pileIndex >= count)
+            {
+                _pileScope = focus.Scope.Pointer;
+                // Start from the card the game has on top.
+                _pileIndex = 0;
+                Il2CppSystem.Object top = focus.CurrentFocus;
+                for (int i = 0; i < count; i++)
+                    if (top != null && cards[i].Pointer == top.Pointer) { _pileIndex = i; break; }
+            }
+
+            int next = _pileIndex + dx;
+            if (next < 0 || next >= count) { Cue.Play(Cue.Edge); return; }
+            _pileIndex = next;
+            Il2CppSystem.Object card = cards[next].Cast<Il2CppSystem.Object>();
+            FocusChanged();
+            VirtualSubject = card;
+            FocusProbe.Announce(FocusProbe.Describe(card, out _).TrimEnd('.', ' ') + ", " + (next + 1) + " of " + count);
+        }
+
         // ---- Buffers ----
         // Modelled on Say the Spire: Ctrl+Left and Ctrl+Right choose a buffer, Ctrl+Up reads the
         // next line of it and Ctrl+Down the one before. Every buffer starts at its first line.
@@ -324,7 +368,7 @@ namespace ShroomAccess
                         else if (item.StartsWith("Energy")) detail.AddRange(Hud.Tip("Energy"));
                         return detail;
                     }
-                    Il2CppSystem.Object subject = focus.CurrentFocus;
+                    Il2CppSystem.Object subject = VirtualSubject ?? focus.CurrentFocus;
                     if (subject == null) return new List<string> { "Nothing focused" };
                     return FocusProbe.DetailLines(subject);
                 }

@@ -134,6 +134,7 @@ namespace ShroomAccess
                 string line = Describe(current, out string detail);
                 Log("[focus] " + TypeName(current) + " | " + detail);
                 Navigator.FocusChanged();
+                Navigator.VirtualSubject = null;
                 // Looking the thing up notes it if it has no appearance description yet.
                 try { DetailLines(current); } catch { }
                 if (Navigator.InStatusRow) return;
@@ -523,6 +524,7 @@ namespace ShroomAccess
                     if (isSection) break;
                     row = row.parent;
                 }
+                if (comp.GetComponentInParent<GameSettingsUI>() == null) return "";
                 Transform list = row.parent;
                 if (list == null) return "";
                 for (int i = row.GetSiblingIndex() - 1; i >= 0; i--)

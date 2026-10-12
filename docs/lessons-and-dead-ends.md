@@ -94,3 +94,8 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **KEY FINDING — A camp card is cast onto a plot** (`SpellReceiverRoom`), whose object name gives its position ("RoomSpellTargetBackLeft") and whose child text is a threat badge, not a name.
 - **KEY FINDING — The card-change screen is a cast in reverse:** the hand is the list (scope `ModifyCardEncounterUI`, mode Hand), and the "target" of the chosen card is the panel itself.
 - **TOOL — Alt-text pictures:** `[alt-missing]` plus an automatic screenshot per undescribed thing produced 78 pictures in one playthrough, about a third of them menu controls that need no description. Filter by kind before writing.
+
+## Offers [Session 01, part 15]
+
+- **KEY FINDING — In a take-all offer (`LootAllEncounterUI`) the game focuses only the top card and the Take button.** The other cards are on screen and not reachable by gamepad. The mod walks them itself (`Navigator.PileStep`) and keeps a "virtual subject" for the buffers.
+- **GOTCHA — A rule written for one screen leaks into others.** "Text above a row is its heading" was right in settings and read eight cards of text above the Take button in an offer. Scope such rules to the screen they were written for.

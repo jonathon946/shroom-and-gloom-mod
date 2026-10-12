@@ -2,6 +2,11 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-12 — Session 01, part 15 — reading a pile of offered cards
+
+- In an offer of several cards taken together (a backpack), Left and Right step through the cards with their place in the pile, and the buffers read the card stepped to. The game itself lets a gamepad focus only the top card and the Take button.
+- The Take button no longer reads every card's text (a settings-page heading rule had been applied outside settings).
+
 ## 2026-10-12 — Session 01, part 14 — fifth playthrough: density, dealing, the shop
 
 - Unasked lines are gathered for 0.7 seconds and spoken as one run in a fixed order; several "Nearby" lines become one list; "New turn" is dropped when "Your turn" says the same.
