@@ -12,7 +12,8 @@ $libs = Join-Path $GameDir 'UserLibs'
 $targets = @(
     (Join-Path $mods 'ShroomAccess.dll'),
     (Join-Path $libs 'prism.dll'),
-    (Join-Path $libs 'prism-licenses')
+    (Join-Path $libs 'prism-licenses'),
+    (Join-Path $mods 'ShroomAccess')
 )
 
 if (Get-Process 'Shroom and Gloom' -ErrorAction SilentlyContinue) { Write-Host 'Close Shroom and Gloom first.'; exit 2 }
@@ -34,4 +35,7 @@ Copy-Item $dll $targets[0] -Force
 Copy-Item (Join-Path $prism 'prism.dll') $targets[1] -Force
 if (Test-Path $targets[2]) { Remove-Item $targets[2] -Recurse -Force -Confirm:$false }
 Copy-Item (Join-Path $prism 'prism-licenses') $targets[2] -Recurse
+$data = Join-Path $mods 'ShroomAccess'
+New-Item -ItemType Directory -Force $data | Out-Null
+Copy-Item (Join-Path $root 'mod\ShroomAccess\data\*') $data -Force
 Write-Host 'DEPLOY OK'

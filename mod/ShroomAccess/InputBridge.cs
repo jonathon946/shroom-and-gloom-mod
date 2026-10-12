@@ -165,6 +165,21 @@ namespace ShroomAccess
             return phase == 0 ? action.WasPressedThisFrame() : phase == 1 ? action.IsPressed() : action.WasReleasedThisFrame();
         }
 
+        internal static IEnumerable<InputActionId> MappedIds => Map.Keys;
+
+        // A key that is not a game action (mod commands such as Ctrl+B).
+        private static readonly Dictionary<string, InputAction> _named = new Dictionary<string, InputAction>();
+
+        internal static bool NamedKey(string control)
+        {
+            if (!_named.TryGetValue(control, out InputAction action))
+            {
+                _named[control] = Button("Named." + control, control);
+                return false;
+            }
+            return Application.isFocused && action.WasPressedThisFrame();
+        }
+
         // Dev testing: a simulated key press, so tests need neither the keyboard nor window focus.
         private static InputActionId _simId = InputActionId.None;
         private static int _simFrame;

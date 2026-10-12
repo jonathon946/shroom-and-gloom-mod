@@ -24,6 +24,10 @@ namespace ShroomAccess
             WorldAssist.Log = msg => LoggerInstance.Msg(msg);
             Navigator.Log = msg => LoggerInstance.Msg(msg);
             Hud.Log = msg => LoggerInstance.Msg(msg);
+            Review.Log = msg => LoggerInstance.Msg(msg);
+            Review.Init(MelonEnvironment.UserDataDirectory);
+            AltText.Log = msg => LoggerInstance.Msg(msg);
+            AltText.Init(MelonEnvironment.ModsDirectory);
             InputBridge.Install(HarmonyInstance);
 
             // prism.dll ships in the loader's UserLibs folder.

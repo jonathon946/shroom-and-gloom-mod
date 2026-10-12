@@ -14,6 +14,7 @@
 #   Escape                  pause menu
 #   W (hold)                walk forward              S (hold)    walk back
 #   Space                   end turn (in camp: rest for the night)
+#   Ctrl+B                  mark this moment for review (it says "Mark 1", "Mark 2"...)
 #   Ctrl+Down, Ctrl+Up      read the next / previous line about the focused thing
 #   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player
 #   Ctrl+Page Up / Down     walking voice faster / slower

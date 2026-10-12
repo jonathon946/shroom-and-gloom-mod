@@ -57,6 +57,7 @@ namespace ShroomAccess
                 }
                 FocusMode mode = focus.Mode;
                 Navigator.Tick(focus);
+                Review.Tick(focus);
                 AnnounceArrivals(focus);
                 AnnounceHandChanges(focus);
                 Hud.AnnounceChanges(focus);
@@ -591,6 +592,7 @@ namespace ShroomAccess
                     string desc = data != null ? data.SingleDescription : null;
                     foreach (string sentence in Sentences(Clean(desc))) lines.Add(sentence);
                     foreach (string keyword in KeywordLines(desc)) lines.Add(keyword);
+                    AddLooks(lines, "card", model != null ? model.CardName : null);
                     return lines;
                 }
                 V_Enemy enemy = item.TryCast<V_Enemy>();
@@ -602,16 +604,24 @@ namespace ShroomAccess
                     foreach (string intent in EnemyIntents(m, brief: false)) lines.Add("Intends: " + intent);
                     if (lines.Count == 2) lines.Add("No intent showing");
                     foreach (string status in EnemyStatuses(m)) lines.Add(status);
+                    AddLooks(lines, "enemy", EnemyName(enemy, m));
                     return lines;
                 }
                 string whole = Describe(item, out _);
                 foreach (string sentence in Sentences(whole)) lines.Add(sentence);
+                if (lines.Count > 0) AddLooks(lines, "thing", lines[0].Split(',')[0]);
                 // A thing lying in the world shows a sighted player nothing but itself until it is
                 // opened, so there is nothing more to read here; say how to find out.
                 if (item.TryCast<EncounterStartWorldObject>() != null) lines.Add("Not opened yet. Enter opens it");
             }
             catch (Exception ex) { lines.Add("Could not read this: " + ex.Message); }
             return lines;
+        }
+
+        private static void AddLooks(List<string> lines, string kind, string name)
+        {
+            string looks = AltText.Lookup(kind, name);
+            if (!string.IsNullOrWhiteSpace(looks)) lines.Add("Looks: " + looks);
         }
 
         private static IEnumerable<string> Sentences(string text)

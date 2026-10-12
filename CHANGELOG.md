@@ -2,6 +2,11 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-11 — Session 01, part 9 — playthrough review and alt text plumbing
+
+- Every key the mod acts on is logged. Ctrl+B saves a numbered mark (log line, screenshot, state dump).
+- `AltText`: authored appearance descriptions from `data/alt-text.txt`, read as "Looks: ..." in the buffer; missing ones are logged. First five written (Shovel, Dig Site, Door, Torch, Rusted Hammer).
+
 ## 2026-10-11 — Session 01, part 8 — hazards, doors, the camp readout, first combat
 
 - Fourth ear test: rows, buffers and Escape confirmed. Buffer on the status row made consistent; unopened objects say "Not opened yet. Enter opens it".
