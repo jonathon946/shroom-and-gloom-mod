@@ -1,10 +1,10 @@
-> **Status:** Evergreen (rolling single source of truth; edited in place at every close). **Last updated:** 2026-10-12, Session 01 close. Six playthroughs by ear so far, the last reaching the fourth tunnel. The mod makes the game playable from the title through tutorial, camps, fights, a shop and onward, with rough edges listed below. The last build (map reader, shop rows, enemies row, status explanations, grouped arrivals) has not been heard. The maintainer asked for the backlog to be cleared; one item of it (the map) was done before the session closed. Resume with the backlog in the order given under Resume point.
+> **Status:** Evergreen (rolling single source of truth; edited in place at every close). **Last updated:** 2026-10-12, Session 02 close. Six playthroughs by ear so far, the last reaching the fourth tunnel. Session 02 built tooling to reproduce situations and cleared most of the backlog (card-change screens, player statuses, class screen, old marks, help, player README and packaging) with no playthrough in between: none of Session 02 and none of Session 01 parts 14 to 17 has been heard. Resume with a playthrough, then the rest of the backlog under Resume point.
 
 # Current state — Shroom and Gloom accessibility
 
 ## Where we are
 
-Build: Shroom Access 0.0.1 on game 0.6.41 (Steam buildid 25442225), MelonLoader 0.7.3, Prism 0.18.3.
+Build: Shroom Access 0.0.1 (packaged for testing as 0.1.0) on game 0.6.41 (Steam buildid 25442225), MelonLoader 0.7.3, Prism 0.18.3.
 
 What works in dev tests (simulated input inside the game, log output read by Claude):
 
@@ -17,22 +17,23 @@ What works in dev tests (simulated input inside the game, log output read by Cla
 - **Spoken descriptions:** cards (name, cost, rules text), world objects (name and what the game says they need, for example "Dig Site. Something is hidden here. Looks diggable."), doors, buttons, title paths.
 - **Looking is not needed:** objects the game only lets a gamepad focus after the camera has been pointed at them are marked as seen when they are in range.
 
-Not built yet: combat, the map, deck view, inspect and keyword explanations, health and energy queries, settings screens, a review buffer, any help. See the roadmap in the plan.
+Built since this list was first written and described in the changelog: fights, camps, shops, offers, card-change screens, the map reader, the status row, five buffers including Help, appearance descriptions. Not built yet: rebindable keys, the strings table, the update check; the deck view and inspect are mapped to keys but unexamined.
 
 ## Resume point
 
-**Start of Session 02.** First check the game build against "Verified against" below. Then:
+**Start of Session 03.** First check the game build against "Verified against" below. Then:
 
-1. Ask for the maintainer's notes on the last build (checklist in `paste-commands.ps1`), and read any new marks.
-2. Work the backlog in this order, agreed with the maintainer on 2026-10-12:
-   1. **The map:** first version done (see below). Remaining: it lists areas in the game's internal order, which does not express the branches drawn on the map; the boss marker is not mentioned; whether M closes it with the real keyboard is unverified.
-   2. **The grimoire and card-change result screen:** after applying, a screen with "No thanks" and "Take" appears and the new card is not read (playthrough c, mark 2). Needs reproducing: there is a Grimoire in the far run's current room; it needs a Reveal card.
-   3. **Statuses on the player** (Burning Sensation and others).
-   4. **Choice screens in the order message, cards, "No thanks" last.**
-   5. **The class selection screen.**
-   6. **Unchecked from earlier marks:** text on first landing, after a door opens, at the start of a fight (playthrough b marks 1, 4, 13); the foresight door that read nothing (b mark 12); fast double Enter (b mark 3).
-   7. **In-game help; rebindable mod keys; the localisation table; packaging and the update check.**
-3. The save folder holds the maintainer's far run (fourth tunnel). `tools/Reset-Save.ps1` gives a fresh game; `backups/` has earlier runs, including one that reached a shop.
+1. Ask for the maintainer's notes on the current build (checklist in `paste-commands.ps1`, letters A to H), and read any new marks. Two sessions of work are unheard; a playthrough comes before more features.
+2. What is left of the backlog agreed on 2026-10-12, in order:
+   1. **The map:** it lists areas in the game's internal order, which does not express the branches drawn on the map; the boss marker is not mentioned; whether M closes it with the real keyboard is unverified.
+   2. **Choice screens in the order message, cards, "No thanks" last:** done for the card-change screens (grimoire, geode, practice dummy). Not looked at for other choices (card offers, foresights).
+   3. **Fast double Enter and message timing** (playthrough b, mark 3). Not addressed.
+   4. **Rebindable mod keys; the strings table (strings are still literals in the code, against the project rule); the update check.**
+   5. **Install the package from scratch** following `mod/README.txt`, on a game folder without the loader.
+3. Also open: a shop visit run live (help line, wording when a purchase completes, the forget service); enemy status explanations beyond Vulnerable; statuses on the player with a real status; the new intent wording in a fight; appearance descriptions for Lazarus, the Foresight chest, The Encroaching Gloom, Large Rock, Paper Boy and the Grimoire; whether the game's cheat keys are live; JAWS and Narrator; the fresh-player reset before hand-over.
+4. The save folder holds the maintainer's far run (fourth tunnel, a camp with a grimoire). `tools/Snapshot.ps1 -Load far-run-tunnel4` puts it back at any time; `tools/Reset-Save.ps1` gives a fresh game.
+
+**Done in Session 02** (details in `docs/sessions/2026-10-12-session-02.md`): situation tooling; card-change screens; player statuses; class screen; the old marks (only the first-landing picture note was unspoken, now spoken); the Help buffer; the player README; packaging.
 
 ## Verification status
 
@@ -47,11 +48,12 @@ Not built yet: combat, the map, deck view, inspect and keyword explanations, hea
 ## Open items
 
 - **Reset to a fresh player before hand-over** (maintainer's condition). Dev testing has started runs and taken tutorial cards, so the save is no longer fresh. The fresh-install copy is in `backups/2026-10-11-fresh-install-SaveData/`. The reset must also deal with Steam Cloud (the save folder syncs) and any registry settings (not yet looked at).
+- **Packaging:** `tools/Package-Mod.ps1` builds `dist/ShroomAccess-<version>/` and a zip: `Mods\ShroomAccess.dll`, `Mods\ShroomAccess\alt-text.txt`, `UserLibs\prism.dll`, `UserLibs\prism-licenses\`, `README.txt`. `dist/` is ignored by Git. The README sends players to the MelonLoader installer; that route has not been tried here (the loader on this machine was installed by script).
 - **Dev bridge must be off in a release:** it is enabled only by `UserData\ShroomAccess\dev.flag`, which exists on this machine. Do not ship that file.
 - **Distribution** (maintainer asked 2026-10-11): the game has no Steam Workshop support, so the route is a public download plus an update check inside the mod. Design and build that at the packaging stage; the repository is private today.
 - **Walking and speech** (decided with the maintainer, part 6): lines that arrive while a walk key is held are spoken at once through a direct Windows voice (OneCore, else SAPI) that the screen reader cannot cancel, with a two-note sound on arrival. The voice's rate starts from NVDA's configured rate and is adjusted with Ctrl+Page Up / Ctrl+Page Down. The rate match is approximate: this machine's NVDA uses the Eloquence synthesizer, whose rate number does not mean the same speed in a Windows voice. A walk toggle was considered and dropped as the default.
 - **What the game is, as learned so far** (the maintainer knows nothing of it; keep this current): you walk a path forward and back. Things on the path take cards from your explore hand: a shovel digs, a key unlocks, a match lights or reveals, a hammer fixes or breaks. Lighting a torch makes camp: warmth against threat ("Safe for 3"), and ending the turn there (Space) rests for the night and refills energy. Doors carry a sign saying what lies behind. A backpack gives the explore deck. Fights use a separate combat deck; enemies stand in lanes, show what they intend, and you spend energy on cards, then end the turn.
-- **Enemy intent wording** uses the intent's internal name ("Deal Damage 3"); the game's own tooltip sentence is used in the buffer. Statuses are named but not yet explained.
+- **Enemy intent wording:** "Will attack for 5", "Will block 3", and "Will use" plus the game's name for anything else (Psychic Scream, Inspire, Spellshield, Liverwort are the ones seen). The game's own tooltip sentence is used in the buffer. Unheard and not yet seen in a fight.
 - **Parity:** the maintainer wants the mod to match what a sighted player can know; unopened things are not peeked into.
 - **Stuck foresight screen: likely cause found 2026-10-12.** It happened again (playthrough of 2026-10-12, mark 4). In both cases the game's log shows "Active instance set to: ForesightChoiceUI" followed at once by "Lost focus" and time frozen, and no cards were ever dealt. A dev replay of the same spot with no focus change dealt the cards normally. Reading: a chest takes some seconds to rise and deal, nothing is focusable meanwhile, the player concludes it is dead and pauses or switches window, and freezing time at that moment breaks the deal for good (a game bug). The mod now says "Wait: the cards are still being dealt. Stay in the game window until they are read." and reads the choice when it arrives. Recovery if it happens: Escape, Main Menu, Continue. Earlier notes follow.
 - **Stuck foresight screen, earlier notes.** At mark 2 of the 2026-10-11 playthrough the game opened ForesightChoiceUI ("A Gift From Below. Choose a Foresight") with no cards; the focus mode stayed Suppressed and nothing responded. The game's log shows the screen becoming active and then the window losing focus, with no "Spawning reward choice" lines. Earlier in the same run the game logged "StartInteraction called on ForesightChoiceUI ... already been started! ignoring!". Possibilities, none tested: a game bug on losing focus at that moment; Enter reaching the game twice (the game's Confirm and the UI module's Submit both fire on Enter); something the mod's hooks disturb. Quitting and choosing Continue put the run back in the world just after the fight. Copies of the logs and marks are in `reference/playthrough-2026-10-11/`.
@@ -63,6 +65,7 @@ Not built yet: combat, the map, deck view, inspect and keyword explanations, hea
 - **Menus, checked in dev tests:** title menu (Settings, Credits, Quit), settings tabs Sound, Graphics, Game, Controls, the credits, the end-previous-run question, the pause menu. **Not checked:** opening a dropdown and choosing from its list, the VSync row (skipped by focus when windowed), rebinding a controller button, the Reset and Delete Save buttons (not pressed), settings reached from the pause menu rather than the title.
 - **A dev replay changed a real setting** (master volume, and toggled chromatic aberration) and put them back. Settings are the maintainer's; replays that walk settings must restore what they touch.
 - **From the 23 marks (playthrough b, 2026-10-11), still open:**
+  - Marks 1, 4, 12 and 13 were checked against their screenshots on 2026-10-12: only mark 1 held something unspoken (a wordless note: push forward), now spoken. The notes below for those marks are kept as written at the time.
   - Marks 1 and 4: whether the game shows any text on first landing in the world, or after a door opens. Not yet checked against the screenshots. The mod now says "The door is open. You can walk on."
   - Mark 12: a foresight door opened and nothing was read. Not investigated.
   - Mark 13: why a fight starts. The mod says "Combat."; whether the game shows anything more is unknown.

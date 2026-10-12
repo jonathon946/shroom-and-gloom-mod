@@ -1,4 +1,4 @@
-# Shroom and Gloom accessibility - listen through the first fight (Session 01, part 8).
+# Shroom and Gloom accessibility - listening checklist for the Session 02 build (2026-10-12).
 #
 # There is nothing to run here except starting the game. Either start it from Steam as usual,
 # or run this file, which starts it for you:
@@ -16,24 +16,37 @@
 #   Space                   end turn (in camp: rest for the night)
 #   Ctrl+B                  mark this moment for review (it says "Mark 1", "Mark 2"...)
 #   Ctrl+Up, Ctrl+Down      read the next / previous line of the buffer
-#   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player, Surroundings, Messages
+#   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player, Surroundings, Messages, Help
 #   Ctrl+Page Up / Down     walking voice faster / slower
 #
-# CHECKLIST (after the sixth playthrough) - report by letter, as far as you get.
-# Your far run is back: Continue resumes it.
+# CHECKLIST (Session 02 build) - report by letter, as far as you get.
+# Your far run is back: Continue resumes it at a camp with a Grimoire.
 #
-#   A. In a fight, Left and Right along the Enemies row should give only enemies, no torches.
+#   A. Help. Ctrl+Right four times reaches the Help buffer; Ctrl+Up reads on. Is anything
+#      missing, wrong, or too long?
 #
-#   B. Ctrl+Up on an enemy with a status (Seasoning, Vulnerable, Timid): the status line should now
-#      end with what it does. Tell me any status that has no explanation.
+#   B. The Grimoire (or a Strange Geode or Practice Dummy). You should hear the message first,
+#      then your cards. Enter on a card, Enter on the panel. Then: "The card is now: ...
+#      Enter takes it. Left is No thanks."
 #
-#   C. Arriving somewhere busy: "Nearby: 2 Doors, 3 Chests..." in one grouped line.
+#   C. In a fight, an enemy should say "Will attack for 5" or "Will block 3" in place of
+#      "Intends Deal Damage 5".
 #
-#   D. A shop: each card says "For sale", its price, and its place ("top row, 2 of 4").
+#   D. When you have a status on yourself (Burning Sensation or any other): Ctrl+Right to the
+#      Player buffer, Ctrl+Up through it. The status should be listed with what it does.
+#
+#   E. Still unheard from last time: in a fight, the Enemies row holds only enemies; arriving
+#      somewhere busy gives one grouped "Nearby:" line; an enemy status ends with what it does.
+#
+#   F. A shop: each card says "For sale", its price, and its place ("top row, 2 of 4").
 #      Enter on a card; the mole says how much food. Your hand is then "Your food".
-#      Enter on a food card, Enter on the bowl. Repeat until paid. Mark each step that is unclear.
+#      Enter on a food card, Enter on the bowl. Repeat until paid. Mark each unclear step.
 #
-#   E. Ctrl+Up to the end on any card or creature for its "Looks:" line. 103 are written.
+#   G. The map (M). The first line gives the number of areas and where you are; Ctrl+Up reads
+#      each area. Does M close it again?
+#
+#   H. Only if you start a new run: the class screen should say "locked" on the two locked
+#      characters. (A brand-new game also says "A hand holds up a note..." at the very start.)
 #
 #   Keep marking with Ctrl+B anywhere sound happens with no speech.
 #

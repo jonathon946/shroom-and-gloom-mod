@@ -2,6 +2,18 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-12 — Session 02 — tooling, then the backlog
+
+- Tools: `Snapshot.ps1` (named save copies); dev bridge commands `addcard`, `energy`, `heal`, `killall`, `list`, `focus TEXT`; `Test-Run.ps1` tokens `dev:<command>` and `until:<regex>`.
+- Card-change screens (grimoire, geode, practice dummy): message first, then the cards; held-back focus lines are spoken after the message; the changed card is read with "Enter takes it. Left is No thanks."
+- Player buffer lists the statuses on the player with the game's explanations.
+- Class screen: locked characters say "locked"; a card is "Your hand" only in hand mode; the settings heading rule is confined to settings.
+- Help: a fifth buffer with the keys, rows and buffers; the title greeting points to it.
+- A new game's wordless "push forward" note is spoken once: "A hand holds up a note with a picture: push forward. Hold W to walk."
+- Enemy intents read "Will attack for 5", "Will block 3", "Will use Psychic Scream 2".
+- A use the game shows as unknown reads "Also takes something unknown." after the known uses.
+- `mod/README.txt` for players and `tools/Package-Mod.ps1`, which builds `dist/ShroomAccess-<version>.zip` (mod, data, Prism and its licences, README; nothing from testing).
+
 ## 2026-10-12 — Session 01, part 17 — the map; session close
 
 - `MapReader`: with the map open, the first line gives the number of areas, how many are explored and where the player is; Ctrl+Up reads each area (what it holds, fight won or ahead, unexplored).

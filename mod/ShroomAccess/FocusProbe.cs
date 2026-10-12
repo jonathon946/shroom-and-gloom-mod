@@ -410,7 +410,7 @@ namespace ShroomAccess
                 if (m == null) return Humanize(enemy.gameObject.name);
                 string line = EnemyName(enemy, m) + ". " + EnemyHealth(m);
                 string intent = string.Join(", ", EnemyIntents(m, brief: true));
-                if (intent.Length > 0) line += ". Intends " + intent;
+                if (intent.Length > 0) line += ". Will " + intent;
                 string statuses = string.Join(", ", EnemyStatuses(m));
                 if (statuses.Length > 0) line += ". " + statuses;
                 return Clean(line);
@@ -517,6 +517,10 @@ namespace ShroomAccess
                     if (pair == null || pair.Intent == null) continue;
                     string label = Humanize(pair.Intent.name).Replace("Enemy Intent", "").Replace("  ", " ").Trim();
                     if (label.StartsWith("Enemy ")) label = label.Substring(6);
+                    // The game shows these two as a dagger and a shield with a number.
+                    if (label == "Deal Damage") label = "attack for";
+                    else if (label == "Block Damage") label = "block";
+                    else if (label.Length > 0 && label != "Nothing") label = "use " + label;
                     if (label.Length == 0 || label == "Nothing") continue;
                     string text = null;
                     if (!brief) text = Safe(() => pair.Intent.GetIntentToolTipText("ShroomAccess", pair, m.StatusEffects));
@@ -710,17 +714,19 @@ namespace ShroomAccess
         {
             if (list == null) return "";
             var names = new List<string>();
+            bool mysterious = false;
             for (int i = 0; i < list.Count; i++)
             {
                 OrableWithMeta item = list[i];
                 if (item == null) continue;
-                if (item.IsMysterious) { names.Add("something unknown"); continue; }
+                if (item.IsMysterious) { mysterious = true; continue; }
                 OrableCardIntent intent = item.OrableIntent;
                 if (intent == null) continue;
                 string label = intent.EnvironmentPromptTooltip;
                 if (string.IsNullOrWhiteSpace(label)) label = Humanize(intent.name);
                 if (!names.Contains(label)) names.Add(label);
             }
+            if (mysterious) names.Add(names.Count > 0 ? "Also takes something unknown." : "Takes something unknown.");
             return string.Join(" ", names);
         }
 
@@ -1051,7 +1057,7 @@ namespace ShroomAccess
                     M_Enemy m = enemy.Model;
                     lines.Add(EnemyName(enemy, m));
                     lines.Add(EnemyHealth(m));
-                    foreach (string intent in EnemyIntents(m, brief: false)) lines.Add("Intends: " + intent);
+                    foreach (string intent in EnemyIntents(m, brief: false)) lines.Add("Will " + intent);
                     if (lines.Count == 2) lines.Add("No intent showing");
                     foreach (string status in EnemyStatuses(m)) lines.Add(status + StatusTip(status));
                     AddLooks(lines, "enemy", EnemyName(enemy, m));

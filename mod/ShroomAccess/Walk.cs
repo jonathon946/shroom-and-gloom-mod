@@ -18,12 +18,29 @@ namespace ShroomAccess
         private static Vector3 _holdFrom;
         private static bool _toldStuck;
 
+        private static bool _noteDone;
+        private static float _noteCheckAt;
+
         internal static void Tick(S_ControllerFocus focus)
         {
             try
             {
                 bool blocked = !focus.MoveStickWalks;
                 InputBridge.WalkBlocked = blocked;
+
+                // A new game opens on a hand holding up a note: a picture of a stick pushed forward.
+                // It has no words, so it is said once, until the player has taken a step.
+                if (!_noteDone && !blocked && Time.realtimeSinceStartup > _noteCheckAt)
+                {
+                    _noteCheckAt = Time.realtimeSinceStartup + 1f;
+                    S_InitialTutorial tutorial = UnityEngine.Object.FindObjectOfType<S_InitialTutorial>();
+                    if (tutorial != null && (tutorial.IsOver || tutorial._hasSteppedForward)) _noteDone = true;
+                    else if (tutorial != null && tutorial._isActive && focus.PlayerModel != null)
+                    {
+                        _noteDone = true;
+                        FocusProbe.Announce("A hand holds up a note with a picture: push forward. Hold W to walk.");
+                    }
+                }
 
                 int pressed = InputBridge.MovePressed();
                 if (pressed != 0 && blocked)

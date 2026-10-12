@@ -289,7 +289,28 @@ namespace ShroomAccess
         // Moving focus returns to the Item buffer at its first line, because the thing just
         // focused is what the player will want to read about.
 
-        private static readonly string[] BufferNames = { "Item", "Player", "Surroundings", "Messages" };
+        private static readonly string[] BufferNames = { "Item", "Player", "Surroundings", "Messages", "Help" };
+
+        private static readonly string[] HelpLines =
+        {
+            "Control Up reads on, Control Down goes back",
+            "Up and Down arrows move between rows: Status at the top, then Nearby or Enemies, then Your hand",
+            "Left and Right arrows move along a row. A low sound means the end of the row",
+            "Enter chooses. On a card in your hand it picks the card, then Enter on a target plays it",
+            "A card with no target is played by pressing Enter twice",
+            "Backspace cancels or goes back. Escape opens the pause menu",
+            "Hold W to walk forward and S to walk back. A second voice speaks while you walk",
+            "Space ends your turn. At a camp, Space rests for the night and refills your energy",
+            "M opens and closes the map. With the map open, Control Up reads each area",
+            "Tab opens your deck. I inspects. O sorts your hand",
+            "Control Left and Right switch buffer: Item, Player, Surroundings, Messages, Help",
+            "The Item buffer describes what you are on, ending with what it looks like",
+            "The Player buffer has your health, energy, piles, statuses and foresights",
+            "The Messages buffer repeats what was said, newest first",
+            "On the Status row, Enter reads the game's own explanation of a status",
+            "Control Page Up and Control Page Down make the walking voice faster or slower",
+            "Control B marks the moment for a bug report",
+        };
         private static int _buffer;
         private static int _line;
 
@@ -369,6 +390,8 @@ namespace ShroomAccess
                 }
                 case 3:
                     return FocusProbe.History();
+                case 4:
+                    return new List<string>(HelpLines);
                 default:
                 {
                     if (_inStatus)
