@@ -6,7 +6,10 @@ The mod does not invent its own navigation. The game already has a full set of g
 
 ## Keys
 
-- **Left / Right / Up / Down arrows:** move focus (the game's Focus Previous, Next, Up, Down).
+- **Up / Down arrows:** in play, move between rows: Status (top), Nearby, Your hand (bottom). In menus, offers and target selection they are the game's own Focus Up and Down.
+- **Left / Right arrows:** move along the current row; in menus, the game's Focus Previous and Next.
+- **Ctrl+Down / Ctrl+Up:** next / previous line about the focused thing.
+- **Ctrl+Right / Ctrl+Left:** next / previous buffer (Item, Player).
 - **Enter** (main or numpad): confirm. On a card in hand it starts a cast; on a target it casts; on a button it presses it.
 - **Backspace:** cancel or back.
 - **Escape:** pause menu.
@@ -23,7 +26,8 @@ The last six are mapped but have not been tried on a screen where they do someth
 
 ## Rules the keys follow
 
-- While **Ctrl** is held, the mod passes none of these to the game. Ctrl combinations are reserved for mod commands (none yet).
+- While **Ctrl** is held, the mod passes none of these to the game. Ctrl combinations are reserved for mod commands; Ctrl+arrows are the buffers.
+- At either end of a row the current item is spoken again; rows do not wrap.
 - Keys only count while the game window is focused.
 
 ## Keys the mod must never take

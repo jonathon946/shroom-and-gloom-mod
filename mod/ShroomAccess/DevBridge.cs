@@ -91,9 +91,15 @@ namespace ShroomAccess
                             Log("[dev] state " + arg);
                             break;
                         case "press":
-                            InputBridge.Inject((Il2Cpp.InputActionId)Enum.Parse(typeof(Il2Cpp.InputActionId), arg, true));
+                        {
+                            // press <action>       a key press as the player would make it
+                            // press ctrl+<action>  the same with Ctrl held
+                            bool ctrl = arg.StartsWith("ctrl+", StringComparison.OrdinalIgnoreCase);
+                            string name = ctrl ? arg.Substring(5) : arg;
+                            InputBridge.Simulate((Il2Cpp.InputActionId)Enum.Parse(typeof(Il2Cpp.InputActionId), name, true), ctrl);
                             Log("[dev] press " + arg);
                             break;
+                        }
                         default:
                             Log("[dev] unknown command: " + line);
                             break;

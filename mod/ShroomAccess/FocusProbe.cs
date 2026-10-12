@@ -56,7 +56,10 @@ namespace ShroomAccess
                     Log("[state] " + state);
                 }
                 FocusMode mode = focus.Mode;
+                Navigator.Tick(focus);
                 AnnounceArrivals(focus);
+                AnnounceHandChanges(focus);
+                FlushHeld();
 
                 if (input != null && _bindingsDumped && DevBridge.Enabled)
                 {
@@ -90,10 +93,12 @@ namespace ShroomAccess
 
                 string line = Describe(current, out string detail);
                 Log("[focus] " + TypeName(current) + " | " + detail);
+                if (Navigator.InStatusRow) return;
 
                 // Name the row the player has just moved into, so they know what they are among:
                 // their own cards, things in the world, valid targets for a cast, or an offer.
                 string zone = ZoneOf(focus, current, mode);
+                if (zone == "offer") _offerSeenAt = Time.realtimeSinceStartup;
                 string spoken = line;
                 if (zone != _lastZone)
                 {
@@ -156,7 +161,7 @@ namespace ShroomAccess
             _knownNearby.Clear();
             foreach (IntPtr ptr in now) _knownNearby.Add(ptr);
             if (fresh.Count == 0 || focus.Mode == FocusMode.Target) return;
-            Announce("Nearby: " + string.Join(", ", fresh) + ".", interrupt: false);
+            Announce("Nearby: " + string.Join(", ", fresh) + ".", interrupt: false, holdWhileWalking: true);
             _protectUntil = Time.realtimeSinceStartup + 1.5f;
         }
 
@@ -368,10 +373,153 @@ namespace ShroomAccess
         }
 
         // Speech is confined to the game's own window: nothing is spoken while the player is elsewhere.
-        internal static void Announce(string text, bool interrupt = true)
+        // holdWhileWalking: for lines the player did not ask for. A screen reader cuts speech on every
+        // key repeat, so a line spoken while W is held is never heard; it waits for the key to come up.
+        internal static void Announce(string text, bool interrupt = true, bool holdWhileWalking = false)
         {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            if (holdWhileWalking && InputBridge.MoveHeld)
+            {
+                // Several arrivals during one walk read as one list.
+                int last = _held.Count - 1;
+                if (last >= 0 && text.StartsWith("Nearby: ") && _held[last].StartsWith("Nearby: "))
+                    _held[last] = _held[last].TrimEnd('.') + ", " + text.Substring(8);
+                else if (!_held.Contains(text)) _held.Add(text);
+                Log("[held] " + text);
+                return;
+            }
             Log("[say] " + text);
             if (Application.isFocused) Speaker.Say(text, interrupt);
+        }
+
+        private static readonly List<string> _held = new List<string>();
+
+        private static void FlushHeld()
+        {
+            if (_held.Count == 0 || InputBridge.MoveHeld) return;
+            string all = string.Join(" ", _held);
+            _held.Clear();
+            Announce(all, interrupt: false);
+            _protectUntil = Time.realtimeSinceStartup + 1.5f;
+        }
+
+        // Speak the focused thing again, with or without its row name.
+        internal static void Reannounce(bool rowName = true)
+        {
+            _lastFocus = IntPtr.Zero;
+            if (rowName) _lastZone = "";
+        }
+
+        // The player has moved to a row the game knows nothing about (the status row).
+        internal static void LeaveRow()
+        {
+            _lastZone = "status";
+        }
+
+        // Cards arrive in the hand from things other than offers (lighting a torch gives a match).
+        private static readonly HashSet<IntPtr> _knownHeld = new HashSet<IntPtr>();
+        private static bool _heldPrimed;
+        private static float _offerSeenAt = -100f;
+
+        private static void AnnounceHandChanges(S_ControllerFocus focus)
+        {
+            IM_Hand hand = null;
+            try { hand = focus.PlayerModel != null ? focus.PlayerModel.GetActiveHand() : null; } catch { }
+            var held = hand != null ? hand.HeldCards : null;
+            if (held == null) { _knownHeld.Clear(); _heldPrimed = false; return; }
+            var now = new HashSet<IntPtr>();
+            var added = new List<string>();
+            for (int i = 0; i < held.Count; i++)
+            {
+                IM_CardInstance c = held[i];
+                if (c == null) continue;
+                now.Add(c.Pointer);
+                if (_heldPrimed && !_knownHeld.Contains(c.Pointer)) added.Add(c.CardName);
+            }
+            _knownHeld.Clear();
+            foreach (IntPtr ptr in now) _knownHeld.Add(ptr);
+            _heldPrimed = true;
+            if (added.Count > 0)
+            {
+                _pendingAdded.AddRange(added);
+                _pendingAddedAt = Time.realtimeSinceStartup + 2f;
+            }
+            if (_pendingAdded.Count == 0 || Time.realtimeSinceStartup < _pendingAddedAt) return;
+
+            // Wait a moment first: a card taken from an offer becomes the focused card and is read
+            // as such, and saying it twice helps nobody.
+            Il2CppSystem.Object cur = focus.CurrentFocus;
+            IV_CardInstance focused = cur != null ? cur.TryCast<IV_CardInstance>() : null;
+            string focusedName = focused != null && focused.IModel != null ? focused.IModel.CardName : null;
+            _pendingAdded.RemoveAll(n => n == focusedName);
+            if (_pendingAdded.Count > 0)
+            {
+                Announce("Added to hand: " + string.Join(", ", _pendingAdded) + ".", interrupt: false, holdWhileWalking: true);
+                _protectUntil = Time.realtimeSinceStartup + 1.5f;
+            }
+            _pendingAdded.Clear();
+        }
+
+        private static readonly List<string> _pendingAdded = new List<string>();
+        private static float _pendingAddedAt;
+
+        // The lines of the item buffer: everything worth knowing about one thing, one fact per line.
+        internal static List<string> DetailLines(Il2CppSystem.Object item)
+        {
+            var lines = new List<string>();
+            if (item == null) return lines;
+            try
+            {
+                IV_CardInstance card = item.TryCast<IV_CardInstance>();
+                if (card != null)
+                {
+                    IM_CardInstance model = card.IModel;
+                    ICardData data = model != null ? model.IData : null;
+                    lines.Add(Clean(model != null ? model.CardName : "Card"));
+                    GameplayCardData gameplay = data != null ? data.TryCast<GameplayCardData>() : null;
+                    if (gameplay != null) lines.Add("Cost " + gameplay.EnergyUse + " energy");
+                    if (data != null) lines.Add(Humanize(data.DeckType.ToString()) + " deck");
+                    string desc = data != null ? data.SingleDescription : null;
+                    foreach (string sentence in Sentences(Clean(desc))) lines.Add(sentence);
+                    foreach (string keyword in KeywordLines(desc)) lines.Add(keyword);
+                    return lines;
+                }
+                string whole = Describe(item, out _);
+                foreach (string sentence in Sentences(whole)) lines.Add(sentence);
+            }
+            catch (Exception ex) { lines.Add("Could not read this: " + ex.Message); }
+            return lines;
+        }
+
+        private static IEnumerable<string> Sentences(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) yield break;
+            foreach (string part in text.Split(new[] { ". " }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string t = part.Trim().TrimEnd('.');
+                if (t.Length > 0) yield return t;
+            }
+        }
+
+        // Card text marks its keywords as links; the game holds an explanation for each link.
+        private static List<string> KeywordLines(string richText)
+        {
+            var lines = new List<string>();
+            if (string.IsNullOrEmpty(richText)) return lines;
+            var seen = new HashSet<string>();
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(richText, "<link=([^>]+)>(.*?)</link>"))
+            {
+                string key = m.Groups[1].Value;
+                string word = Clean(m.Groups[2].Value);
+                if (!seen.Add(key)) continue;
+                try
+                {
+                    if (KeywordTooltipRegistry.TryGetTooltipFromLinkID(key, out string tip) && !string.IsNullOrWhiteSpace(tip))
+                        lines.Add(word + ": " + Clean(tip));
+                }
+                catch (Exception ex) { Log("[keyword] " + key + ": " + ex.Message); }
+            }
+            return lines;
         }
 
         private static void DumpAsset(S_InputManager input)

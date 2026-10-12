@@ -2,6 +2,14 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-11 — Session 01, part 5 — second ear test; rows, buffers, held speech
+
+- `Navigator`: strict rows (Status, Nearby, Your hand); Left/Right within a row, Up/Down between rows; edges repeat the current item.
+- Buffers: Ctrl+Up/Down through the focused thing's lines, Ctrl+Left/Right between Item and Player. Keyword explanations come from the game ("CONSUME: This card will be destroyed upon being played.").
+- Unasked lines (arrivals, cards added) are held while a walk key is down and spoken on release; several arrivals read as one list.
+- "Added to hand: ..." when a card arrives other than as the focused card.
+- Dev: simulated presses now go through the same path as real keys, with `ctrl+` supported.
+
 ## 2026-10-11 — Session 01, part 4 — first ear test passed; its three requests built
 
 - The maintainer played the tutorial opening by ear with the real keyboard.

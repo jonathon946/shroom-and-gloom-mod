@@ -117,6 +117,11 @@ Steps 3 to 6 are a sketch; their order and content are set after Spike 2.
 
 - **2026-10-11 (Session 01, maintainer, after the first ear test):** **Rows are named when focus crosses into them** (your hand, nearby things, targets, an offer), with a count. **Arrivals are announced** ("Nearby: Shovel.") so walking never just stops. **A card offer says that Enter takes it**, because the separate Take button made the default unclear.
 
+- **2026-10-11 (Session 01, maintainer, after the second ear test):** **Strict rows.** Left and Right move along a row and never leave it; Up and Down move between rows. Rows from the top: Status (health, energy, gunk, piles), Nearby, Your hand. The game's own stepping is spatial, so on these screens the mod takes the arrow keys and sets the game's focus itself. Menus, offers and target selection still use the game's stepping.
+- **2026-10-11 (Session 01, maintainer):** **Information through buffers, as in Say the Spire 2.** Ctrl+Up and Ctrl+Down move through lines about the focused thing (name, cost, deck, each rule sentence, each keyword's explanation from the game's own tooltip text); Ctrl+Left and Ctrl+Right switch buffer (Item, Player). More buffers (events, enemies, statuses) join as those parts are built.
+- **2026-10-11 (Session 01):** **Lines the player did not ask for wait for the walk key to come up.** A screen reader cancels speech on every key repeat, so anything said while W is held is lost.
+- **2026-10-11 (Session 01):** **No Steam Workshop.** The game does not use it. Distribution will be a public download with an update check in the mod, designed at the packaging stage.
+
 ## Open items / questions
 
 - Whether the game's cheat keys are live in release builds.

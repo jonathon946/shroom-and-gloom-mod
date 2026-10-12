@@ -1,4 +1,4 @@
-> **Status:** Evergreen (rolling single source of truth; edited in place at every close). **Last updated:** 2026-10-11, Session 01 (part 4). The first ear test passed: the maintainer played the tutorial opening by ear with the real keyboard. Three requests from that test are built and waiting for a second listen: arrival announcements, named rows, and a clearer card offer. Next: that listen, then query keys, keyword explanations, the first hazard and combat.
+> **Status:** Evergreen (rolling single source of truth; edited in place at every close). **Last updated:** 2026-10-11, Session 01 (part 5). Two ear tests done. From the second: strict rows with a status row, Ctrl+arrow information buffers with keyword explanations, announcements held until the walk key is released, and a notice when a card lands in the hand are built and waiting for a third listen. Next after that: the torch and hazards, then first combat.
 
 # Current state — Shroom and Gloom accessibility
 
@@ -21,7 +21,7 @@ Not built yet: combat, the map, deck view, inspect and keyword explanations, hea
 
 ## Resume point
 
-1. **Maintainer's second listen** (run sheet in `paste-commands.ps1`): the new wording. On reaching something: "Nearby: Shovel." On moving between rows: "Nearby, 2 things. ...", "Your hand, 1 card. ...", "Choose a target. ...". On a card offer: "Offered: Rusty Shovel, cost 1. Consume. Enter takes it."
+1. **Maintainer's third listen** (run sheet in `paste-commands.ps1`): rows, the status row, the buffers, held announcements, and the torch.
 2. Then, in order: health/energy/hand query keys; keyword explanations from the game's tooltip registry; the hazard ("Torch Hazard Off") just past the tutorial door; first combat.
 3. Before any of that, if the game build has changed: regenerate `reference/` and re-check the hooks listed in the log at start ("Hooked ..." lines).
 
@@ -30,7 +30,7 @@ Not built yet: combat, the map, deck view, inspect and keyword explanations, hea
 - **Confirmed by ear** (maintainer, NVDA, real keyboard, 2026-10-11): the greeting; title screen navigation with arrows; taking the shovel; digging; taking the key; unlocking the door.
 - **Verified by data** (mod log, game state dumps, in-game screenshots): everything under "What works" above.
 - **Unverified:**
-  - The part 4 wording (arrivals, row names, offers): built and checked in the log, not yet heard.
+  - Part 5 (rows, status row, buffers, held speech, added-to-hand): checked in the log, not yet heard. Part 4's wording was heard and judged fine: nothing cut off, verbosity fine.
   - Whether keys held or tapped quickly behave (the mod uses event-driven actions so a fast tap should count).
   - JAWS, Narrator, and running with no screen reader.
   - Whether the game's cheat keys (Ctrl+H heal, Ctrl+K kill all and others) are live in this release build. The Cheats input map reports enabled. The mod ignores game actions while Ctrl is held, but does not block the game's own cheat handling.
@@ -39,7 +39,10 @@ Not built yet: combat, the map, deck view, inspect and keyword explanations, hea
 
 - **Reset to a fresh player before hand-over** (maintainer's condition). Dev testing has started runs and taken tutorial cards, so the save is no longer fresh. The fresh-install copy is in `backups/2026-10-11-fresh-install-SaveData/`. The reset must also deal with Steam Cloud (the save folder syncs) and any registry settings (not yet looked at).
 - **Dev bridge must be off in a release:** it is enabled only by `UserData\ShroomAccess\dev.flag`, which exists on this machine. Do not ship that file.
-- With nothing focused, Up reaches the nearby row but Down does not always; any arrow should enter the nearest row.
+- **Distribution** (maintainer asked 2026-10-11): the game has no Steam Workshop support, so the route is a public download plus an update check inside the mod. Design and build that at the packaging stage; the repository is private today.
+- **Walking silences speech** because the screen reader cancels on every key repeat. Lines are now held until the key is released. A walk toggle (tap W to walk until something is reached) would let arrival be heard at once; offered to the maintainer, not built.
+- The torch is read as "Torch Hazard Off"; hazards need a proper description and, on Enter, a result line.
+- A stray focus line is sometimes spoken just before an offer opens (the game moves focus first).
 - The title screen's centre path is spoken only as "New Run"; it should say which path it is.
 - "Hamburger Button" should be spoken as "Menu".
 - Focus changes interrupt speech; a context line followed by a selection can clip (lesson carried from Caves of Qud). Revisit after the ear test.

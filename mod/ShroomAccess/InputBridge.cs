@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using Il2Cpp;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace ShroomAccess
@@ -39,19 +40,25 @@ namespace ShroomAccess
         // Our own button actions, one per game action. Actions are event-driven, so a key tapped and
         // released inside a single frame still counts; polling key state would miss it.
         private static Dictionary<InputActionId, InputAction> _actions;
+        private static InputAction _moveUp, _moveDown, _moveLeft, _moveRight;
+
+        private static InputAction Button(string name, params string[] controls)
+        {
+            var action = new InputAction("ShroomAccess." + name, InputActionType.Button);
+            foreach (string control in controls)
+                InputActionSetupExtensions.AddBinding(action, "<Keyboard>/" + control);
+            action.Enable();
+            return action;
+        }
 
         private static void EnsureActions()
         {
             if (_actions != null) return;
-            _actions = new Dictionary<InputActionId, InputAction>();
-            foreach (var pair in Map)
-            {
-                var action = new InputAction("ShroomAccess." + pair.Key, InputActionType.Button);
-                foreach (string control in pair.Value)
-                    InputActionSetupExtensions.AddBinding(action, "<Keyboard>/" + control);
-                action.Enable();
-                _actions[pair.Key] = action;
-            }
+            var made = new Dictionary<InputActionId, InputAction>();
+            foreach (var pair in Map) made[pair.Key] = Button(pair.Key.ToString(), pair.Value);
+            _moveUp = Button("MoveUp", "w"); _moveDown = Button("MoveDown", "s");
+            _moveLeft = Button("MoveLeft", "a"); _moveRight = Button("MoveRight", "d");
+            _actions = made;
             Log("Keyboard actions ready: " + _actions.Count);
         }
 
@@ -105,6 +112,97 @@ namespace ShroomAccess
             if (gamepadFamily == GamepadFamily.Unknown) gamepadFamily = GamepadFamily.Xbox;
         }
 
+        // ---- What the player (or a dev test standing in for the player) is pressing ----
+
+        internal static bool CtrlHeld
+        {
+            get
+            {
+                if (_simCtrl && Time.frameCount - _simFrame <= SimHoldFrames) return true;
+                Keyboard kb = Keyboard.current;
+                return Application.isFocused && kb != null && kb.ctrlKey.isPressed;
+            }
+        }
+
+        // True while a walk key is down. Screen readers cut speech on every key repeat, so anything
+        // said while a key is held is lost; callers hold their lines until this is false.
+        internal static bool MoveHeld
+        {
+            get
+            {
+                if (Time.realtimeSinceStartup < _injectedAxisUntil) return true;
+                if (_moveUp == null || !Application.isFocused) return false;
+                return _moveUp.IsPressed() || _moveDown.IsPressed() || _moveLeft.IsPressed() || _moveRight.IsPressed();
+            }
+        }
+
+        // A key press as the player made it, before the mod or the game has interpreted it.
+        // phase: 0 pressed this frame, 1 held, 2 released this frame.
+        internal static bool Key(InputActionId id, int phase = 0)
+        {
+            if (id == _simId && id != InputActionId.None)
+            {
+                int age = Time.frameCount - _simFrame;
+                if (phase == 0 ? age == 0 : phase == 1 ? age >= 0 && age < SimHoldFrames : age == SimHoldFrames) return true;
+            }
+            if (!Application.isFocused || _actions == null) return false;
+            if (!_actions.TryGetValue(id, out InputAction action)) return false;
+            return phase == 0 ? action.WasPressedThisFrame() : phase == 1 ? action.IsPressed() : action.WasReleasedThisFrame();
+        }
+
+        // Dev testing: a simulated key press, so tests need neither the keyboard nor window focus.
+        private static InputActionId _simId = InputActionId.None;
+        private static int _simFrame;
+        private static bool _simCtrl;
+        private const int SimHoldFrames = 4;
+
+        internal static void Simulate(InputActionId id, bool ctrl = false)
+        {
+            _simId = id;
+            _simCtrl = ctrl;
+            _simFrame = Time.frameCount + 1;
+        }
+
+        // ---- What the game is told ----
+
+        // The navigator claims the arrow keys on screens where it lays things out in rows. While it
+        // does, the game sees an arrow only when the navigator forwards one.
+        internal static bool NavigatorOwnsArrows;
+
+        private static InputActionId _forwarded = InputActionId.None;
+        private static int _forwardedFrame;
+
+        // Press a game action on the game's behalf, on the next frame.
+        internal static void Forward(InputActionId id)
+        {
+            _forwarded = id;
+            _forwardedFrame = Time.frameCount + 1;
+        }
+
+        private static bool IsArrow(InputActionId id) =>
+            id == InputActionId.FocusPrev || id == InputActionId.FocusNext || id == InputActionId.FocusUp || id == InputActionId.FocusDown;
+
+        private static bool Read(InputActionId id, int phase)
+        {
+            try
+            {
+                if (id == _forwarded && id != InputActionId.None)
+                {
+                    int age = Time.frameCount - _forwardedFrame;
+                    if (phase == 0 ? age == 0 : phase == 1 ? age >= 0 && age < SimHoldFrames : age == SimHoldFrames) return true;
+                }
+                if (!Map.ContainsKey(id)) return id == _simId && Key(id, phase);
+                if (CtrlHeld) return false;
+                if (NavigatorOwnsArrows && IsArrow(id)) return false;
+                return Key(id, phase);
+            }
+            catch (Exception ex)
+            {
+                if (!_readFailed) { _readFailed = true; Log("InputBridge.Read: " + ex); }
+            }
+            return false;
+        }
+
         private static void GetActionDownPostfix(InputActionId actionId, ref bool __result)
         {
             if (!__result && Enabled) __result = Read(actionId, 0);
@@ -121,89 +219,32 @@ namespace ShroomAccess
         }
 
         // Walking: W and S (and A, D) stand in for the left stick.
-        private static InputAction _moveUp, _moveDown, _moveLeft, _moveRight;
-        private static UnityEngine.Vector2 _injectedAxis;
+        private static Vector2 _injectedAxis;
         private static float _injectedAxisUntil;
 
         internal static void InjectMove(float x, float y, float seconds)
         {
-            _injectedAxis = new UnityEngine.Vector2(x, y);
-            _injectedAxisUntil = UnityEngine.Time.realtimeSinceStartup + seconds;
+            _injectedAxis = new Vector2(x, y);
+            _injectedAxisUntil = Time.realtimeSinceStartup + seconds;
         }
 
-        private static InputAction Button(string name, string control)
-        {
-            var action = new InputAction("ShroomAccess." + name, InputActionType.Button);
-            InputActionSetupExtensions.AddBinding(action, "<Keyboard>/" + control);
-            action.Enable();
-            return action;
-        }
-
-        private static void GetAxisPostfix(InputActionId actionId, ref UnityEngine.Vector2 __result)
+        private static void GetAxisPostfix(InputActionId actionId, ref Vector2 __result)
         {
             if (!Enabled || actionId != InputActionId.Move) return;
             try
             {
-                if (UnityEngine.Time.realtimeSinceStartup < _injectedAxisUntil) { __result = _injectedAxis; return; }
-                if (__result.sqrMagnitude > 0.01f || !UnityEngine.Application.isFocused) return;
-                if (_moveUp == null)
-                {
-                    _moveUp = Button("MoveUp", "w"); _moveDown = Button("MoveDown", "s");
-                    _moveLeft = Button("MoveLeft", "a"); _moveRight = Button("MoveRight", "d");
-                }
+                if (Time.realtimeSinceStartup < _injectedAxisUntil) { __result = _injectedAxis; return; }
+                if (__result.sqrMagnitude > 0.01f || !Application.isFocused || _moveUp == null) return;
                 Keyboard kb = Keyboard.current;
                 if (kb != null && kb.ctrlKey.isPressed) return;
                 float x = (_moveRight.IsPressed() ? 1f : 0f) - (_moveLeft.IsPressed() ? 1f : 0f);
                 float y = (_moveUp.IsPressed() ? 1f : 0f) - (_moveDown.IsPressed() ? 1f : 0f);
-                if (x != 0f || y != 0f) __result = new UnityEngine.Vector2(x, y);
+                if (x != 0f || y != 0f) __result = new Vector2(x, y);
             }
             catch (Exception ex)
             {
                 if (!_readFailed) { _readFailed = true; Log("InputBridge.GetAxis: " + ex); }
             }
-        }
-
-        // Dev testing: a simulated press of one game action, so tests need neither the keyboard nor
-        // window focus. Down on the next frame, held for a few, then released.
-        private static InputActionId _injected = InputActionId.None;
-        private static int _injectedFrame;
-        private const int InjectHoldFrames = 4;
-
-        internal static void Inject(InputActionId id)
-        {
-            _injected = id;
-            _injectedFrame = UnityEngine.Time.frameCount + 1;
-        }
-
-        private static bool ReadInjected(InputActionId id, int phase)
-        {
-            if (id != _injected || id == InputActionId.None) return false;
-            int age = UnityEngine.Time.frameCount - _injectedFrame;
-            if (phase == 0) return age == 0;
-            if (phase == 1) return age >= 0 && age < InjectHoldFrames;
-            return age == InjectHoldFrames;
-        }
-
-        // phase: 0 pressed this frame, 1 held, 2 released this frame.
-        private static bool Read(InputActionId id, int phase)
-        {
-            if (ReadInjected(id, phase)) return true;
-            // Keys typed into another window are not for the game.
-            if (!UnityEngine.Application.isFocused) return false;
-            try
-            {
-                if (!Map.ContainsKey(id)) return false;
-                EnsureActions();
-                Keyboard kb = Keyboard.current;
-                if (kb != null && kb.ctrlKey.isPressed) return false;
-                InputAction action = _actions[id];
-                return phase == 0 ? action.WasPressedThisFrame() : phase == 1 ? action.IsPressed() : action.WasReleasedThisFrame();
-            }
-            catch (Exception ex)
-            {
-                if (!_readFailed) { _readFailed = true; Log("InputBridge.Read: " + ex); }
-            }
-            return false;
         }
     }
 }

@@ -1,4 +1,4 @@
-# Shroom and Gloom accessibility - second listen (Session 01, part 4).
+# Shroom and Gloom accessibility - third listen (Session 01, part 5).
 #
 # There is nothing to run here except starting the game. Either start it from Steam as usual,
 # or run this file, which starts it for you:
@@ -8,28 +8,37 @@
 # Keep NVDA running and keep the game window focused. The mod is silent while another window has focus.
 #
 # KEYS
-#   Left, Right, Up, Down   move between things
-#   Enter                   choose / confirm
-#   Backspace               cancel / back
+#   Up, Down                move between rows: Status (top), Nearby, Your hand (bottom)
+#   Left, Right             move along the current row
+#   Enter                   choose / confirm          Backspace   cancel / back
 #   Escape                  pause menu
-#   W (hold)                walk forward        S (hold)  walk back
+#   W (hold)                walk forward              S (hold)    walk back
+#   Ctrl+Down, Ctrl+Up      read the next / previous line about the focused thing
+#   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player
 #
-# CHECKLIST (second listen) - please report what you heard at each letter.
+# CHECKLIST (third listen) - please report what you heard at each letter.
 #
-#   A. Start the game, wait for "Shroom Access loaded", press Enter on "New Run", wait ten seconds.
+#   A. New Run, then hold W until the walking stops, and let go of W.
+#      Expect, on letting go: "Nearby: Dig Site, Shovel."
 #
-#   B. Hold W. Expect "Nearby: Dig Site." early on, then, when the game stops you, "Nearby: Shovel."
+#   B. Press Right. Expect "Nearby, 2 things." and one of them. Press Left and Right: they should
+#      only ever move between the dig site and the shovel, and repeat the item at each end.
 #
-#   C. Press Up. Expect "Nearby, 2 things. Dig Site. Something is hidden here. Looks diggable."
-#      Press Down. Expect "Shovel". (If Up or Down does nothing the first time, tell me which.)
+#   C. Press Up. Expect "Status, 3 items. Health 25 of 25". Right: "Energy 1 of 3". Right: "Gunk 10".
+#      Press Down to return to the Nearby row.
 #
-#   D. Press Enter on Shovel. Expect "Offered: Rusty Shovel, cost 1. Consume. Enter takes it."
-#      Press Enter. Expect "Your hand, 1 card. Rusty Shovel, cost 1. Consume."
+#   D. Take the shovel (Enter on Shovel, Enter on the offer). With the card focused in your hand,
+#      press Ctrl+Down several times. Expect one line each: the name, "Cost 1 energy",
+#      "Explore deck", "CONSUME", then "CONSUME: This card will be destroyed upon being played."
+#      Ctrl+Up goes back. Ctrl+Right: "Player. Health 25 of 25". Ctrl+Left: back to "Item".
 #
-#   E. Press Enter on the card. Expect "Choose a target. Dig Site. ..." in one go. Press Enter.
-#      Expect "Offered: Key, cost 0. Consume. Handy. Enter takes it." Press Enter.
+#   E. From the hand, press Up: Nearby row. Press Down: back to your hand.
 #
-#   F. Was anything cut off by the line after it? Is any line too long now?
+#   F. Dig, take the key, open the door, hold W through it, let go. Expect "Nearby: ..." naming the torch.
+#      Go to the torch and press Enter. Tell me what you hear, if anything, and whether
+#      "Added to hand: ..." is spoken.
+#
+#   G. Does Ctrl+arrow behave with NVDA (Ctrl on its own stops speech)? Anything spoken twice?
 #
 # IF THERE IS NO SPEECH AT ALL: tell me, and I will read the log. Nothing else is needed from you.
 
