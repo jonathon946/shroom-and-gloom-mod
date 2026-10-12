@@ -2,6 +2,14 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-12 — Session 01, part 14 — fifth playthrough: density, dealing, the shop
+
+- Unasked lines are gathered for 0.7 seconds and spoken as one run in a fixed order; several "Nearby" lines become one list; "New turn" is dropped when "Your turn" says the same.
+- While cards are being dealt the hand is not read card by card; afterwards "Drew 4 cards." and the focused card.
+- A card that is lifted by the first Enter and played by the second says "... is ready. Enter again to play it" (it used to say it could not be played).
+- Shop, first wording: "For sale: 2 food" on cards, "Forget a card, COST 1 food", the bowl, and an instruction line on entry.
+- A focused control is never read as a wall of text.
+
 ## 2026-10-12 — Session 01, part 13 — fourth playthrough
 
 - "Can't walk right now" is spoken in the walking voice with the edge sound, so holding W does not cut it.

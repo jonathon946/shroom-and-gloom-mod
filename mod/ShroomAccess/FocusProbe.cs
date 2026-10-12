@@ -160,7 +160,7 @@ namespace ShroomAccess
                 }
                 if (Time.realtimeSinceStartup < SuppressFocusUntil) { Log("[suppressed] " + spoken); return; }
                 // Let a line that announces an arrival finish before the first focus line follows it.
-                Announce(spoken, interrupt: Time.realtimeSinceStartup > _protectUntil);
+                Announce(spoken, interrupt: true);
             }
             catch (Exception ex)
             {
@@ -240,7 +240,10 @@ namespace ShroomAccess
                 string cost = gameplay != null ? ", cost " + gameplay.EnergyUse : "";
                 string uses = CardUses(gameplay);
                 detail = "card name=" + name + " deck=" + (data != null ? data.DeckType.ToString() : "?") + cost + " uses=" + uses + " desc=" + desc;
-                return Clean(name + cost + (uses.Length > 0 ? ". " + uses : "") + (string.IsNullOrEmpty(desc) ? "" : ". " + desc));
+                Component cardComponent = obj.TryCast<Component>();
+                string price = cardComponent != null ? ShopPrice(cardComponent) : "";
+                string buy = price.Length > 0 ? ". For sale: " + price.Replace("COST:", "").Trim() + " food" : "";
+                return Clean(name + cost + (uses.Length > 0 ? ". " + uses : "") + (string.IsNullOrEmpty(desc) ? "" : ". " + desc) + buy);
             }
 
             CampStructureSpellReceiver receiver = obj.TryCast<CampStructureSpellReceiver>();
@@ -263,6 +266,23 @@ namespace ShroomAccess
                 string accepts = open ? "" : Accepts(Safe(() => door.GetPromptsAndInteractions().Item2));
                 detail = "door object=" + door.gameObject.name + " sign=" + sign + " open=" + open + " accepts=" + accepts + " canUnlock=" + door.CanUnlock;
                 return Clean("Door" + (open ? ", open" : "") + (string.IsNullOrWhiteSpace(sign) ? "" : ". " + sign) + (accepts.Length > 0 ? ". " + accepts : ""));
+            }
+
+            SwapOutObjectButton swap = obj.TryCast<SwapOutObjectButton>();
+            if (swap != null)
+            {
+                string price = FirstText(swap, "COST");
+                string what = swap.gameObject.name.Contains("Forget") ? "Forget a card" : Humanize(swap.gameObject.name);
+                detail = "swap " + swap.gameObject.name + " " + price;
+                return Clean(what + (price.Length > 0 ? ", " + price.Replace(":", "") + " food" : ""));
+            }
+
+            Bowl bowl = obj.TryCast<Bowl>();
+            if (bowl != null)
+            {
+                string price = FirstText(bowl, "COST");
+                detail = "bowl " + price;
+                return Clean("The bowl. Enter puts this food in to pay" + (price.Length > 0 ? ". " + price.Replace(":", "") + " food still to pay" : ""));
             }
 
             SpellReceiverRoom plot = obj.TryCast<SpellReceiverRoom>();
@@ -358,6 +378,7 @@ namespace ShroomAccess
                     return Humanize(path.gameObject.name) + ", " + Humanize(path.CurrentPathState.ToString());
 
                 string own = texts.Count > 0 ? string.Join(", ", texts.GetRange(0, Math.Min(3, texts.Count))) : "";
+                if (own.Length > 160) own = texts[0];
                 string role = ControlRole(comp);
                 string value = ControlValue(comp);
                 // In a settings row the name is the label beside the control and the control's own
@@ -577,6 +598,34 @@ namespace ShroomAccess
             return "";
         }
 
+        private static string FirstText(Component within, string startsWith)
+        {
+            try
+            {
+                foreach (TMP_Text t in within.GetComponentsInChildren<TMP_Text>(false))
+                    if (t != null && t.text != null && t.text.Trim().StartsWith(startsWith, StringComparison.OrdinalIgnoreCase)) return t.text.Trim();
+            }
+            catch { }
+            return "";
+        }
+
+        // In a shop each card stands in its own slot with a price tag under it.
+        private static string ShopPrice(Component cardView)
+        {
+            try
+            {
+                Transform t = cardView.transform.parent;
+                for (int depth = 0; t != null && depth < 3; depth++, t = t.parent)
+                {
+                    if (t.GetComponentsInChildren<V_GameplayCardInstance>(false).Length != 1) return "";
+                    string price = FirstText(t.GetComponent<Transform>(), "COST");
+                    if (price.Length > 0) return price;
+                }
+            }
+            catch { }
+            return "";
+        }
+
         private static T Safe<T>(Func<T> read)
         {
             try { return read(); } catch { return default; }
@@ -722,30 +771,76 @@ namespace ShroomAccess
         internal static void Announce(string text, bool interrupt = true, bool holdWhileWalking = false)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
-            if (holdWhileWalking && InputBridge.MoveHeld && Speaker.HasDirect)
+            if (!interrupt)
             {
-                // Live, through the voice the held key cannot silence.
-                Log("[say-direct] " + text);
-                Remember(text);
-                if (Application.isFocused) Speaker.SayDirect(text, interrupt: false);
+                // Things that happen together (a fight starting, cards dealt, enemies appearing)
+                // arrive as a burst. Gather the burst and say it once, in an order that makes sense.
+                if (_batch.Count == 0) _batchAt = Time.realtimeSinceStartup;
+                if (!_batch.Contains(text)) _batch.Add(text);
+                Log("[queued] " + text);
                 return;
             }
-            if (holdWhileWalking && InputBridge.MoveHeld)
-            {
-                // Several arrivals during one walk read as one list.
-                int last = _held.Count - 1;
-                if (last >= 0 && text.StartsWith("Nearby: ") && _held[last].StartsWith("Nearby: "))
-                    _held[last] = _held[last].TrimEnd('.') + ", " + text.Substring(8);
-                else if (!_held.Contains(text)) _held.Add(text);
-                Log("[held] " + text);
-                return;
-            }
+            FlushBatch(force: true);
             Log("[say] " + text);
             Remember(text);
-            // A line the player did not ask for must not be cut by the focus line that follows it.
-            if (!interrupt) _protectUntil = Time.realtimeSinceStartup + 2.5f;
-            if (Application.isFocused) Speaker.Say(text, interrupt);
+            if (Application.isFocused) Speaker.Say(text, Time.realtimeSinceStartup > _protectUntil);
         }
+
+        private static readonly List<string> _batch = new List<string>();
+        private static float _batchAt;
+
+        // Lower comes first. Within a tier, lines keep the order they happened in.
+        private static int Tier(string line)
+        {
+            if (line.StartsWith("Combat") || line.StartsWith("You have stopped")) return 0;
+            if (line.StartsWith("Nearby:")) return 1;
+            if (line.StartsWith("Your turn") || line.StartsWith("Enemy turn") || line.StartsWith("New turn")) return 2;
+            if (line.StartsWith("Drew ") || line.StartsWith("Added to hand")) return 3;
+            if (line.StartsWith("Energy ")) return 4;
+            return 5;
+        }
+
+        internal static void FlushBatch(bool force = false)
+        {
+            if (_batch.Count == 0) return;
+            if (!force && Time.realtimeSinceStartup - _batchAt < 0.7f) return;
+            // With no second voice, anything said while a walk key is down is lost: keep waiting.
+            if (InputBridge.MoveHeld && !Speaker.HasDirect && !force) return;
+
+            var lines = new List<string>(_batch);
+            _batch.Clear();
+            if (lines.Contains("Your turn.")) lines.Remove("New turn.");
+
+            // Several "Nearby:" lines become one list.
+            var nearby = new List<string>();
+            lines.RemoveAll(l =>
+            {
+                if (!l.StartsWith("Nearby: ")) return false;
+                nearby.Add(l.Substring(8).TrimEnd('.'));
+                return true;
+            });
+            if (nearby.Count > 0) lines.Add("Nearby: " + string.Join(", ", nearby) + ".");
+
+            var ordered = new List<string>();
+            for (int tier = 0; tier <= 5; tier++)
+                foreach (string l in lines) if (Tier(l) == tier) ordered.Add(l);
+
+            foreach (string l in ordered) Remember(l);
+            string all = string.Join(" ", ordered);
+            _protectUntil = Time.realtimeSinceStartup + 1.5f + all.Length * 0.03f;
+            if (InputBridge.MoveHeld && Speaker.HasDirect)
+            {
+                Log("[say-direct] " + all);
+                if (Application.isFocused) Speaker.SayDirect(all);
+                return;
+            }
+            Log("[say] " + all);
+            if (Application.isFocused) Speaker.Say(all, false);
+        }
+
+        private static readonly List<string> _held = new List<string>();
+
+        private static void FlushHeld() => FlushBatch();
 
         // For the buffers: spoken, logged, but not added to the message history (reading the
         // history should not fill it with itself).
@@ -771,17 +866,6 @@ namespace ShroomAccess
             list.Reverse();
             if (list.Count == 0) list.Add("No messages yet");
             return list;
-        }
-
-        private static readonly List<string> _held = new List<string>();
-
-        private static void FlushHeld()
-        {
-            if (_held.Count == 0 || InputBridge.MoveHeld) return;
-            string all = string.Join(" ", _held);
-            _held.Clear();
-            Announce(all, interrupt: false);
-            _protectUntil = Time.realtimeSinceStartup + 1.5f;
         }
 
         // Speak the focused thing again, with or without its row name.
@@ -823,7 +907,9 @@ namespace ShroomAccess
             if (added.Count > 0)
             {
                 _pendingAdded.AddRange(added);
-                _pendingAddedAt = Time.realtimeSinceStartup + 2f;
+                _pendingAddedAt = Time.realtimeSinceStartup + 1.1f;
+                // The game's focus hops along the cards as they are dealt; do not read each hop.
+                if (_pendingAdded.Count > 1) SuppressFocusUntil = _pendingAddedAt + 0.2f;
             }
             if (_pendingAdded.Count == 0 || Time.realtimeSinceStartup < _pendingAddedAt) return;
 
@@ -839,6 +925,7 @@ namespace ShroomAccess
                 Announce(_pendingAdded.Count > 1 ? "Drew " + _pendingAdded.Count + " cards." : "Added to hand: " + _pendingAdded[0] + ".", interrupt: false, holdWhileWalking: true);
                 _protectUntil = Time.realtimeSinceStartup + 1.5f;
             }
+            if (_pendingAdded.Count > 1) Reannounce();
             _pendingAdded.Clear();
         }
 

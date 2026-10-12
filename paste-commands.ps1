@@ -19,35 +19,23 @@
 #   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player, Surroundings, Messages
 #   Ctrl+Page Up / Down     walking voice faster / slower
 #
-# CHECKLIST (after your 23 marks) - report by letter, as far as you get.
+# CHECKLIST (after the shop playthrough) - report by letter, as far as you get.
 # The save is fresh again: New Run starts the tutorial.
 #
-#   A. Walking. W and S should only ever walk. Where the game will not let you walk, pressing W
-#      says "Can't walk right now" and why. Holding W against a dead end gives a low sound and
-#      "Can't go further this way". Does W ever move you between rows now?
+#   A. Density. When several things happen at once you should now hear one run of short sentences
+#      in a steady order: the fight or camp first, then what is nearby, then whose turn, then
+#      "Drew 4 cards", then energy. Better, worse, or still too much? Is anything missing that
+#      you used to hear?
 #
-#   B. Walking voice: several things coming into reach close together should be read one after
-#      another, none cut off.
+#   B. Dealing. When cards are dealt you should hear only "Drew N cards." and then the card you
+#      are on, not every card.
 #
-#   C. Rows: each item ends with its place, "2 of 3". At the end of a row you should hear a low
-#      sound and nothing else. Is the sound clear enough? Too loud or too quiet?
+#   C. Toasty (or any card with no target): the first Enter should say
+#      "Toasty is ready. Enter again to play it, Backspace to put it back."
 #
-#   D. At the first camp (after the matchstick and torch): Enter on the Rusted Hammer with no energy
-#      should say "Not enough energy... Space ends the turn." After Space, "New turn." then
-#      "Energy 3 of 3."
-#
-#   E. Casting a card should end with "Played <card>." A card that cannot be used says so.
-#
-#   F. The backpack: expect one line naming all the cards on offer, then the card you are on.
-#
-#   G. Up to Status, then Enter on Health, Energy or the Warmth line: the game's own description.
-#      Ctrl+Right to Player: your foresights are listed at the end.
-#
-#   H. In a camp room, the Nearby row should name plots ("Empty plot, back left") and chests
-#      ("Foresight chest"). When you choose a Camp card, the targets should be those plots.
-#
-#   I. The card-change screen (Strange Geode): after its message, "Choose a card to change".
-#      Enter on a card, then Enter again on the panel to apply. Tell me if that works.
+#   D. The shop, if you reach one. I have not been able to run it myself, so everything there is a
+#      first guess: an instruction line on entry, "For sale: n food" on each card, "Forget a card",
+#      and the bowl. Please mark (Ctrl+B) each step you try: choosing a card, paying, leaving.
 #
 #   Keep marking with Ctrl+B anywhere sound happens with no speech.
 #

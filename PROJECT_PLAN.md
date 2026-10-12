@@ -129,6 +129,8 @@ Steps 3 to 6 are a sketch; their order and content are set after Spike 2.
 - **2026-10-11 (Session 01, maintainer):** **On-screen text is read when a screen opens** (headings, questions), and the game's flashed prompts are read as they appear. Unasked lines are protected from being cut by the focus line that follows.
 - **2026-10-11 (Session 01, maintainer):** **Alt text for the art**, authored by us from pictures, as a "Looks:" line in the Item buffer; in-game descriptions appended where the game has them.
 
+- **2026-10-12 (Session 01, maintainer):** **Streamline, do not drop.** Lines nobody asked for are gathered briefly and spoken as one ordered run with sentence breaks. A draw is announced as a count, never as a list of cards; the player reads the hand themselves.
+
 ## Open items / questions
 
 - Whether the game's cheat keys are live in release builds.

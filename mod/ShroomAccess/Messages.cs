@@ -57,6 +57,8 @@ namespace ShroomAccess
                 {
                     _lastScope = ptr;
                     if (scope != null) AnnounceScreen(scope);
+                    if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "BowlShopEncounterUI")
+                        FocusProbe.Announce("A shop. Cards are paid for with food. Enter on a card to choose it, then Enter on a food card in your hand and Enter on the bowl to pay.", interrupt: false);
                     if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "S_MapReminder")
                         FocusProbe.Announce("The map is open. Reading the map is not built yet. Press M to put it away.", interrupt: false);
                     string kind = scope != null ? scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name : "";

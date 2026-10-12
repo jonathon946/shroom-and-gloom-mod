@@ -82,6 +82,15 @@ namespace ShroomAccess
 
             if (!stillHeld) { FocusProbe.Announce("Played " + _name + ".", interrupt: false); return; }
 
+            // A card with no target is lifted by the first Enter and played by the second.
+            bool pending = false;
+            try { pending = focus.HandResolver != null && focus.HandResolver.PendingCast; } catch { }
+            if (pending || focus.PadOwnsCast)
+            {
+                FocusProbe.Speak(_name + " is ready. Enter again to play it, Backspace to put it back.");
+                return;
+            }
+
             string failure = Failure(focus);
             Log("[cardplay] " + _name + " not played; failure reason: " + failure);
             string why = !string.IsNullOrWhiteSpace(failure) && failure != _failureBefore ? " " + FocusProbe.Clean(failure) + "." : " Nothing here it can be used on.";
