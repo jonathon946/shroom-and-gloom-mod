@@ -9,3 +9,7 @@ Dig Site = A low mound of loose dirt beside the path.
 Door = A heavy wooden door set in a stone wall, bound with thick chains that meet at a brass padlock.
 Torch = A wooden torch lashed to a post with rope. Unlit it is a dark stump; lit, a tall yellow flame throws orange light across the stones.
 Rusted Hammer = A claw hammer with a pitted grey head, drawn on a pale green card.
+Terry = A small lumpy creature the colour of old dough, with one wide eye, stubby arms and a floppy wide-brimmed hat.
+Touchy = A big bulging lump of a creature with three eyes stacked on its forehead, a row of jagged teeth and thick grasping arms.
+Stab = A short dagger with a pitted, stony blade, drawn on a pale purple card.
+Roast = A black dripping blob wrapped in pale, ragged flames, drawn on a pale purple card.

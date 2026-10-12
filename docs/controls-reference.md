@@ -8,8 +8,8 @@ The mod does not invent its own navigation. The game already has a full set of g
 
 - **Up / Down arrows:** in play, move between rows: Status (top), Nearby, Your hand (bottom). In menus, offers and target selection they are the game's own Focus Up and Down.
 - **Left / Right arrows:** move along the current row; in menus, the game's Focus Previous and Next.
-- **Ctrl+Down / Ctrl+Up:** next / previous line about the focused thing.
-- **Ctrl+Right / Ctrl+Left:** next / previous buffer (Item, Player).
+- **Ctrl+Up / Ctrl+Down:** next / previous line of the current buffer. Each buffer starts at its first line.
+- **Ctrl+Right / Ctrl+Left:** next / previous buffer: Item, Player, Surroundings, Messages. Moving focus returns to Item.
 - **Ctrl+Page Up / Ctrl+Page Down:** walking voice faster / slower.
 - **Ctrl+B:** drop a mark for later review (says "Mark 1", and so on).
 - **Space:** end turn; in camp, rest for the night.

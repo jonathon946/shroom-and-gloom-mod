@@ -56,6 +56,7 @@ namespace ShroomAccess
                     Log("[state] " + state);
                 }
                 FocusMode mode = focus.Mode;
+                Messages.Tick(focus);
                 Navigator.Tick(focus);
                 Review.Tick(focus);
                 AnnounceArrivals(focus);
@@ -95,6 +96,7 @@ namespace ShroomAccess
 
                 string line = Describe(current, out string detail);
                 Log("[focus] " + TypeName(current) + " | " + detail);
+                Navigator.FocusChanged();
                 if (Navigator.InStatusRow) return;
 
                 // Name the row the player has just moved into, so they know what they are among:
@@ -483,6 +485,7 @@ namespace ShroomAccess
             {
                 // Live, through the voice the held key cannot silence.
                 Log("[say-direct] " + text);
+                Remember(text);
                 if (Application.isFocused) Speaker.SayDirect(text, interrupt: false);
                 return;
             }
@@ -497,7 +500,36 @@ namespace ShroomAccess
                 return;
             }
             Log("[say] " + text);
+            Remember(text);
+            // A line the player did not ask for must not be cut by the focus line that follows it.
+            if (!interrupt) _protectUntil = Time.realtimeSinceStartup + 2.5f;
             if (Application.isFocused) Speaker.Say(text, interrupt);
+        }
+
+        // For the buffers: spoken, logged, but not added to the message history (reading the
+        // history should not fill it with itself).
+        internal static void Speak(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            Log("[say] " + text);
+            if (Application.isFocused) Speaker.Say(text, true);
+        }
+
+        private static readonly List<string> _history = new List<string>();
+
+        private static void Remember(string text)
+        {
+            _history.Add(text);
+            if (_history.Count > 200) _history.RemoveAt(0);
+        }
+
+        // Newest first.
+        internal static List<string> History()
+        {
+            var list = new List<string>(_history);
+            list.Reverse();
+            if (list.Count == 0) list.Add("No messages yet");
+            return list;
         }
 
         private static readonly List<string> _held = new List<string>();
@@ -609,6 +641,18 @@ namespace ShroomAccess
                 }
                 string whole = Describe(item, out _);
                 foreach (string sentence in Sentences(whole)) lines.Add(sentence);
+                Component generic = item.TryCast<Component>();
+                if (generic != null && item.TryCast<IControllerFocusTarget>() == null)
+                {
+                    // A button or panel: everything written on it, not just the first few words.
+                    lines.Clear();
+                    foreach (TMP_Text t in generic.GetComponentsInChildren<TMP_Text>(false))
+                    {
+                        string text = t != null ? Clean(t.text) : null;
+                        if (!string.IsNullOrWhiteSpace(text) && !lines.Contains(text)) lines.Add(text);
+                    }
+                    if (lines.Count == 0) lines.Add(whole);
+                }
                 if (lines.Count > 0) AddLooks(lines, "thing", lines[0].Split(',')[0]);
                 // A thing lying in the world shows a sighted player nothing but itself until it is
                 // opened, so there is nothing more to read here; say how to find out.

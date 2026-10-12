@@ -23,10 +23,6 @@ namespace ShroomAccess
         private static bool _inStatus;
         private static int _statusIndex;
 
-        private static int _buffer;          // 0 = focused item, 1 = player
-        private static int _line;
-        private static IntPtr _bufferSubject;
-        private static readonly string[] BufferNames = { "Item", "Player" };
 
         internal static bool InStatusRow => _inStatus;
 
@@ -73,7 +69,7 @@ namespace ShroomAccess
                     if (dx != 0) NearbyStep(focus, dx);
                     else if (dy < 0) EnterStatus(focus);
                     else if (hand > 0) EnterHand(focus);
-                    else Edge(focus);
+                    else FocusProbe.Speak("No cards in hand right now.");
                 }
                 else if (IsHand(mode))
                 {
@@ -185,6 +181,7 @@ namespace ShroomAccess
             _inStatus = true;
             if (_statusIndex >= items.Count) _statusIndex = 0;
             FocusProbe.LeaveRow();
+            FocusChanged();
             FocusProbe.Announce("Status, " + items.Count + (items.Count == 1 ? " item. " : " items. ") + items[_statusIndex]);
         }
 
@@ -194,6 +191,7 @@ namespace ShroomAccess
             int next = _statusIndex + dx;
             if (next < 0 || next >= items.Count) { FocusProbe.Announce(items[Mathf.Clamp(_statusIndex, 0, items.Count - 1)]); return; }
             _statusIndex = next;
+            FocusChanged();
             FocusProbe.Announce(items[_statusIndex]);
         }
 
@@ -205,60 +203,85 @@ namespace ShroomAccess
         }
 
         // ---- Buffers ----
+        // Modelled on Say the Spire: Ctrl+Left and Ctrl+Right choose a buffer, Ctrl+Up reads the
+        // next line of it and Ctrl+Down the one before. Every buffer starts at its first line.
+        // Moving focus returns to the Item buffer at its first line, because the thing just
+        // focused is what the player will want to read about.
+
+        private static readonly string[] BufferNames = { "Item", "Player", "Surroundings", "Messages" };
+        private static int _buffer;
+        private static int _line;
+
+        internal static void FocusChanged()
+        {
+            _buffer = 0;
+            _line = 0;
+        }
 
         private static void Buffers(S_ControllerFocus focus, int dx, int dy)
         {
-            Il2CppSystem.Object subject = focus.CurrentFocus;
-            IntPtr ptr = subject != null ? subject.Pointer : IntPtr.Zero;
-            bool fresh = ptr != _bufferSubject;
-            _bufferSubject = ptr;
-
             if (dx != 0)
             {
-                _buffer = Mathf.Clamp(_buffer + dx, 0, BufferNames.Length - 1);
-                _line = 0;
-                List<string> opened = Lines(focus, subject);
-                FocusProbe.Announce(BufferNames[_buffer] + ". " + (opened.Count > 0 ? opened[0] : "Nothing here."));
+                int next = Mathf.Clamp(_buffer + dx, 0, BufferNames.Length - 1);
+                if (next != _buffer) { _buffer = next; _line = 0; }
+                List<string> opened = Lines(focus);
+                FocusProbe.Speak(BufferNames[_buffer] + ". " + (opened.Count > 0 ? opened[Mathf.Clamp(_line, 0, opened.Count - 1)] : "Nothing here."));
                 return;
             }
 
-            List<string> lines = Lines(focus, subject);
-            if (lines.Count == 0) { FocusProbe.Announce("Nothing here."); return; }
-            if (fresh && _buffer == 0) _line = dy > 0 ? 0 : lines.Count - 1;
-            else _line = Mathf.Clamp(_line + dy, 0, lines.Count - 1);
-            FocusProbe.Announce(lines[_line]);
+            List<string> lines = Lines(focus);
+            if (lines.Count == 0) { FocusProbe.Speak("Nothing here."); return; }
+            // Ctrl+Up is "next line"; dy is -1 for Up.
+            _line = Mathf.Clamp(_line - dy, 0, lines.Count - 1);
+            FocusProbe.Speak(lines[_line]);
         }
 
-        private static List<string> Lines(S_ControllerFocus focus, Il2CppSystem.Object subject)
+        private static List<string> Lines(S_ControllerFocus focus)
         {
-            if (_buffer == 1)
+            switch (_buffer)
             {
-                List<string> lines = StatusItems(focus);
-                try
+                case 1:
                 {
-                    IM_Hand hand = focus.PlayerModel != null ? focus.PlayerModel.GetActiveHand() : null;
-                    if (hand != null && hand.HeldCards != null)
+                    List<string> lines = StatusItems(focus);
+                    try
                     {
-                        var names = new List<string>();
-                        for (int i = 0; i < hand.HeldCards.Count; i++) names.Add(hand.HeldCards[i].CardName);
-                        lines.Add(names.Count == 0 ? "Hand empty" : "Hand: " + string.Join(", ", names));
+                        IM_Hand hand = focus.PlayerModel != null ? focus.PlayerModel.GetActiveHand() : null;
+                        if (hand != null && hand.HeldCards != null)
+                        {
+                            var names = new List<string>();
+                            for (int i = 0; i < hand.HeldCards.Count; i++) names.Add(hand.HeldCards[i].CardName);
+                            lines.Add(names.Count == 0 ? "Hand empty" : "Hand: " + string.Join(", ", names));
+                        }
                     }
+                    catch { }
+                    return lines;
                 }
-                catch { }
-                return lines;
+                case 2:
+                {
+                    var lines = new List<string>();
+                    foreach (IControllerFocusTarget t in NearbyInOrder(focus)) lines.Add(FocusProbe.Describe(t, out _));
+                    if (lines.Count == 0) lines.Add("Nothing in reach");
+                    return lines;
+                }
+                case 3:
+                    return FocusProbe.History();
+                default:
+                {
+                    if (_inStatus)
+                    {
+                        // On the status row the focused "item" is the one status the player is on.
+                        List<string> items = StatusItems(focus);
+                        string item = items[Mathf.Clamp(_statusIndex, 0, items.Count - 1)];
+                        var detail = new List<string> { item };
+                        if (item.StartsWith("Health")) detail.AddRange(Hud.Tip("Health"));
+                        else if (item.StartsWith("Energy")) detail.AddRange(Hud.Tip("Energy"));
+                        return detail;
+                    }
+                    Il2CppSystem.Object subject = focus.CurrentFocus;
+                    if (subject == null) return new List<string> { "Nothing focused" };
+                    return FocusProbe.DetailLines(subject);
+                }
             }
-            if (_inStatus)
-            {
-                // On the status row the focused "item" is the one status the player is on.
-                List<string> items = StatusItems(focus);
-                string item = items[Mathf.Clamp(_statusIndex, 0, items.Count - 1)];
-                var detail = new List<string> { item };
-                // The game's own hover text for that display, where it has one.
-                if (item.StartsWith("Health")) detail.AddRange(Hud.Tip("Health"));
-                else if (item.StartsWith("Energy")) detail.AddRange(Hud.Tip("Energy"));
-                return detail;
-            }
-            return FocusProbe.DetailLines(subject);
         }
     }
 }

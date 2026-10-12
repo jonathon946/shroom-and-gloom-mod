@@ -124,6 +124,11 @@ Steps 3 to 6 are a sketch; their order and content are set after Spike 2.
 
 - **2026-10-11 (Session 01, maintainer):** **Walking is announced live, through a second voice.** Holding W must stay the way to walk, and what comes into reach must be heard while walking so the player can choose to stop or carry on. Because a screen reader cancels speech on every key repeat, lines that arrive while a walk key is down go to a Windows voice driven directly through Prism, with a short sound. A walk toggle was rejected as the default (it changes the feel of moving); a keyboard hook to hide repeats and an NVDA add-on were rejected (NVDA-only, and a hook looks like a keylogger in a public mod). The maintainer wants the second voice's rate to follow the screen reader's; where that cannot be read exactly it is a starting point the player adjusts.
 
+- **2026-10-11 (Session 01, maintainer, after the first full playthrough):** **Buffers follow Say the Spire 2, which the audience knows.** Four buffers on Ctrl+Left/Right: Item, Player, Surroundings, Messages. Ctrl+Up reads the next line, Ctrl+Down the one before, starting from the first line each time. Moving focus resets to the Item buffer at its first line. The Item buffer is the thing focused; with nothing focused it says so.
+- **2026-10-11 (Session 01, maintainer):** **A message history.** Everything the mod says unprompted or on focus is kept (newest first) in the Messages buffer, so a line cut off can be read again.
+- **2026-10-11 (Session 01, maintainer):** **On-screen text is read when a screen opens** (headings, questions), and the game's flashed prompts are read as they appear. Unasked lines are protected from being cut by the focus line that follows.
+- **2026-10-11 (Session 01, maintainer):** **Alt text for the art**, authored by us from pictures, as a "Looks:" line in the Item buffer; in-game descriptions appended where the game has them.
+
 ## Open items / questions
 
 - Whether the game's cheat keys are live in release builds.

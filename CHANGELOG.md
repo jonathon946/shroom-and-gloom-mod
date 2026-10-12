@@ -2,6 +2,16 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-11 — Session 01, part 10 — first full playthrough reviewed
+
+- Buffers rebuilt: Item, Player, Surroundings, Messages; Ctrl+Up next line, Ctrl+Down previous; reset and return to Item when focus moves.
+- Message history (newest first) in the Messages buffer.
+- `Messages`: headings and questions read when a screen opens ("END PREVIOUS RUN? A new run ends your previous run. Are you made like that?"); the game's flashed prompts read as they appear; "This card acts on you. Enter to play it" for cards with no target.
+- Unasked lines are no longer cut by the next focus line (2.5 seconds of protection).
+- "No cards in hand right now." when Down has no hand to go to.
+- Buffer for buttons and panels lists every text on them.
+- Alt text: Terry, Touchy, Stab, Roast added from the maintainer's mark.
+
 ## 2026-10-11 — Session 01, part 9 — playthrough review and alt text plumbing
 
 - Every key the mod acts on is logged. Ctrl+B saves a numbered mark (log line, screenshot, state dump).
