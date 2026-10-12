@@ -63,3 +63,10 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **LESSON — Speech is gated on `Application.isFocused`,** so development does not talk over whatever else the maintainer is doing; the same line is always written to the log as `[say]`.
 - **GOTCHA — A bash here-document holding C# with some quote and backslash mixes fails in this shell.** Write the helper script to a file and run the file.
 - **GOTCHA — Called with `-File`, a PowerShell array parameter given as `a,b,c` arrives as one string.** Split it in the script.
+
+## Speech while a key is held [Session 01]
+
+- **KEY FINDING — A screen reader cancels its speech on every key press, and a held key repeats.** Nothing spoken through NVDA survives while W is held. Confirmed by the maintainer's second ear test (lines arrived only after releasing the key). NVDA's "Speech interrupt for typed characters" setting turns this off for character keys, but that is a per-user, NVDA-only setting.
+- **KEY FINDING — Prism can run two backends at once.** The screen reader backend and a OneCore or SAPI backend created with `prism_registry_create` both speak; the second is not affected by the screen reader's cancel. Their rate is 0 to 1 with 0.5 as the voice's normal speed (`prism_backend_set_rate`); the screen reader backends report no rate at all.
+- **GOTCHA — The player's screen reader rate is only readable for NVDA,** from `%APPDATA%\nvda\nvda.ini` (`[speech]`, `synth = X`, then `[[X]]`, `rate = N` out of 100). The number is specific to the synthesizer.
+- **PATTERN — Generated sounds.** `AudioClip.Create` plus `SetData` with an `Il2CppStructArray<float>`, played with `PlayOneShot` on an `AudioSource` on a `DontDestroyOnLoad` object, works under IL2CPP with no asset files.

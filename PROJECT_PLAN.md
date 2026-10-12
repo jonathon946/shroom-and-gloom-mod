@@ -122,6 +122,8 @@ Steps 3 to 6 are a sketch; their order and content are set after Spike 2.
 - **2026-10-11 (Session 01):** **Lines the player did not ask for wait for the walk key to come up.** A screen reader cancels speech on every key repeat, so anything said while W is held is lost.
 - **2026-10-11 (Session 01):** **No Steam Workshop.** The game does not use it. Distribution will be a public download with an update check in the mod, designed at the packaging stage.
 
+- **2026-10-11 (Session 01, maintainer):** **Walking is announced live, through a second voice.** Holding W must stay the way to walk, and what comes into reach must be heard while walking so the player can choose to stop or carry on. Because a screen reader cancels speech on every key repeat, lines that arrive while a walk key is down go to a Windows voice driven directly through Prism, with a short sound. A walk toggle was rejected as the default (it changes the feel of moving); a keyboard hook to hide repeats and an NVDA add-on were rejected (NVDA-only, and a hook looks like a keylogger in a public mod). The maintainer wants the second voice's rate to follow the screen reader's; where that cannot be read exactly it is a starting point the player adjusts.
+
 ## Open items / questions
 
 - Whether the game's cheat keys are live in release builds.

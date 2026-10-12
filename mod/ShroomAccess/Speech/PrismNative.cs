@@ -72,6 +72,27 @@ namespace ShroomAccess.Speech
         internal static extern int prism_backend_stop(IntPtr backend);
 
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern UIntPtr prism_registry_count(IntPtr ctx);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern ulong prism_registry_id_at(IntPtr ctx, UIntPtr index);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr prism_registry_name(IntPtr ctx, ulong id);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int prism_backend_set_rate(IntPtr backend, float rate);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int prism_backend_get_rate(IntPtr backend, out float rate);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int prism_backend_set_volume(IntPtr backend, float volume);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int prism_backend_get_volume(IntPtr backend, out float volume);
+
+        [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr prism_error_string(int error);
 
         [DllImport(Lib, CallingConvention = CallingConvention.Cdecl)]

@@ -15,11 +15,15 @@
 #   W (hold)                walk forward              S (hold)    walk back
 #   Ctrl+Down, Ctrl+Up      read the next / previous line about the focused thing
 #   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player
+#   Ctrl+Page Up / Down     walking voice faster / slower
 #
 # CHECKLIST (third listen) - please report what you heard at each letter.
 #
-#   A. New Run, then hold W until the walking stops, and let go of W.
-#      Expect, on letting go: "Nearby: Dig Site, Shovel."
+#   A. New Run, then hold W and KEEP HOLDING. Expect, while still walking: a short two-note sound
+#      and a different voice saying "Nearby: Dig Site." and later "Nearby: Shovel."
+#      That second voice is a Windows voice, used only while a walk key is down.
+#      Ctrl+Page Up makes it faster, Ctrl+Page Down slower; it says the new rate. Set it to taste.
+#      Tell me: could you hear it over the footsteps? Was the starting speed close to your own?
 #
 #   B. Press Right. Expect "Nearby, 2 things." and one of them. Press Left and Right: they should
 #      only ever move between the dig site and the shovel, and repeat the item at each end.

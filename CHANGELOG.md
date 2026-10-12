@@ -2,6 +2,12 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-11 — Session 01, part 6 — live announcements while walking
+
+- A direct Windows voice (OneCore, else SAPI) through Prism, used for unasked lines while a walk key is held; the screen reader cannot cancel it.
+- A generated two-note sound when something comes into reach.
+- Settings in the loader's preferences file: walking voice rate (starts from NVDA's rate), cue volume. Ctrl+Page Up / Ctrl+Page Down change the rate and say the new value.
+
 ## 2026-10-11 — Session 01, part 5 — second ear test; rows, buffers, held speech
 
 - `Navigator`: strict rows (Status, Nearby, Your hand); Left/Right within a row, Up/Down between rows; edges repeat the current item.

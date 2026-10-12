@@ -10,6 +10,7 @@ The mod does not invent its own navigation. The game already has a full set of g
 - **Left / Right arrows:** move along the current row; in menus, the game's Focus Previous and Next.
 - **Ctrl+Down / Ctrl+Up:** next / previous line about the focused thing.
 - **Ctrl+Right / Ctrl+Left:** next / previous buffer (Item, Player).
+- **Ctrl+Page Up / Ctrl+Page Down:** walking voice faster / slower.
 - **Enter** (main or numpad): confirm. On a card in hand it starts a cast; on a target it casts; on a button it presses it.
 - **Backspace:** cancel or back.
 - **Escape:** pause menu.

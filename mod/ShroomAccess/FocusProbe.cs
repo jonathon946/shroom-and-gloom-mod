@@ -161,6 +161,7 @@ namespace ShroomAccess
             _knownNearby.Clear();
             foreach (IntPtr ptr in now) _knownNearby.Add(ptr);
             if (fresh.Count == 0 || focus.Mode == FocusMode.Target) return;
+            Cue.Play(Cue.Arrival);
             Announce("Nearby: " + string.Join(", ", fresh) + ".", interrupt: false, holdWhileWalking: true);
             _protectUntil = Time.realtimeSinceStartup + 1.5f;
         }
@@ -378,6 +379,13 @@ namespace ShroomAccess
         internal static void Announce(string text, bool interrupt = true, bool holdWhileWalking = false)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
+            if (holdWhileWalking && InputBridge.MoveHeld && Speaker.HasDirect)
+            {
+                // Live, through the voice the held key cannot silence.
+                Log("[say-direct] " + text);
+                if (Application.isFocused) Speaker.SayDirect(text, interrupt: false);
+                return;
+            }
             if (holdWhileWalking && InputBridge.MoveHeld)
             {
                 // Several arrivals during one walk read as one list.

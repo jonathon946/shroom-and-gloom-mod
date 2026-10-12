@@ -39,6 +39,12 @@ namespace ShroomAccess
                 InputBridge.NavigatorOwnsArrows = rows;
                 if (!rows) _inStatus = false;
 
+                if (InputBridge.CtrlHeld)
+                {
+                    int dr = (InputBridge.Key(InputActionId.PagePrev) ? 1 : 0) - (InputBridge.Key(InputActionId.PageNext) ? 1 : 0);
+                    if (dr != 0) Settings.NudgeDirectRate(dr);
+                }
+
                 int dx = (InputBridge.Key(InputActionId.FocusNext) ? 1 : 0) - (InputBridge.Key(InputActionId.FocusPrev) ? 1 : 0);
                 int dy = (InputBridge.Key(InputActionId.FocusDown) ? 1 : 0) - (InputBridge.Key(InputActionId.FocusUp) ? 1 : 0);
                 if (dx == 0 && dy == 0) return;

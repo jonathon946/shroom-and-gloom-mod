@@ -66,6 +66,7 @@ namespace ShroomAccess.Speech
                     _features = PrismNative.prism_backend_get_features(_backend);
                     BackendName = PtrToUtf8(PrismNative.prism_backend_name(_backend)) ?? "?";
                     Ready = true;
+                    OpenDirectVoice();
                     Log("Speech: Prism " + (PtrToUtf8(PrismNative.prism_version_string()) ?? "?")
                         + ", backend " + BackendName + ", features 0x" + _features.ToString("X"));
                     return true;
@@ -100,6 +101,70 @@ namespace ShroomAccess.Speech
             }
         }
 
+        // ---- The direct voice ----
+        // A screen reader cancels its own speech on every key press, and a held key repeats, so
+        // nothing said through the screen reader survives while the player holds a walk key.
+        // Lines that must be heard then go to a Windows voice driven directly, which no screen
+        // reader can cancel. When the main backend is already a Windows voice there is no need.
+        private static IntPtr _direct;
+        internal static string DirectName { get; private set; } = "none";
+        internal static bool HasDirect => _direct != IntPtr.Zero;
+
+        private static void OpenDirectVoice()
+        {
+            if (BackendName == "OneCore" || BackendName == "SAPI") return;
+            foreach (string name in new[] { "OneCore", "SAPI" })
+            {
+                try
+                {
+                    ulong id = PrismNative.prism_registry_id(_ctx, Utf8(name));
+                    if (id == 0) continue;
+                    IntPtr backend = PrismNative.prism_registry_create(_ctx, id);
+                    if (backend == IntPtr.Zero) continue;
+                    int e = PrismNative.prism_backend_initialize(backend);
+                    if (e != PrismNative.Ok && e != PrismNative.ErrorAlreadyInitialized)
+                    {
+                        PrismNative.prism_backend_free(backend);
+                        continue;
+                    }
+                    _direct = backend;
+                    DirectName = name;
+                    Log("Speech: direct voice " + name + " ready.");
+                    return;
+                }
+                catch (Exception ex) { Log("Speech: direct voice " + name + " failed: " + ex.Message); }
+            }
+            Log("Speech: no direct voice available.");
+        }
+
+        // rate: 0 slowest, 0.5 the voice's normal speed, 1 fastest.
+        internal static void SetDirectRate(float rate)
+        {
+            lock (Gate)
+            {
+                if (_direct == IntPtr.Zero) return;
+                try { PrismNative.prism_backend_set_rate(_direct, Math.Max(0f, Math.Min(1f, rate))); }
+                catch (Exception ex) { Log("Speech: direct rate failed: " + ex.Message); }
+            }
+        }
+
+        // Speaks through the direct voice; through the main backend when there is none.
+        internal static void SayDirect(string text, bool interrupt = true)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            lock (Gate)
+            {
+                if (!Ready) return;
+                if (_direct == IntPtr.Zero) { Say(text, interrupt); return; }
+                try
+                {
+                    int e = PrismNative.prism_backend_speak(_direct, Utf8(text), interrupt);
+                    if (e != PrismNative.Ok) Log("Speech: direct say failed: " + ErrorText(e));
+                }
+                catch (Exception ex) { Log("Speech: direct say threw: " + ex.Message); }
+            }
+        }
+
         internal static void Stop()
         {
             lock (Gate)
@@ -118,6 +183,8 @@ namespace ShroomAccess.Speech
                 Ready = false;
                 try
                 {
+                    if (_direct != IntPtr.Zero) PrismNative.prism_backend_free(_direct);
+                    _direct = IntPtr.Zero;
                     PrismNative.prism_backend_free(_backend);
                     PrismNative.prism_shutdown(_ctx);
                 }

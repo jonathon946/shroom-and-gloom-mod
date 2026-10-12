@@ -1,4 +1,4 @@
-> **Status:** Evergreen (rolling single source of truth; edited in place at every close). **Last updated:** 2026-10-11, Session 01 (part 5). Two ear tests done. From the second: strict rows with a status row, Ctrl+arrow information buffers with keyword explanations, announcements held until the walk key is released, and a notice when a card lands in the hand are built and waiting for a third listen. Next after that: the torch and hazards, then first combat.
+> **Status:** Evergreen (rolling single source of truth; edited in place at every close). **Last updated:** 2026-10-11, Session 01 (part 6). Two ear tests done. Waiting for the third listen, which now also covers live announcements while walking: a direct Windows voice and an arrival sound, so nothing waits for W to be released. Next after that: the torch and hazards, a surroundings buffer, then first combat.
 
 # Current state — Shroom and Gloom accessibility
 
@@ -40,7 +40,8 @@ Not built yet: combat, the map, deck view, inspect and keyword explanations, hea
 - **Reset to a fresh player before hand-over** (maintainer's condition). Dev testing has started runs and taken tutorial cards, so the save is no longer fresh. The fresh-install copy is in `backups/2026-10-11-fresh-install-SaveData/`. The reset must also deal with Steam Cloud (the save folder syncs) and any registry settings (not yet looked at).
 - **Dev bridge must be off in a release:** it is enabled only by `UserData\ShroomAccess\dev.flag`, which exists on this machine. Do not ship that file.
 - **Distribution** (maintainer asked 2026-10-11): the game has no Steam Workshop support, so the route is a public download plus an update check inside the mod. Design and build that at the packaging stage; the repository is private today.
-- **Walking silences speech** because the screen reader cancels on every key repeat. Lines are now held until the key is released. A walk toggle (tap W to walk until something is reached) would let arrival be heard at once; offered to the maintainer, not built.
+- **Walking and speech** (decided with the maintainer, part 6): lines that arrive while a walk key is held are spoken at once through a direct Windows voice (OneCore, else SAPI) that the screen reader cannot cancel, with a two-note sound on arrival. The voice's rate starts from NVDA's configured rate and is adjusted with Ctrl+Page Up / Ctrl+Page Down. The rate match is approximate: this machine's NVDA uses the Eloquence synthesizer, whose rate number does not mean the same speed in a Windows voice. A walk toggle was considered and dropped as the default.
+- **Surroundings buffer** (maintainer asked for a look or scan command): planned as one more Ctrl+Left/Right buffer; needs a check of what distance and direction the game exposes.
 - The torch is read as "Torch Hazard Off"; hazards need a proper description and, on Enter, a result line.
 - A stray focus line is sometimes spoken just before an offer opens (the game moves focus first).
 - The title screen's centre path is spoken only as "New Run"; it should say which path it is.
