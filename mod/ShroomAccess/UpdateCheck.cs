@@ -18,7 +18,7 @@ namespace ShroomAccess
         internal static Action<string> Log = _ => { };
 
         // The version this build is; the packaging script reads it from here.
-        internal const string Version = "0.1.0";
+        internal const string Version = "0.1.1";
 
         private static volatile string _newer = "";
         private static volatile string _page = "";
