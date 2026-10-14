@@ -453,6 +453,10 @@ namespace ShroomAccess
                 Component cardComponent = obj.TryCast<Component>();
                 string price = cardComponent != null ? ShopPrice(cardComponent) : "";
                 string buy = price.Length > 0 ? ". For sale: " + price.Replace("COST:", "").Trim() + " food" : "";
+                // The label under the title: uses left, battery, evolve level ("Dead battery").
+                string label = CardLabel(obj);
+                if (label.Length > 0) name += ", " + label;
+                detail += " label=" + label;
                 return Clean(name + cost + (uses.Length > 0 ? ". " + uses : "") + (string.IsNullOrEmpty(desc) ? "" : ". " + desc) + buy);
             }
 
@@ -679,6 +683,33 @@ namespace ShroomAccess
             }
             catch (Exception ex) { Log("[enemy] intents: " + ex.Message); }
             return list;
+        }
+
+        // What all the enemies' attack intents add up to, as a sighted player totals the daggers
+        // above their heads. Armour and statuses are not taken off.
+        internal static string IncomingDamage()
+        {
+            int total = 0, hits = 0;
+            try
+            {
+                foreach (V_Enemy view in UnityEngine.Object.FindObjectsOfType<V_Enemy>())
+                {
+                    M_Enemy m = view != null ? Safe(() => view.Model) : null;
+                    if (m == null || !m.IsAlive) continue;
+                    EnemyTurnAction action = m.CurrentTurnAction;
+                    var pairs = action != null ? action.EnemyIntentPairs : null;
+                    for (int i = 0; pairs != null && i < pairs.Count; i++)
+                    {
+                        EnemyIntentPair pair = pairs[i];
+                        if (pair == null || pair.Intent == null) continue;
+                        if (!Humanize(pair.Intent.name).Contains("Deal Damage")) continue;
+                        total += pair.ModifiedNumber;
+                        hits++;
+                    }
+                }
+            }
+            catch (Exception ex) { Log("[enemy] incoming: " + ex.Message); }
+            return hits == 0 ? "No attacks coming" : "Incoming: " + total + " damage from " + hits + (hits == 1 ? " attack" : " attacks");
         }
 
         // The game words what an enemy will do as "DEALS 3 DAMAGE", "SHIELDS SELF". After "Will"
@@ -1413,6 +1444,8 @@ namespace ShroomAccess
                     string desc = data != null ? data.SingleDescription : null;
                     foreach (string sentence in Sentences(Clean(desc))) lines.Add(sentence);
                     foreach (string keyword in KeywordLines(desc)) lines.Add(keyword);
+                    string label = CardLabel(item, out string labelTip);
+                    if (label.Length > 0) lines.Add(label + (labelTip.Length > 0 && !labelTip.Equals(label, StringComparison.OrdinalIgnoreCase) ? ": " + labelTip : ""));
                     AddLooks(lines, "card", model != null ? model.CardName : null);
                     return lines;
                 }
@@ -1575,6 +1608,26 @@ namespace ShroomAccess
                     Log("[binding] " + id + " failed: " + ex.Message);
                 }
             }
+        }
+
+        // The small label printed under a card's title, when the card shows one, and what its
+        // tooltip says about it.
+        internal static string CardLabel(Il2CppSystem.Object card) => CardLabel(card, out _);
+
+        internal static string CardLabel(Il2CppSystem.Object card, out string tooltip)
+        {
+            tooltip = "";
+            try
+            {
+                V_GameplayCardInstance v = card != null ? card.TryCast<V_GameplayCardInstance>() : null;
+                if (v == null || v._usesRoot == null || !v._usesRoot.gameObject.activeInHierarchy || v._usesText == null) return "";
+                string text = Clean(v._usesText.text);
+                if (v._usesTooltip != null) tooltip = Clean(Safe(() => v._usesTooltip.GetTooltip()) ?? "");
+                if (text.Length == 0) return "";
+                // Shown in capitals on the card; said in ordinary case.
+                return text.Length > 1 ? text.Substring(0, 1).ToUpperInvariant() + text.Substring(1).ToLowerInvariant() : text;
+            }
+            catch { return ""; }
         }
 
         internal static string TypeName(Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase o)

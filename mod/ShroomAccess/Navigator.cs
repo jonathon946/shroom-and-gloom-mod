@@ -193,6 +193,7 @@ namespace ShroomAccess
             string funds = ShopFunds(focus);
             if (funds.Length > 0) items.Add(funds);
             items.Add("Health " + h.CurrentHealth + " of " + h.MaxHealth + (h.Armour > 0 ? ", armour " + h.Armour : ""));
+            if (Hud.InFight(focus)) items.Add(FocusProbe.IncomingDamage());
             items.Add("Energy " + p.Energy + " of " + p.EnergySoftCap);
             items.Add("Gunk " + p.StoredGunk);
             IM_Hand hand = p.GetActiveHand();
@@ -340,6 +341,8 @@ namespace ShroomAccess
             "The Player buffer has your health, energy, piles, statuses and foresights",
             "The Messages buffer repeats what was said, newest first",
             "On the Status row, Enter reads the game's own explanation of a status",
+            "In a fight the Status row has the total damage the enemies intend this turn",
+            "A card's name is followed by the label under its title when it has one: uses left, battery, evolve",
             "Control Page Up and Control Page Down make the walking voice faster or slower",
             "Control B marks the moment for a bug report",
         };

@@ -162,8 +162,13 @@ namespace ShroomAccess
             Log("[cardplay] " + _name + " not played; failure reason: " + failure + "; canCast=" + canCast + " notTurn=" + notTurn + " target=" + target);
             // With no reason given and the game's own check passing, the card had nothing to act on
             // (seen with Shovel and Tool when nothing nearby could be dug or fixed).
+            // The card's own label explains some refusals ("Dead battery", "0 uses").
+            string label = "";
+            try { label = FocusProbe.CardLabel(focus.CurrentFocus); } catch { }
+            bool spent = label.IndexOf("dead", StringComparison.OrdinalIgnoreCase) >= 0 || label.StartsWith("0 ");
             string why = !string.IsNullOrWhiteSpace(failure) && failure != _failureBefore ? " " + FocusProbe.Clean(failure) + "."
                 : notTurn ? " It is not your turn yet."
+                : spent ? " It shows: " + label + "."
                 : " Nothing here it can be used on.";
             FocusProbe.Speak(_name + " was not played." + why);
         }

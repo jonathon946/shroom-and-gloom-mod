@@ -2,6 +2,11 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-14 — Session 04, part 5 — twelfth playthrough
+
+- Cards say the label under their title: uses left, battery, evolve ("Flash, Battery 10/10"); a card refused for a dead battery says so.
+- In a fight the Status row has the enemies' total intended damage ("Incoming: 12 damage from 4 attacks").
+
 ## 2026-10-14 — Session 04, part 4 — eleventh playthrough: timing, alt text
 
 - "Your turn. Energy 3 of 3." is said as the new hand starts dealing; "Drew N cards" half a second after the last card; batched lines wait 0.3 seconds, not 0.7.
