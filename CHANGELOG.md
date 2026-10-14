@@ -2,6 +2,22 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-14 — Session 04 — eighth playthrough: false failures, the shop, the soup pot
+
+- Recovered and committed the cut-off session's work from 2026-10-12 (map forks and boss, walking voice hand-over, quieter card plays, camp card placement, threat outcome).
+- Sounds survive scene loads; they were switched off for good after a death.
+- Card plays are counted by the game: Persistent cards say "Played"; Unplayable cards say they work by themselves in hand; a refused play says so with the game's reason or "The game gives no reason".
+- Shop: no false "Combat started" or "You are in a fight" while paying; "Paid 1 of 3."; "Bought Hot Poker."; the passing "Nevermind" is not read.
+- Armour: "3 blocked by armour" on a hit; "gains 3 armour" on the enemy turn.
+- Death: "You have died." at zero health, with nothing from the fight after it.
+- Turn start: "Your turn. Energy 3 of 3. Drew 4 cards." then the card; the hand is quiet while the enemies act; no "New turn" in fights.
+- An emptied hand is said once: "Your hand is empty. Space ends the turn."
+- Food and other self-aimed cards: "Aimed at you..."; the player as a target is "You."
+- Soup pot: the soups with their costs and open or locked state, the soup value as it rises, "Made Spicy Soup"; the game's lost first Up is pressed again.
+- Nearby is not repeated after a screen, a target choice or a door opening.
+- Names: "Soup Pot" (was "Soup Pot Encounter With UI").
+- Help: three lines on food targets, the shop and the soup pot.
+
 ## 2026-10-12 — Session 03 — seventh playthrough: voices take turns, fights and camps in one line, death screens
 
 - The two voices never speak together: a line asked for with a key is said at once and the walking voice repeats its own afterwards; other lines wait for the walking voice to finish.

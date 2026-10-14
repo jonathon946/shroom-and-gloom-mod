@@ -15,21 +15,27 @@ namespace ShroomAccess
 
         private static AudioSource _source;
         private static AudioClip[] _clips;
-        private static bool _failed;
+        private static int _failures;
 
         internal static void Play(int cue)
         {
-            if (_failed) return;
+            if (_failures >= 3) return;
             try
             {
-                if (_source == null) Build();
+                if (_source == null || _clips == null || _clips[cue] == null) Build();
                 if (!Application.isFocused) return;
                 _source.PlayOneShot(_clips[cue], Settings.CueVolume);
+                _failures = 0;
             }
             catch (Exception ex)
             {
-                _failed = true;
-                Log("[cue] disabled: " + ex.GetType().Name + ": " + ex.Message);
+                // A scene load can unload the clips or the host; build them again next time. Only
+                // repeated failures in a row switch the sounds off.
+                _failures++;
+                _source = null;
+                _clips = null;
+                Log("[cue] " + (_failures >= 3 ? "disabled: " : "rebuilding: ") + ex.GetType().Name + ": " + ex.Message);
+                if (_failures < 3) Play(cue);
             }
         }
 
@@ -67,6 +73,8 @@ namespace ShroomAccess
             }
             AudioClip clip = AudioClip.Create(name, data.Length, 1, rate, false);
             clip.SetData(new Il2CppStructArray<float>(data), 0);
+            // Not owned by any scene: without this the game's asset clean-up on a scene load destroys it.
+            clip.hideFlags = HideFlags.HideAndDontSave;
             return clip;
         }
     }

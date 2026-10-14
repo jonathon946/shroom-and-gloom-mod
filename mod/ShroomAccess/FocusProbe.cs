@@ -18,6 +18,10 @@ namespace ShroomAccess
         private static IntPtr _lastFocus;
         private static IntPtr _lastLoggedFocus;
         private static float _flickerUntil;
+
+        // Focus lines in the next moment are passing through, whatever key was pressed; the one it
+        // settles on is read afterwards.
+        internal static void Flicker(float seconds) => _flickerUntil = Mathf.Max(_flickerUntil, Time.realtimeSinceStartup + seconds);
         private static float _playedAt = -100f;
         private static string _playedName = "";
 
@@ -111,6 +115,7 @@ namespace ShroomAccess
                 AnnounceHandChanges(focus);
                 Hud.AnnounceChanges(focus);
                 Rewards.Tick(focus);
+                Soup.Tick(focus);
                 Summaries(focus);
                 AltText.Tick();
                 FlushHeld();
@@ -172,7 +177,10 @@ namespace ShroomAccess
                 {
                     _lastLoggedFocus = IntPtr.Zero;
                     Log("[focus] none");
-                    _lastZone = "";
+                    // Choosing a target with nothing focused means the card is aimed at the player.
+                    if (mode == FocusMode.Target && focus.Scope == null && InputBridge.ArrowJustPressed) Speak("You.");
+                    // Still among the targets: coming back to one does not need "Choose a target" again.
+                    if (mode != FocusMode.Target) _lastZone = "";
                     return;
                 }
 
@@ -196,7 +204,7 @@ namespace ShroomAccess
                     if (zone == "food") spoken = "Your food, " + Count(HeldCount(focus), "card") + ". Enter on one, then Enter on the bowl, pays one food. " + line;
                     else if (zone == "shop") spoken = "For sale. " + line;
                     else if (zone == "hand" && TypeName(focus.Scope).Contains("ModifyCard")) spoken = "Choose a card to change, " + Count(HeldCount(focus), "card") + ". " + line;
-                    else if (zone == "hand" && TypeName(focus.Scope).Contains("AdditiveUnlock")) spoken = "Choose what to add, " + Count(HeldCount(focus), "card") + ". " + line;
+                    else if (zone == "hand" && TypeName(focus.Scope).Contains("AdditiveUnlock")) spoken = "Your food for the pot, " + Count(HeldCount(focus), "card") + ". " + line;
                     else if (zone == "hand") spoken = "Your hand, " + Count(HeldCount(focus), "card") + ". " + line;
                     else if (zone == "nearby" && focus.InCombat) spoken = "Enemies, " + Navigator.NearbyInOrder(focus).Count + ". " + line;
                     else if (zone == "nearby") spoken = "Nearby, " + Count(focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0, "thing") + ". " + line;
@@ -217,6 +225,8 @@ namespace ShroomAccess
                         }
                     }
                 }
+                string soup = Soup.Suffix(focus, current);
+                if (soup.Length > 0) spoken = spoken.TrimEnd('.', ' ') + soup + ".";
                 if (zone == "shop")
                 {
                     string place = ShopPlace(focus, current);
@@ -226,6 +236,18 @@ namespace ShroomAccess
                 {
                     Navigator.RowPosition(focus, current, out int index, out int count);
                     if (count > 1) spoken = spoken.TrimEnd('.', ' ') + ", " + index + " of " + count;
+                }
+                // The last card has gone, or the enemies are acting and the next hand is being dealt:
+                // the game moves the focus around by itself. The empty hand is said once by the HUD,
+                // the new hand with "Drew N cards".
+                if (!InputBridge.ArrowJustPressed && focus.Scope == null && (zone == "hand" || (zone == "nearby" && Hud.InFight(focus)))
+                    && (HeldCount(focus) == 0 || Hud.EnemyTurnNow))
+                {
+                    if (_suppressedLogged != ptr) { _suppressedLogged = ptr; Log("[quiet] " + spoken); }
+                    // In the enemy turn, try again each frame: the card it settles on is read when
+                    // the player's turn begins.
+                    if (Hud.EnemyTurnNow) _lastFocus = IntPtr.Zero;
+                    return;
                 }
                 if (zone == "hand" && focus.Scope == null && !InputBridge.ArrowJustPressed && Time.realtimeSinceStartup - _playedAt < 2.5f
                     && Time.realtimeSinceStartup >= SuppressFocusUntil)
@@ -305,9 +327,25 @@ namespace ShroomAccess
             string scope = TypeName(focus.Scope);
             if (scope.Contains("LootAll") || scope.Contains("CardChoice")) return "offer";
             if (scope.Contains("BowlShop")) return isCard ? (mode.ToString() == "Hand" ? "food" : "shop") : "shop-buttons";
-            if (isCard) return mode.ToString() == "Hand" ? "hand" : "";
+            // The focus can reach a card a moment before the game's mode says Hand.
+            if (isCard) return mode.ToString() == "Hand" || InHand(focus, current) ? "hand" : "";
             if (current.TryCast<IControllerFocusTarget>() != null && current.TryCast<UnityEngine.UI.Selectable>() == null) return "nearby";
             return "";
+        }
+
+        private static bool InHand(S_ControllerFocus focus, Il2CppSystem.Object current)
+        {
+            try
+            {
+                IV_CardInstance view = current.TryCast<IV_CardInstance>();
+                IntPtr model = view != null && view.IModel != null ? view.IModel.Pointer : IntPtr.Zero;
+                IM_Hand hand = focus.PlayerModel != null ? focus.PlayerModel.GetActiveHand() : null;
+                var held = hand != null ? hand.HeldCards : null;
+                for (int i = 0; held != null && i < held.Count; i++)
+                    if (held[i] != null && held[i].Pointer == model) return true;
+            }
+            catch { }
+            return false;
         }
 
         // Walking stops without a word when the player reaches something. Say what has come into reach.
@@ -315,10 +353,15 @@ namespace ShroomAccess
         {
             WorldFocusCandidates world = focus.WorldFocusCandidates;
             int n = world != null ? world.Count : 0;
-            // An empty list is a menu over the world, not the world emptied: keep what is known.
-            if (n == 0) return;
-            // While a target is being chosen the list holds only what the card can be used on.
-            if (focus.Mode == FocusMode.Target) return;
+            // An empty list is a menu over the world, not the world emptied; while a target is being
+            // chosen the list holds only what the card can be used on. Either way, what was there is
+            // still there: keep it known however long the menu stays up.
+            if (n == 0 || focus.Mode == FocusMode.Target || focus.Scope != null)
+            {
+                float stamp = Time.realtimeSinceStartup;
+                foreach (IntPtr key in new List<IntPtr>(_nearbyAt.Keys)) _nearbyAt[key] = stamp;
+                return;
+            }
             var fresh = new List<string>();
             var freshOthers = new List<string>();
             var freshEnemies = new List<string>();
@@ -795,7 +838,7 @@ namespace ShroomAccess
         }
 
         // In a shop each card stands in its own slot with a price tag under it.
-        private static string ShopPrice(Component cardView)
+        internal static string ShopPrice(Component cardView)
         {
             try
             {
@@ -851,7 +894,8 @@ namespace ShroomAccess
                 if (i > 0 && char.IsUpper(c) && char.IsLower(s[i - 1])) sb.Append(' ');
                 sb.Append(c);
             }
-            return sb.ToString();
+            // Joined-up names ("SoupPotEncounterWithUI") only show these words once split.
+            return sb.ToString().Replace(" With UI", "").Replace(" Encounter", "");
         }
 
         // Rich-text tags out, whitespace tidy, no doubled full stops.
@@ -1015,8 +1059,11 @@ namespace ShroomAccess
         private static bool _afterFight;
         private static float _combatEndAt, _clearSince;
 
-        internal static void SceneChanged()
+        internal static void SceneChanged(string sceneName)
         {
+            // Opening a door streams the next tunnel in as a scene of its own, while the room the
+            // player stands in stays: what has been seen is still known.
+            if (System.Text.RegularExpressions.Regex.IsMatch(sceneName ?? "", @"^P\w*_T\d")) return;
             _seen.Clear();
             _seenEver.Clear();
             _knownNearby.Clear();
@@ -1054,6 +1101,8 @@ namespace ShroomAccess
             _summaryDue = Time.realtimeSinceStartup + 0.5f;
             _campAt = Time.realtimeSinceStartup;
             _afterFight = false;
+            // The hand is dealt one card at a time from here; "Drew N cards" and the card follow it.
+            SuppressFocusUntil = Mathf.Max(SuppressFocusUntil, Time.realtimeSinceStartup + 2f);
         }
 
         internal static void CombatStarted()
@@ -1501,7 +1550,7 @@ namespace ShroomAccess
             }
         }
 
-        private static string TypeName(Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase o)
+        internal static string TypeName(Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase o)
         {
             if (o == null) return "null";
             try { return o.Cast<Il2CppSystem.Object>().GetIl2CppType().FullName; } catch { return "?"; }

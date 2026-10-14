@@ -1,4 +1,4 @@
-> **Status:** Living reference (deduplicated index of what's been tried and settled; checked before retrying anything). **Last updated:** 2026-10-11, Session 01 (part 3).
+> **Status:** Living reference (deduplicated index of what's been tried and settled; checked before retrying anything). **Last updated:** 2026-10-14, Session 04.
 
 # Lessons & dead ends — Shroom and Gloom accessibility
 
@@ -119,3 +119,17 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **GOTCHA — A check that looks for the tutorial object is true in every run.** `S_InitialTutorial` exists and is "active" at the start of any run; the scene name (`PT_T00`) is what marks the tutorial.
 - **GOTCHA — `Test-Run.ps1 -Close` returns before the game has exited.** A deploy or snapshot straight after it fails with "Close Shroom and Gloom first". Wait for the process.
 - **GOTCHA — The far-run save rolls its room again on every load.** Do not count key presses to a target from an earlier replay; step and read the log.
+
+## From the eighth playthrough [Session 04]
+
+- **GOTCHA — Generated audio clips are destroyed by the game's asset clean-up on a scene load.** A clip made with `AudioClip.Create` belongs to no scene; after the death scene loaded, playing it threw `ObjectCollectedException`. Mark generated assets `HideFlags.HideAndDontSave`, and rebuild on failure instead of switching the feature off.
+- **GOTCHA — "Still in hand" does not mean "not played".** Persistent cards stay in hand after playing. Count plays with the game's `M_Player.CardsPlayedThisEncounter` and `CardsPlayedThisTurn`; `GameplayCardData.IsUnplayable` marks cards that are never played.
+- **GOTCHA — The shop sets the player model's combat flag while food is paid**, not only the focus system's. Treat combat as false while `BowlShopEncounterUI` is the scope and for two seconds after.
+- **GOTCHA — Opening a door streams the next tunnel in as a scene** (`P1_T02B_MINES_2_Scene`) while the player's room stays. Do not reset what has been seen on such a load; reset on `GameWorld`, the title and the death scene.
+- **GOTCHA — A menu or a target choice empties or shrinks the world's focus list for as long as it is up.** A "known for N seconds" rule then forgets everything behind a long screen. Keep things known while the list is hidden.
+- **KEY FINDING — The soup pot and the shop expose their state in fields:** `AdditiveUnlockCampEncounterUI._paidAmount`, `IsCardUnlocked(i)`, `vCardInstances`, each soup's `Purchase Text`; `BowlShopEncounterUI._currentShopState`, `_paidCostAmountInBowl`, `_selectedCardToBuy`, `_cardChoices`.
+- **GOTCHA — After food goes into the soup pot the game deals the hand again and puts the focus back on it**, pulling back an Up pressed in that moment. Not a doubled key: two later presses in a row both held. The mod presses Up once more.
+- **LESSON — Hand focus lines during the enemy turn are the game tidying up, not the player moving.** Quiet them until the player's turn; the energy refill arrives before the turn changes and belongs in the "Your turn" line.
+- **GOTCHA — The game pauses when its window loses focus.** A replay that stops responding mid-test may only mean the maintainer switched windows. Unpause with Confirm on Unpause.
+- **LESSON — A long session should leave a running note in its session file.** The cut-off session's intent had to be read back from its diff.
+

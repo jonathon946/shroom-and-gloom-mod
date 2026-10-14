@@ -52,7 +52,8 @@ namespace ShroomAccess
                 if (pressed != 0 && blocked)
                 {
                     Il2CppBackend.M_Player p = focus.PlayerModel;
-                    string why = focus.InCombat ? " You are in a fight."
+                    string why = Hud.InFight(focus) ? " You are in a fight."
+                        : focus.Scope != null ? " Finish with this screen first."
                         : p != null && p.IsInExploreEncounter ? " Use your cards on what is nearby, or press Space to end the turn."
                         : " Something nearby needs dealing with first.";
                     // In the voice a held key cannot silence: the player is very likely still holding W.

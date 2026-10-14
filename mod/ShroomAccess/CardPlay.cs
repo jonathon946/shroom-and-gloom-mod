@@ -16,6 +16,7 @@ namespace ShroomAccess
         private static float _checkAt;
         private static float _castAt;
         private static string _failureBefore;
+        private static int _playedBefore;
 
         private static string _placedAt = "";
 
@@ -64,6 +65,13 @@ namespace ShroomAccess
                 if (model == null) return;
 
                 GameplayCardData data = model.IData != null ? model.IData.TryCast<GameplayCardData>() : null;
+                bool unplayable = false;
+                try { unplayable = data != null && data.IsUnplayable; } catch { }
+                if (unplayable)
+                {
+                    FocusProbe.Speak(model.CardName + " is never played: it works by itself while it is in your hand.");
+                    return;
+                }
                 if (data != null && data.EnergyUse > p.Energy)
                 {
                     FocusProbe.Speak("Not enough energy for " + model.CardName + ": it costs " + data.EnergyUse + ", you have " + p.Energy + ". Space ends the turn.");
@@ -72,6 +80,7 @@ namespace ShroomAccess
                 _card = model.Pointer;
                 _name = model.CardName;
                 _failureBefore = Failure(focus);
+                _playedBefore = Played(p);
                 _checkAt = Time.realtimeSinceStartup + 0.7f;
             }
             catch (Exception ex) { Log("[cardplay] " + ex.GetType().Name + ": " + ex.Message); }
@@ -82,10 +91,25 @@ namespace ShroomAccess
             try { return focus.SpellCaster != null ? focus.SpellCaster.LastCastFailureReason : null; } catch { return null; }
         }
 
+        // The game's own count of cards played: a card that stays in hand after playing (Persistent)
+        // is played all the same.
+        private static int Played(Il2CppBackend.M_Player p)
+        {
+            try { return p.CardsPlayedThisEncounter * 1000 + p.CardsPlayedThisTurn; } catch { return -1; }
+        }
+
         private static void Resolve(S_ControllerFocus focus, Il2CppBackend.M_Player p)
         {
             // Choosing a target: nothing to report yet.
             if (focus.Mode == FocusMode.Target) return;
+
+            int played = Played(p);
+            if (played >= 0 && _playedBefore >= 0 && played != _playedBefore)
+            {
+                FocusProbe.NotePlay(_name);
+                FocusProbe.Announce("Played " + _name + ".", interrupt: false);
+                return;
+            }
 
             bool stillHeld = false;
             IM_Hand hand = p.GetActiveHand();
@@ -105,9 +129,24 @@ namespace ShroomAccess
             }
 
             string failure = Failure(focus);
-            Log("[cardplay] " + _name + " not played; failure reason: " + failure);
-            string why = !string.IsNullOrWhiteSpace(failure) && failure != _failureBefore ? " " + FocusProbe.Clean(failure) + "." : " Nothing here it can be used on.";
-            FocusProbe.Speak(_name + " can't be played right now." + why);
+            // What the game's own check says, for the log and for a reason the game does not put in words.
+            bool notTurn = false, canCast = true;
+            string target = "";
+            try
+            {
+                var obj = new Il2CppSystem.Object(_card);
+                M_GameplayCardInstance card = obj.TryCast<M_GameplayCardInstance>();
+                if (card != null && focus.SpellCaster != null) canCast = focus.SpellCaster.CanCast(card, out notTurn);
+                IM_CardInstance im = obj.TryCast<IM_CardInstance>();
+                GameplayCardData d = im != null && im.IData != null ? im.IData.TryCast<GameplayCardData>() : null;
+                if (d != null) target = d.Target.ToString();
+            }
+            catch (Exception ex) { target = ex.GetType().Name; }
+            Log("[cardplay] " + _name + " not played; failure reason: " + failure + "; canCast=" + canCast + " notTurn=" + notTurn + " target=" + target);
+            string why = !string.IsNullOrWhiteSpace(failure) && failure != _failureBefore ? " " + FocusProbe.Clean(failure) + "."
+                : notTurn ? " It is not your turn yet."
+                : " The game gives no reason.";
+            FocusProbe.Speak(_name + " was not played." + why);
         }
     }
 }

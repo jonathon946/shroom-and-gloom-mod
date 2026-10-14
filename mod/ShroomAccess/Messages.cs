@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
@@ -125,7 +126,8 @@ namespace ShroomAccess
                     _screenDue = 0f;
                     if (scope != null && ptr == _screenScope)
                     {
-                        if (!Rewards.Handles(scope)) AnnounceScreen(scope);
+                        // The soup pot's heading and value are said by Soup, with the soups.
+                        if (!Rewards.Handles(scope) && Soup.Screen(focus) == null) AnnounceScreen(scope);
                         Rewards.ScreenOpened(scope);
                     }
                 }
@@ -206,7 +208,7 @@ namespace ShroomAccess
                     {
                         var fresh = new List<string>();
                         foreach (string part in now) if (!_liveText.Contains(part)) fresh.Add(part);
-                        if (fresh.Count > 0 && fresh.Count <= 3)
+                        if (fresh.Count > 0 && fresh.Count <= 3 && Soup.Screen(focus) == null)
                         {
                             Log("[screen-change] " + string.Join(" | ", fresh));
                             foreach (string part in fresh) if (!SaidLately(part)) FocusProbe.Announce(part, interrupt: false);
@@ -216,14 +218,62 @@ namespace ShroomAccess
                     _liveText = now;
                 }
 
-                // A card that needs no target (it acts on you) still waits for a second Enter, with
-                // nothing focused; say so, or the first Enter seems to do nothing.
+                WatchShop(scope);
+
+                // A card aimed at the player waits for a second Enter with nothing focused; say so, or
+                // the first Enter seems to do nothing. Some (food) can be turned on other targets too.
                 bool target = focus.Mode == FocusMode.Target;
                 if (target && !_wasTarget && focus.CurrentFocus == null)
-                    FocusProbe.Announce("This card acts on you. Enter to play it, Backspace to cancel.", interrupt: false);
+                    FocusProbe.Announce("Aimed at you. Enter uses it on yourself; Left and Right look for another target; Backspace cancels.", interrupt: false);
                 _wasTarget = target;
             }
             catch (Exception ex) { Log("[messages] " + ex.GetType().Name + ": " + ex.Message); }
+        }
+
+        private static string _shopState = "";
+        private static int _shopPaid, _shopPrice;
+        private static string _shopBuying = "";
+        private static IntPtr _shopCard;
+        private static float _shopCheckAt;
+
+        // The shop shows payment as food piling up in the bowl. Say how much is paid, and that the
+        // card was bought: the shopkeeper's line alone does not make it clear.
+        private static void WatchShop(IFocusScope scope)
+        {
+            BowlShopEncounterUI shop = scope != null ? scope.Cast<Il2CppSystem.Object>().TryCast<BowlShopEncounterUI>() : null;
+            if (shop == null) { _shopState = ""; _shopCheckAt = 0f; return; }
+            string state = shop._currentShopState.ToString();
+            int paid = shop._paidCostAmountInBowl;
+            if (state == "FeedMePlease" && _shopState != "FeedMePlease")
+            {
+                V_GameplayCardInstance card = shop._selectedCardToBuy;
+                _shopBuying = card != null && card.IModel != null ? card.IModel.CardName : "";
+                _shopCard = card != null && card.IModel != null ? card.IModel.Pointer : IntPtr.Zero;
+                string digits = card != null ? new string(FocusProbe.ShopPrice(card).Where(char.IsDigit).ToArray()) : "";
+                _shopPrice = int.TryParse(digits, out int price) ? price : 0;
+                _shopPaid = paid;
+                // The focus passes over the Nevermind button on its way to the food.
+                FocusProbe.Flicker(0.5f);
+            }
+            else if (state == "FeedMePlease" && paid > _shopPaid)
+            {
+                FocusProbe.Announce("Paid " + paid + (_shopPrice > 0 ? " of " + _shopPrice : "") + ".", interrupt: false);
+                _shopPaid = paid;
+            }
+            // Paying is over, by purchase or by Nevermind. A bought card leaves the shop's offer once
+            // it has flown to the deck; look a moment later.
+            if (_shopState == "FeedMePlease" && state != "FeedMePlease") _shopCheckAt = Time.realtimeSinceStartup + 1.5f;
+            if (_shopCheckAt > 0f && Time.realtimeSinceStartup >= _shopCheckAt)
+            {
+                _shopCheckAt = 0f;
+                bool stillOffered = false;
+                var choices = shop._cardChoices;
+                for (int i = 0; choices != null && i < choices.Count; i++)
+                    if (choices[i] != null && choices[i].Pointer == _shopCard) { stillOffered = true; break; }
+                Log("[shop] after paying: " + _shopBuying + " still offered=" + stillOffered + " paid=" + _shopPaid + " of " + _shopPrice);
+                if (!stillOffered && _shopBuying.Length > 0) FocusProbe.Announce("Bought " + _shopBuying + ".", interrupt: false);
+            }
+            _shopState = state;
         }
 
         // After a change is applied the game shows the new card with a Take button under it. The card

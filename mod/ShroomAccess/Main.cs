@@ -27,6 +27,7 @@ namespace ShroomAccess
             Walk.Log = msg => LoggerInstance.Msg(msg);
             MapReader.Log = msg => LoggerInstance.Msg(msg);
             Rewards.Log = msg => LoggerInstance.Msg(msg);
+            Soup.Log = msg => LoggerInstance.Msg(msg);
             CardPlay.Log = msg => LoggerInstance.Msg(msg);
             TextWatch.Log = msg => LoggerInstance.Msg(msg);
             Review.Log = msg => LoggerInstance.Msg(msg);
@@ -58,8 +59,8 @@ namespace ShroomAccess
         {
             LoggerInstance.Msg("Scene initialised: " + buildIndex + " " + sceneName);
             Walk.Scene = sceneName ?? "";
-            FocusProbe.SceneChanged();
-            if (Walk.Scene.Contains("DeathWorld")) FocusProbe.Announce("You have died.", interrupt: false);
+            FocusProbe.SceneChanged(sceneName);
+            if (Walk.Scene.Contains("DeathWorld") && UnityEngine.Time.realtimeSinceStartup - Hud.DeathSaidAt > 60f) FocusProbe.Announce("You have died.", interrupt: false);
             if (_greeted || !Speaker.Ready) return;
             if (sceneName == null || sceneName.IndexOf("Title", StringComparison.OrdinalIgnoreCase) < 0) return;
             _greeted = true;
