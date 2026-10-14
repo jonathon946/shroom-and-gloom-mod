@@ -2,6 +2,11 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-14 — Session 04, part 6 — deck view and camp hazards
+
+- Tab opens the deck view in a run (it was unreachable from the keyboard): the draw pile, then the discard pile, then closed; a summary of the cards shown, each card's place, the buttons for the full deck and the other decks.
+- Hazards in a camp, the Encroaching Gloom among them, say the threat they add and what they do ("If you rest, take 5 damage").
+
 ## 2026-10-14 — Session 04, part 5 — twelfth playthrough
 
 - Cards say the label under their title: uses left, battery, evolve ("Flash, Battery 10/10"); a card refused for a dead battery says so.

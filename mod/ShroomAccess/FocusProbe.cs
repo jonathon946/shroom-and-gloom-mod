@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 using Il2Cpp;
@@ -578,8 +579,9 @@ namespace ShroomAccess
                 if (string.IsNullOrWhiteSpace(name)) name = Safe(() => hazard.HazardName);
                 if (string.IsNullOrWhiteSpace(name)) name = Humanize(hazard.gameObject.name);
                 string accepts = Accepts(Safe(() => hazard.GetPromptsAndInteractions().Item2));
-                detail = "hazard name=" + name + " object=" + hazard.gameObject.name + " accepts=" + accepts;
-                return Clean(name + (accepts.Length > 0 ? ". " + accepts : ""));
+                string effect = HazardEffect(Safe(() => hazard.Model));
+                detail = "hazard name=" + name + " object=" + hazard.gameObject.name + " accepts=" + accepts + " effect=" + effect;
+                return Clean(name + (effect.Length > 0 ? ". " + effect : "") + (accepts.Length > 0 ? ". " + accepts : ""));
             }
 
             EncounterStartWorldObject starter = obj.TryCast<EncounterStartWorldObject>();
@@ -686,6 +688,52 @@ namespace ShroomAccess
             }
             catch (Exception ex) { Log("[enemy] intents: " + ex.Message); }
             return list;
+        }
+
+        // A hazard in a camp (a creature, The Encroaching Gloom) adds threat, or gives warmth, and
+        // may act at the end of the turn like an enemy. Said as the game's own words where it has them.
+        internal static string HazardEffect(M_Hazard m)
+        {
+            if (m == null) return "";
+            var parts = new List<string>();
+            try
+            {
+                int total = m.GetTotalThreatLevel(out int warmth, out int threat);
+                if (threat > 0) parts.Add("Adds threat " + threat);
+                if (warmth > 0) parts.Add("Gives warmth " + warmth);
+                if (threat == 0 && warmth == 0 && total != 0) parts.Add("Threat " + total);
+            }
+            catch { }
+            try
+            {
+                EnemyTurnAction action = m.CurrentTurnAction;
+                var pairs = action != null ? action.EnemyIntentPairs : null;
+                for (int i = 0; pairs != null && i < pairs.Count; i++)
+                {
+                    EnemyIntentPair pair = pairs[i];
+                    if (pair == null || pair.Intent == null) continue;
+                    string text = Safe(() => pair.Intent.GetIntentToolTipText("ShroomAccess", pair, m.StatusEffects));
+                    if (string.IsNullOrWhiteSpace(text)) text = Humanize(pair.Intent.name).Replace("Enemy Intent", "").Trim() + (pair.ModifiedNumber != 0 ? " " + pair.ModifiedNumber : "");
+                    else
+                    {
+                        // The game's own lines ("THE GLOOM BECKONS YOU FORWARD / IF YOU REST, TAKE 5
+                        // DAMAGE"), one sentence each, in ordinary case.
+                        var lines = text.Replace("\\n", "\n").Split('\n').Select(l => Clean(l).TrimEnd('.', ' ')).Where(l => l.Length > 0)
+                            .Select(l => l.Substring(0, 1).ToUpperInvariant() + l.Substring(1).ToLowerInvariant());
+                        // A line ending in a comma runs on into the next.
+                        var sb = new StringBuilder();
+                        foreach (string l in lines)
+                        {
+                            if (sb.Length > 0) sb.Append(sb[sb.Length - 1] == ',' ? " " + l.ToLowerInvariant() : ". " + l);
+                            else sb.Append(l);
+                        }
+                        text = sb.ToString();
+                    }
+                    if (text.Trim().Length > 0) parts.Add(Clean(text));
+                }
+            }
+            catch (Exception ex) { Log("[hazard] intents: " + ex.Message); }
+            return string.Join(". ", parts);
         }
 
         // What all the enemies' attack intents add up to, as a sighted player totals the daggers
