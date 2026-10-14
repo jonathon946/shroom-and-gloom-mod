@@ -2,6 +2,14 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-14 — Session 04, part 12 — the hand keeps up
+
+- Left and Right in the hand act at once, skip a card that has just been played, and stop at the ends with the edge sound instead of wrapping round.
+- Quick arrows cut off the card before instead of queuing behind it, even straight after news such as "Drew 4 cards".
+- Enter on a card you have not heard (the game moved the cursor after a play or a deal) reads it first; the next Enter plays it.
+- Fights run more smoothly: the mod's own work each frame is a tenth of what it was.
+- A warning when the attacks shown would kill you; the Megashroom's explosion counts as an attack. Two enemies of one name are told apart by their place. 35 new appearance descriptions.
+
 ## 2026-10-14 — Session 04, part 11 — first public release (0.1.0)
 
 - The zip now contains everything: MelonLoader, the mod, the speech library and an installer. Press Enter on "Install Shroom Access.cmd": it finds the game through Steam, installs .NET 6 if needed, and copies the files.
