@@ -50,7 +50,7 @@ namespace ShroomAccess
                 {
                     _buffer = 0;
                     List<string> detail = Lines(focus);
-                    FocusProbe.Speak(detail.Count > 1 ? string.Join(". ", detail.GetRange(1, detail.Count - 1)) : "The game says nothing more about this.");
+                    FocusProbe.Speak(detail.Count > 1 ? string.Join(". ", detail.GetRange(1, detail.Count - 1)) : Loc.T("status.nothing_more", "The game says nothing more about this."));
                 }
 
                 int dx = (InputBridge.Key(InputActionId.FocusNext) ? 1 : 0) - (InputBridge.Key(InputActionId.FocusPrev) ? 1 : 0);
@@ -92,7 +92,7 @@ namespace ShroomAccess
                     if (dx != 0) NearbyStep(focus, dx);
                     else if (dy < 0) EnterStatus(focus);
                     else if (hand > 0) EnterHand(focus);
-                    else FocusProbe.Speak("No cards in hand right now.");
+                    else FocusProbe.Speak(Loc.T("hand.none_now", "No cards in hand right now."));
                 }
                 else if (IsHand(mode))
                 {
@@ -188,18 +188,18 @@ namespace ShroomAccess
         {
             var items = new List<string>();
             Il2CppBackend.M_Player p = focus.PlayerModel;
-            if (p == null) { items.Add("No character yet"); return items; }
+            if (p == null) { items.Add(Loc.T("status.no_character", "No character yet")); return items; }
             PlayerHealthData h = p.HealthData;
             string funds = ShopFunds(focus);
             if (funds.Length > 0) items.Add(funds);
-            items.Add("Health " + h.CurrentHealth + " of " + h.MaxHealth + (h.Armour > 0 ? ", armour " + h.Armour : ""));
+            items.Add(Loc.T("health.of", "Health {0} of {1}", h.CurrentHealth, h.MaxHealth) + (h.Armour > 0 ? ", " + Loc.T("health.armour", "armour {0}", h.Armour) : ""));
             if (Hud.InFight(focus)) items.Add(FocusProbe.IncomingDamage());
-            items.Add("Energy " + p.Energy + " of " + p.EnergySoftCap);
-            items.Add("Gunk " + p.StoredGunk);
+            items.Add(Loc.T("status.energy", "Energy {0} of {1}", p.Energy, p.EnergySoftCap));
+            items.Add(Loc.T("status.gunk", "Gunk {0}", p.StoredGunk));
             IM_Hand hand = p.GetActiveHand();
             string threat = Hud.Threat();
             if (threat.Length > 0) items.Add(threat);
-            if (hand != null) items.Add("Draw pile " + hand.CardsInDeckCount + ", discard pile " + hand.CardsInDiscardCount);
+            if (hand != null) items.Add(Loc.T("status.piles", "Draw pile {0}, discard pile {1}", hand.CardsInDeckCount, hand.CardsInDiscardCount));
             return items;
         }
 
@@ -215,7 +215,7 @@ namespace ShroomAccess
                     string text = t != null ? FocusProbe.Clean(t.text) : "";
                     // "Funds: 2 FOOD", once the colour tags are out.
                     if (text.StartsWith("Funds", StringComparison.OrdinalIgnoreCase))
-                        return "Food to spend: " + new string(text.Where(char.IsDigit).ToArray());
+                        return Loc.T("status.food_to_spend", "Food to spend: {0}", new string(text.Where(char.IsDigit).ToArray()));
                 }
             }
             catch { }
@@ -229,7 +229,7 @@ namespace ShroomAccess
             if (_statusIndex >= items.Count) _statusIndex = 0;
             FocusProbe.LeaveRow();
             FocusChanged();
-            FocusProbe.Announce("Status. " + items[_statusIndex] + ", " + (_statusIndex + 1) + " of " + items.Count);
+            FocusProbe.Announce(Loc.T("status.row", "Status.") + " " + items[_statusIndex] + ", " + Loc.T("pos.of", "{0} of {1}", _statusIndex + 1, items.Count));
         }
 
         private static void StatusStep(S_ControllerFocus focus, int dx)
@@ -239,7 +239,7 @@ namespace ShroomAccess
             if (next < 0 || next >= items.Count) { Cue.Play(Cue.Edge); return; }
             _statusIndex = next;
             FocusChanged();
-            FocusProbe.Announce(items[_statusIndex] + ", " + (_statusIndex + 1) + " of " + items.Count);
+            FocusProbe.Announce(items[_statusIndex] + ", " + Loc.T("pos.of", "{0} of {1}", _statusIndex + 1, items.Count));
         }
 
         // At the end of a row: a short dull sound. The player has not moved, so nothing is re-read.
@@ -308,7 +308,7 @@ namespace ShroomAccess
             Il2CppSystem.Object card = cards[next].Cast<Il2CppSystem.Object>();
             FocusChanged();
             VirtualSubject = card;
-            FocusProbe.Announce(FocusProbe.Describe(card, out _).TrimEnd('.', ' ') + ", " + (next + 1) + " of " + count);
+            FocusProbe.Announce(FocusProbe.Describe(card, out _).TrimEnd('.', ' ') + ", " + Loc.T("pos.of", "{0} of {1}", next + 1, count));
         }
 
         // ---- Buffers ----
@@ -317,36 +317,36 @@ namespace ShroomAccess
         // Moving focus returns to the Item buffer at its first line, because the thing just
         // focused is what the player will want to read about.
 
-        private static readonly string[] BufferNames = { "Item", "Player", "Surroundings", "Messages", "Help" };
+        private static string[] BufferNames => new[] { Loc.T("buffer.item", "Item"), Loc.T("buffer.player", "Player"), Loc.T("buffer.surroundings", "Surroundings"), Loc.T("buffer.messages", "Messages"), Loc.T("buffer.help", "Help") };
 
-        private static readonly string[] HelpLines =
+        private static string[] HelpLines => new[]
         {
-            "Control Up reads on, Control Down goes back",
-            "Up and Down arrows move between rows: Status at the top, then Nearby or Enemies, then Your hand",
-            "Left and Right arrows move along a row. A low sound means the end of the row",
-            "Enter chooses. On a card in your hand it picks the card, then Enter on a target plays it",
-            "A card with no target is played by pressing Enter twice",
-            "Backspace cancels or goes back. Escape opens the pause menu",
-            "Hold W to walk forward and S to walk back. A second voice speaks while you walk",
-            "While you walk, a sound marks each thing that comes into reach. They are listed when you stop at a camp, and after a fight",
-            "When you die, Space moves through the words on screen. A sealed pack of cards is opened with Enter",
-            "Space ends your turn. At a camp, Space rests for the night and refills your energy",
-            "A food card can be aimed at you or at something hungry: after the first Enter, Left and Right choose, and you are said as You",
-            "In a shop, Enter on a card, then pay one food at a time: Enter on a food card, then Enter on the bowl",
-            "At a soup pot, put food in with Enter on a food card, then Enter on the pot. The soup value rises and opens dearer soups. Up goes to the open soups",
-            "M opens and closes the map. With the map open, Control Up reads each area",
-            "Tab opens your draw pile; Tab again shows the discard pile, and again closes it. Up from the cards reaches buttons for the full deck and the combat, explore and foresight decks",
-            "I inspects. O sorts your hand",
-            "Control Left and Right switch buffer: Item, Player, Surroundings, Messages, Help",
-            "The Item buffer describes what you are on, ending with what it looks like",
-            "The Player buffer has your health, energy, piles, statuses and foresights",
-            "The Messages buffer repeats what was said, newest first",
-            "On the Status row, Enter reads the game's own explanation of a status",
-            "In a fight the Status row has the total damage the enemies intend this turn",
-            "A card's name is followed by the label under its title when it has one: uses left, battery, evolve",
-            "Control Page Up and Control Page Down make the walking voice faster or slower",
-            "Control B marks the moment for a bug report",
-            "When the title screen says a new version is out, Control O opens its download page",
+            Loc.T("help.ctrl_up", "Control Up reads on, Control Down goes back"),
+            Loc.T("help.rows", "Up and Down arrows move between rows: Status at the top, then Nearby or Enemies, then Your hand"),
+            Loc.T("help.along_row", "Left and Right arrows move along a row. A low sound means the end of the row"),
+            Loc.T("help.enter", "Enter chooses. On a card in your hand it picks the card, then Enter on a target plays it"),
+            Loc.T("help.no_target", "A card with no target is played by pressing Enter twice"),
+            Loc.T("help.backspace", "Backspace cancels or goes back. Escape opens the pause menu"),
+            Loc.T("help.walk", "Hold W to walk forward and S to walk back. A second voice speaks while you walk"),
+            Loc.T("help.arrivals", "While you walk, a sound marks each thing that comes into reach. They are listed when you stop at a camp, and after a fight"),
+            Loc.T("help.death", "When you die, Space moves through the words on screen. A sealed pack of cards is opened with Enter"),
+            Loc.T("help.space", "Space ends your turn. At a camp, Space rests for the night and refills your energy"),
+            Loc.T("help.food", "A food card can be aimed at you or at something hungry: after the first Enter, Left and Right choose, and you are said as You"),
+            Loc.T("help.shop", "In a shop, Enter on a card, then pay one food at a time: Enter on a food card, then Enter on the bowl"),
+            Loc.T("help.soup", "At a soup pot, put food in with Enter on a food card, then Enter on the pot. The soup value rises and opens dearer soups. Up goes to the open soups"),
+            Loc.T("help.map", "M opens and closes the map. With the map open, Control Up reads each area"),
+            Loc.T("help.deck", "Tab opens your draw pile; Tab again shows the discard pile, and again closes it. Up from the cards reaches buttons for the full deck and the combat, explore and foresight decks"),
+            Loc.T("help.inspect", "I inspects. O sorts your hand"),
+            Loc.T("help.buffers", "Control Left and Right switch buffer: Item, Player, Surroundings, Messages, Help"),
+            Loc.T("help.item_buffer", "The Item buffer describes what you are on, ending with what it looks like"),
+            Loc.T("help.player_buffer", "The Player buffer has your health, energy, piles, statuses and foresights"),
+            Loc.T("help.messages_buffer", "The Messages buffer repeats what was said, newest first"),
+            Loc.T("help.status_enter", "On the Status row, Enter reads the game's own explanation of a status"),
+            Loc.T("help.incoming", "In a fight the Status row has the total damage the enemies intend this turn"),
+            Loc.T("help.card_label", "A card's name is followed by the label under its title when it has one: uses left, battery, evolve"),
+            Loc.T("help.voice_rate", "Control Page Up and Control Page Down make the walking voice faster or slower"),
+            Loc.T("help.bug_mark", "Control B marks the moment for a bug report"),
+            Loc.T("help.update", "When the title screen says a new version is out, Control O opens its download page"),
         };
         private static int _buffer;
         private static int _line;
@@ -366,12 +366,12 @@ namespace ShroomAccess
                 if (next == _buffer) { Edge(focus); return; }
                 _buffer = next; _line = 0;
                 List<string> opened = Lines(focus);
-                FocusProbe.Speak(BufferNames[_buffer] + ". " + (opened.Count > 0 ? opened[Mathf.Clamp(_line, 0, opened.Count - 1)] : "Nothing here."));
+                FocusProbe.Speak(BufferNames[_buffer] + ". " + (opened.Count > 0 ? opened[Mathf.Clamp(_line, 0, opened.Count - 1)] : Loc.T("buffer.nothing", "Nothing here.")));
                 return;
             }
 
             List<string> lines = Lines(focus);
-            if (lines.Count == 0) { FocusProbe.Speak("Nothing here."); return; }
+            if (lines.Count == 0) { FocusProbe.Speak(Loc.T("buffer.nothing", "Nothing here.")); return; }
             // Ctrl+Up is "next line"; dy is -1 for Up.
             int wanted = Mathf.Min(_line, lines.Count - 1) - dy;
             // Past either end: the edge sound only, so the last line does not sound like a wrap.
@@ -394,7 +394,7 @@ namespace ShroomAccess
                         {
                             var names = new List<string>();
                             for (int i = 0; i < hand.HeldCards.Count; i++) names.Add(hand.HeldCards[i].CardName);
-                            lines.Add(names.Count == 0 ? "Hand empty" : "Hand: " + string.Join(", ", names));
+                            lines.Add(names.Count == 0 ? Loc.T("player.hand_empty", "Hand empty") : Loc.T("player.hand", "Hand: {0}", string.Join(", ", names)));
                         }
                         // Statuses on the player. The model answers "do you have this one" but keeps
                         // no list, so every status the game defines is asked about.
@@ -405,7 +405,7 @@ namespace ShroomAccess
                             if (effect == null || me == null || !me.HasStatusEffect(effect)) continue;
                             int amount = me.GetStatusEffectAmount(effect);
                             string status = FocusProbe.Humanize(effect.name) + (amount != 0 ? " " + amount : "");
-                            lines.Add("Status: " + status + FocusProbe.StatusTip(status));
+                            lines.Add(Loc.T("player.status", "Status: {0}", status + FocusProbe.StatusTip(status)));
                         }
                         V_ForesightHand foresight = UnityEngine.Object.FindObjectOfType<V_ForesightHand>();
                         M_ForesightHand fh = foresight != null && foresight.Model != null ? foresight.Model.TryCast<M_ForesightHand>() : null;
@@ -415,9 +415,9 @@ namespace ShroomAccess
                             M_ForesightCardInstance f = held[i];
                             if (f == null) continue;
                             IM_CardInstance im = f.Cast<Il2CppSystem.Object>().TryCast<IM_CardInstance>();
-                            string name = im != null ? im.CardName : "Foresight";
+                            string name = im != null ? im.CardName : Loc.T("player.foresight_unnamed", "Foresight");
                             string text = im != null && im.IData != null ? im.IData.SingleDescription : "";
-                            lines.Add("Foresight: " + FocusProbe.Clean(name + ". " + text));
+                            lines.Add(Loc.T("player.foresight", "Foresight: {0}", FocusProbe.Clean(name + ". " + text)));
                         }
                     }
                     catch { }
@@ -427,7 +427,7 @@ namespace ShroomAccess
                 {
                     var lines = new List<string>();
                     foreach (IControllerFocusTarget t in NearbyInOrder(focus)) lines.Add(FocusProbe.Describe(t, out _));
-                    if (lines.Count == 0) lines.Add("Nothing in reach");
+                    if (lines.Count == 0) lines.Add(Loc.T("surroundings.empty", "Nothing in reach"));
                     return lines;
                 }
                 case 3:
@@ -452,7 +452,7 @@ namespace ShroomAccess
                     List<string> stats = Rewards.StatLines(focus.Scope);
                     if (stats != null) return stats;
                     Il2CppSystem.Object subject = VirtualSubject ?? focus.CurrentFocus;
-                    if (subject == null) return new List<string> { "Nothing focused" };
+                    if (subject == null) return new List<string> { Loc.T("item.nothing_focused", "Nothing focused") };
                     return FocusProbe.DetailLines(subject);
                 }
             }

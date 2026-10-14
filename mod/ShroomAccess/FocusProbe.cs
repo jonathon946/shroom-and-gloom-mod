@@ -78,7 +78,7 @@ namespace ShroomAccess
                 if (open && !_doorOpen[pair.Key])
                 {
                     _doorOpen[pair.Key] = true;
-                    Announce("The door is open. You can walk on.", interrupt: false, holdWhileWalking: true);
+                    Announce(Loc.T("door.opened", "The door is open. You can walk on."), interrupt: false, holdWhileWalking: true);
                 }
             }
             foreach (IntPtr key in gone) { _doors.Remove(key); _doorOpen.Remove(key); }
@@ -193,7 +193,7 @@ namespace ShroomAccess
                     _lastLoggedFocus = IntPtr.Zero;
                     Log("[focus] none");
                     // Choosing a target with nothing focused means the card is aimed at the player.
-                    if (mode == FocusMode.Target && focus.Scope == null && InputBridge.ArrowJustPressed) Speak("You.");
+                    if (mode == FocusMode.Target && focus.Scope == null && InputBridge.ArrowJustPressed) Speak(Loc.T("target.you", "You."));
                     // Still among the targets: coming back to one does not need "Choose a target" again.
                     if (mode != FocusMode.Target) _lastZone = "";
                     return;
@@ -216,15 +216,15 @@ namespace ShroomAccess
                 if (zone != _lastZone)
                 {
                     _lastZone = zone;
-                    if (zone == "food") spoken = "Your food, " + Count(HeldCount(focus), "card") + ". " + line;
-                    else if (zone == "shop") spoken = "For sale. " + line;
-                    else if (zone == "hand" && TypeName(focus.Scope).Contains("ModifyCard")) spoken = "Choose a card to change, " + Count(HeldCount(focus), "card") + ". " + line;
-                    else if (zone == "hand" && TypeName(focus.Scope).Contains("AdditiveUnlock")) spoken = "Your food for the pot, " + Count(HeldCount(focus), "card") + ". " + line;
-                    else if (zone == "hand") spoken = "Your hand, " + Count(HeldCount(focus), "card") + ". " + line;
-                    else if (zone == "nearby" && focus.InCombat) spoken = "Enemies, " + Navigator.NearbyInOrder(focus).Count + ". " + line;
-                    else if (zone == "nearby") spoken = "Nearby, " + Count(focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0, "thing") + ". " + line;
-                    else if (zone == "targets") spoken = "Choose a target. " + line;
-                    else if (zone == "offer" && current.TryCast<IV_CardInstance>() != null) spoken = "Offered: " + line + " Enter takes it.";
+                    if (zone == "food") spoken = Loc.T("row.food", "Your food, {0}.", Cards(HeldCount(focus))) + " " + line;
+                    else if (zone == "shop") spoken = Loc.T("row.shop", "For sale.") + " " + line;
+                    else if (zone == "hand" && TypeName(focus.Scope).Contains("ModifyCard")) spoken = Loc.T("row.modify", "Choose a card to change, {0}.", Cards(HeldCount(focus))) + " " + line;
+                    else if (zone == "hand" && TypeName(focus.Scope).Contains("AdditiveUnlock")) spoken = Loc.T("row.pot_food", "Your food for the pot, {0}.", Cards(HeldCount(focus))) + " " + line;
+                    else if (zone == "hand") spoken = Loc.T("row.hand", "Your hand, {0}.", Cards(HeldCount(focus))) + " " + line;
+                    else if (zone == "nearby" && focus.InCombat) spoken = Loc.T("row.enemies", "Enemies, {0}.", Navigator.NearbyInOrder(focus).Count) + " " + line;
+                    else if (zone == "nearby") spoken = Loc.T("row.nearby", "Nearby, {0}.", Things(focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0)) + " " + line;
+                    else if (zone == "targets") spoken = Loc.T("row.targets", "Choose a target.") + " " + line;
+                    else if (zone == "offer" && current.TryCast<IV_CardInstance>() != null) spoken = Loc.T("row.offered", "Offered: {0} Enter takes it.", line);
                 }
                 if (TypeName(focus.Scope).Contains("ModifyCard"))
                 {
@@ -235,8 +235,8 @@ namespace ShroomAccess
                         if (!string.IsNullOrWhiteSpace(result)) 
                         {
                             GameObject decline = GameObject.Find("No Thanks Button");
-                            spoken = "The card is now: " + result.TrimEnd('.', ' ') + ". Enter takes it."
-                                + (decline != null && decline.activeInHierarchy ? " Left is No thanks." : "");
+                            spoken = Loc.T("modify.result", "The card is now: {0}. Enter takes it.", result.TrimEnd('.', ' '))
+                                + (decline != null && decline.activeInHierarchy ? " " + Loc.T("modify.no_thanks", "Left is No thanks.") : "");
                         }
                     }
                 }
@@ -252,7 +252,7 @@ namespace ShroomAccess
                 if (zone == "hand" || zone == "nearby")
                 {
                     Navigator.RowPosition(focus, current, out int index, out int count);
-                    if (count > 1) spoken = spoken.TrimEnd('.', ' ') + ", " + index + " of " + count;
+                    if (count > 1) spoken = spoken.TrimEnd('.', ' ') + ", " + Loc.T("pos.of", "{0} of {1}", index, count);
                 }
                 // The last card has gone, or the enemies are acting and the next hand is being dealt:
                 // the game moves the focus around by itself. The empty hand is said once by the HUD,
@@ -331,13 +331,14 @@ namespace ShroomAccess
                 rows.Reverse();
                 int row = 1;
                 for (int i = 0; i < rows.Count; i++) if (Mathf.Abs(rows[i] - mine.y) < 0.08f) row = i + 1;
-                string rowName = rows.Count < 2 ? "" : row == 1 ? "top row, " : row == rows.Count ? "bottom row, " : "row " + row + ", ";
-                return rowName + (before + 1) + " of " + inRow;
+                string rowName = rows.Count < 2 ? "" : row == 1 ? Loc.T("shop.top_row", "top row") + ", " : row == rows.Count ? Loc.T("shop.bottom_row", "bottom row") + ", " : Loc.T("shop.row", "row {0}", row) + ", ";
+                return rowName + Loc.T("pos.of", "{0} of {1}", before + 1, inRow);
             }
             catch { return ""; }
         }
 
-        private static string Count(int n, string noun) => n + " " + noun + (n == 1 ? "" : "s");
+        private static string Cards(int n) => n == 1 ? Loc.T("count.card", "{0} card", n) : Loc.T("count.cards", "{0} cards", n);
+        private static string Things(int n) => n == 1 ? Loc.T("count.thing", "{0} thing", n) : Loc.T("count.things", "{0} things", n);
 
         private static string ZoneOf(S_ControllerFocus focus, Il2CppSystem.Object current, FocusMode mode)
         {
@@ -399,7 +400,7 @@ namespace ShroomAccess
                 if (known) continue;
                 string name = FirstSentence(Describe(t, out _));
                 // Building plots are furniture; they are listed when a camp card looks for a place.
-                if (name.StartsWith("Empty plot")) continue;
+                if (name.StartsWith(Loc.T("plot.empty", "Empty plot"))) continue;
                 // The thing just built, lit or changed by the card played a moment ago.
                 if (time - _playedAt < 3f && _playedName.Length > 0 && (name.StartsWith(_playedName) || t.Cast<Il2CppSystem.Object>().TryCast<SpellReceiverRoom>() != null)) continue;
                 if (time - _playedAt < 3f && name == _targetName) continue;
@@ -415,7 +416,7 @@ namespace ShroomAccess
                 _seen.AddRange(freshOthers);
                 if (time - _combatStartAt < CombatOpening || freshEnemies.Count == 0) return;
                 Cue.Play(Cue.Arrival);
-                Announce("Joined the fight: " + Group(freshEnemies) + ".", interrupt: false, holdWhileWalking: true);
+                Announce(Loc.T("fight.joined", "Joined the fight: {0}.", Group(freshEnemies)), interrupt: false, holdWhileWalking: true);
                 return;
             }
             Cue.Play(Cue.Arrival);
@@ -426,7 +427,7 @@ namespace ShroomAccess
                 Log("[seen] " + string.Join(", ", fresh));
                 return;
             }
-            Announce("Nearby: " + string.Join("|", fresh) + ".", interrupt: false, holdWhileWalking: true);
+            Announce(Loc.T("nearby.list", "Nearby: {0}.", string.Join("|", fresh)), interrupt: false, holdWhileWalking: true);
             _protectUntil = Time.realtimeSinceStartup + 1.5f;
         }
 
@@ -440,7 +441,7 @@ namespace ShroomAccess
         internal static string Describe(Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase item, out string detail)
         {
             detail = "";
-            if (item == null) return "nothing";
+            if (item == null) return Loc.T("thing.nothing", "nothing");
             Il2CppSystem.Object obj = item.Cast<Il2CppSystem.Object>();
 
             IV_CardInstance card = obj.TryCast<IV_CardInstance>();
@@ -451,12 +452,12 @@ namespace ShroomAccess
                 string name = model != null ? model.CardName : null;
                 string desc = data != null ? data.SingleDescription : null;
                 GameplayCardData gameplay = data != null ? data.TryCast<GameplayCardData>() : null;
-                string cost = gameplay != null ? ", cost " + gameplay.EnergyUse : "";
+                string cost = gameplay != null ? ", " + Loc.T("card.cost", "cost {0}", gameplay.EnergyUse) : "";
                 string uses = CardUses(gameplay);
                 detail = "card name=" + name + " deck=" + (data != null ? data.DeckType.ToString() : "?") + cost + " uses=" + uses + " desc=" + desc;
                 Component cardComponent = obj.TryCast<Component>();
                 string price = cardComponent != null ? ShopPrice(cardComponent) : "";
-                string buy = price.Length > 0 ? ". For sale: " + price.Replace("COST:", "").Trim() + " food" : "";
+                string buy = price.Length > 0 ? ". " + Loc.T("card.for_sale", "For sale: {0} food", price.Replace("COST:", "").Trim()) : "";
                 // The label under the title: uses left, battery, evolve level ("Dead battery").
                 string label = CardLabel(obj);
                 if (label.Length > 0) name += ", " + label;
@@ -483,7 +484,7 @@ namespace ShroomAccess
                 bool open = baseDoor != null && Safe(() => baseDoor.IsUnlockedAndOpen());
                 string accepts = open ? "" : Accepts(Safe(() => door.GetPromptsAndInteractions().Item2));
                 detail = "door object=" + door.gameObject.name + " sign=" + sign + " open=" + open + " accepts=" + accepts + " canUnlock=" + door.CanUnlock;
-                return Clean("Door" + (open ? ", open" : "") + (string.IsNullOrWhiteSpace(sign) ? "" : ". " + sign) + (accepts.Length > 0 ? ". " + accepts : ""));
+                return Clean(Loc.T("door.name", "Door") + (open ? ", " + Loc.T("state.open", "open") : "") + (string.IsNullOrWhiteSpace(sign) ? "" : ". " + sign) + (accepts.Length > 0 ? ". " + accepts : ""));
             }
 
             CharacterSelection_Button character = obj.TryCast<CharacterSelection_Button>();
@@ -492,16 +493,16 @@ namespace ShroomAccess
                 string name = character._className != null ? character._className.text : Humanize(character.gameObject.name);
                 bool unlocked = Safe(() => character._isUnlocked);
                 detail = "character " + name + " unlocked=" + unlocked;
-                return Clean(name + (unlocked ? "" : ", locked"));
+                return Clean(name + (unlocked ? "" : ", " + Loc.T("state.locked", "locked")));
             }
 
             SwapOutObjectButton swap = obj.TryCast<SwapOutObjectButton>();
             if (swap != null)
             {
                 string price = FirstText(swap, "COST");
-                string what = swap.gameObject.name.Contains("Forget") ? "Forget a card" : Humanize(swap.gameObject.name);
+                string what = swap.gameObject.name.Contains("Forget") ? Loc.T("shop.forget", "Forget a card") : Humanize(swap.gameObject.name);
                 detail = "swap " + swap.gameObject.name + " " + price;
-                return Clean(what + (price.Length > 0 ? ", " + price.Replace(":", "") + " food" : ""));
+                return Clean(what + (price.Length > 0 ? ", " + Loc.T("shop.price_food", "{0} food", price.Replace(":", "")) : ""));
             }
 
             Bowl bowl = obj.TryCast<Bowl>();
@@ -509,7 +510,7 @@ namespace ShroomAccess
             {
                 string price = FirstText(bowl, "COST");
                 detail = "bowl " + price;
-                return Clean("The bowl. Enter pays with this food" + (price.Length > 0 ? ". " + price.Replace(":", "") + " food still to pay" : ""));
+                return Clean(Loc.T("shop.bowl", "The bowl. Enter pays with this food") + (price.Length > 0 ? ". " + Loc.T("shop.bowl_due", "{0} food still to pay", price.Replace(":", "")) : ""));
             }
 
             SpellReceiverRoom plot = obj.TryCast<SpellReceiverRoom>();
@@ -523,21 +524,21 @@ namespace ShroomAccess
                 else if (Safe(() => plot.IsHoldingAStructure))
                 {
                     BaseRoomEncounter built = plot.GetComponentInChildren<BaseRoomEncounter>();
-                    what = built != null ? Humanize(built.gameObject.name) : "Something built";
+                    what = built != null ? Humanize(built.gameObject.name) : Loc.T("plot.built", "Something built");
                 }
-                else what = "Empty plot";
+                else what = Loc.T("plot.empty", "Empty plot");
                 var badges = new List<string>();
                 foreach (TMP_Text t in plot.GetComponentsInChildren<TMP_Text>(false))
                     if (t != null && !string.IsNullOrWhiteSpace(t.text)) badges.Add(t.text.Trim());
                 detail = "plot " + plot.gameObject.name + " what=" + what + " badges=" + string.Join("/", badges) + " location=" + plot.Location;
-                return Clean(what + (where.Length > 0 ? ", " + where : "") + (on == null && badges.Count > 0 ? ", marked " + string.Join(" ", badges) : ""));
+                return Clean(what + (where.Length > 0 ? ", " + where : "") + (on == null && badges.Count > 0 ? ", " + Loc.T("plot.marked", "marked {0}", string.Join(" ", badges)) : ""));
             }
 
             Chest chest = obj.TryCast<Chest>();
             if (chest != null)
             {
                 string path = PathOf(chest.transform);
-                string kind = path.Contains("Foresight") ? "Foresight chest" : path.Contains("Class Cards") ? "Class card chest" : "Chest";
+                string kind = path.Contains("Foresight") ? Loc.T("chest.foresight", "Foresight chest") : path.Contains("Class Cards") ? Loc.T("chest.class", "Class card chest") : Loc.T("chest.plain", "Chest");
                 string accepts = Accepts(Safe(() => chest.GetPromptsAndInteractions().Item2));
                 detail = "chest " + path + " accepts=" + accepts + " interactive=" + Safe(() => chest.IsInteractive);
                 return Clean(kind + (accepts.Length > 0 ? ". " + accepts : ""));
@@ -555,7 +556,7 @@ namespace ShroomAccess
                 }
                 detail = "modify " + string.Join(" / ", parts);
                 // What it does was said when the screen opened; here only what Enter will do.
-                return "Enter applies it to the card you chose; Backspace goes back";
+                return Loc.T("modify.apply", "Enter applies it to the card you chose; Backspace goes back");
             }
 
             V_Enemy enemy = obj.TryCast<V_Enemy>();
@@ -566,7 +567,7 @@ namespace ShroomAccess
                 if (m == null) return Humanize(enemy.gameObject.name);
                 string line = EnemyName(enemy, m) + ". " + EnemyHealth(m);
                 string intent = string.Join(", ", EnemyIntents(m, brief: true));
-                if (intent.Length > 0) line += ". Will " + intent;
+                if (intent.Length > 0) line += ". " + Loc.T("enemy.will", "Will {0}", intent);
                 string statuses = string.Join(", ", EnemyStatuses(m));
                 if (statuses.Length > 0) line += ". " + statuses;
                 return Clean(line);
@@ -622,7 +623,7 @@ namespace ShroomAccess
                 else label = own.Length > 0 ? own : ControlLabel(comp);
                 string spoken = Clean(label + (role.Length > 0 ? ", " + role : "") + (value.Length > 0 ? ", " + value : ""));
                 if (comp.gameObject.name == "AllowControllerButton")
-                    spoken += ". Leave this on: the screen reader mod steers the game through its controller support";
+                    spoken += ". " + Loc.T("settings.allow_controller", "Leave this on: the screen reader mod steers the game through its controller support");
                 string heading = HeadingAbove(comp);
                 if (heading != _lastHeading)
                 {
@@ -657,7 +658,7 @@ namespace ShroomAccess
         internal static string EnemyHealth(M_Enemy m)
         {
             EnemyHealthData h = m.HealthData;
-            return "Health " + h.CurrentHealth + " of " + h.MaxHealth + (h.Armour > 0 ? ", armour " + h.Armour : "");
+            return Loc.T("health.of", "Health {0} of {1}", h.CurrentHealth, h.MaxHealth) + (h.Armour > 0 ? ", " + Loc.T("health.armour", "armour {0}", h.Armour) : "");
         }
 
         // What the enemy will do on its turn. brief: "Deal Damage 3"; otherwise the game's own sentence.
@@ -675,9 +676,9 @@ namespace ShroomAccess
                     string label = Humanize(pair.Intent.name).Replace("Enemy Intent", "").Replace("  ", " ").Trim();
                     if (label.StartsWith("Enemy ")) label = label.Substring(6);
                     // The game shows these two as a dagger and a shield with a number.
-                    if (label == "Deal Damage") label = "attack for";
-                    else if (label == "Block Damage") label = "block";
-                    else if (label.Length > 0 && label != "Nothing") label = "use " + label;
+                    if (label == "Deal Damage") label = Loc.T("intent.attack", "attack for");
+                    else if (label == "Block Damage") label = Loc.T("intent.block", "block");
+                    else if (label.Length > 0 && label != "Nothing") label = Loc.T("intent.use", "use {0}", label);
                     if (label.Length == 0 || label == "Nothing") continue;
                     string text = null;
                     if (!brief) text = Safe(() => pair.Intent.GetIntentToolTipText("ShroomAccess", pair, m.StatusEffects));
@@ -699,9 +700,9 @@ namespace ShroomAccess
             try
             {
                 int total = m.GetTotalThreatLevel(out int warmth, out int threat);
-                if (threat > 0) parts.Add("Adds threat " + threat);
-                if (warmth > 0) parts.Add("Gives warmth " + warmth);
-                if (threat == 0 && warmth == 0 && total != 0) parts.Add("Threat " + total);
+                if (threat > 0) parts.Add(Loc.T("hazard.adds_threat", "Adds threat {0}", threat));
+                if (warmth > 0) parts.Add(Loc.T("hazard.gives_warmth", "Gives warmth {0}", warmth));
+                if (threat == 0 && warmth == 0 && total != 0) parts.Add(Loc.T("hazard.threat", "Threat {0}", total));
             }
             catch { }
             try
@@ -760,7 +761,9 @@ namespace ShroomAccess
                 }
             }
             catch (Exception ex) { Log("[enemy] incoming: " + ex.Message); }
-            return hits == 0 ? "No attacks coming" : "Incoming: " + total + " damage from " + hits + (hits == 1 ? " attack" : " attacks");
+            return hits == 0 ? Loc.T("status.no_attacks", "No attacks coming")
+                : hits == 1 ? Loc.T("status.incoming_one", "Incoming: {0} damage from {1} attack", total, hits)
+                : Loc.T("status.incoming", "Incoming: {0} damage from {1} attacks", total, hits);
         }
 
         // The game words what an enemy will do as "DEALS 3 DAMAGE", "SHIELDS SELF". After "Will"
@@ -811,12 +814,12 @@ namespace ShroomAccess
                 }
             }
             string name = Humanize(comp.gameObject.name);
-            if (name.StartsWith("Hamburger")) return "Menu";
+            if (name.StartsWith("Hamburger")) return Loc.T("control.menu", "Menu");
             string deckButton = DeckView.ButtonName(comp.gameObject.name);
             if (deckButton.Length > 0 && DeckDisplay.DeckDisplayIsActive) return deckButton;
-            if (name == "Pack Icon") return "Starting cards. Enter opens the deck";
+            if (name == "Pack Icon") return Loc.T("control.pack_icon", "Starting cards. Enter opens the deck");
             // The bare arrow in the corner of the character screen.
-            if (name == "Button" && Walk.Scene.Contains("CharacterSelection")) return "Back";
+            if (name == "Button" && Walk.Scene.Contains("CharacterSelection")) return Loc.T("control.back", "Back");
             foreach (string suffix in new[] { " Button", " Slider", " Toggle", " Dropdown" })
                 if (name.EndsWith(suffix)) name = name.Substring(0, name.Length - suffix.Length);
             return name;
@@ -824,12 +827,12 @@ namespace ShroomAccess
 
         private static string ControlRole(Component comp)
         {
-            if (comp.TryCast<UnityEngine.UI.Slider>() != null) return "slider";
-            if (comp.TryCast<UnityEngine.UI.Toggle>() != null) return "checkbox";
-            if (comp.TryCast<TMP_Dropdown>() != null) return "dropdown";
-            if (comp.gameObject.name.EndsWith("TabButton")) return "tab";
+            if (comp.TryCast<UnityEngine.UI.Slider>() != null) return Loc.T("role.slider", "slider");
+            if (comp.TryCast<UnityEngine.UI.Toggle>() != null) return Loc.T("role.checkbox", "checkbox");
+            if (comp.TryCast<TMP_Dropdown>() != null) return Loc.T("role.dropdown", "dropdown");
+            if (comp.gameObject.name.EndsWith("TabButton")) return Loc.T("role.tab", "tab");
             // The Controls page rebinds controller buttons; the mod's keys are fixed.
-            if (comp.transform.parent != null && comp.transform.parent.GetComponent<Il2CppControllerNav.FocusRebindSection>() != null) return "controller button, Enter to rebind";
+            if (comp.transform.parent != null && comp.transform.parent.GetComponent<Il2CppControllerNav.FocusRebindSection>() != null) return Loc.T("role.rebind", "controller button, Enter to rebind");
             return "";
         }
 
@@ -916,9 +919,9 @@ namespace ShroomAccess
             {
                 UnityEngine.UI.Slider slider = comp.TryCast<UnityEngine.UI.Slider>();
                 if (slider != null)
-                    return slider.wholeNumbers ? ((int)slider.value).ToString() : (int)Math.Round(slider.normalizedValue * 100f) + " percent";
+                    return slider.wholeNumbers ? ((int)slider.value).ToString() : Loc.T("value.percent", "{0} percent", (int)Math.Round(slider.normalizedValue * 100f));
                 UnityEngine.UI.Toggle toggle = comp.TryCast<UnityEngine.UI.Toggle>();
-                if (toggle != null) return toggle.isOn ? "checked" : "not checked";
+                if (toggle != null) return toggle.isOn ? Loc.T("value.checked", "checked") : Loc.T("value.not_checked", "not checked");
                 TMP_Dropdown dropdown = comp.TryCast<TMP_Dropdown>();
                 if (dropdown != null && dropdown.captionText != null) return dropdown.captionText.text;
             }
@@ -976,7 +979,7 @@ namespace ShroomAccess
                 if (string.IsNullOrWhiteSpace(label)) label = Humanize(intent.name);
                 if (!names.Contains(label)) names.Add(label);
             }
-            if (mysterious) names.Add(names.Count > 0 ? "Also takes something unknown." : "Takes something unknown.");
+            if (mysterious) names.Add(names.Count > 0 ? Loc.T("accepts.also_unknown", "Also takes something unknown.") : Loc.T("accepts.unknown", "Takes something unknown."));
             return string.Join(" ", names);
         }
 
@@ -1179,7 +1182,7 @@ namespace ShroomAccess
         internal static void Stopped()
         {
             if (_inFight || _summaryDue > 0f) return;
-            _summaryLead = "You have stopped.";
+            _summaryLead = Loc.T("summary.stopped", "You have stopped.");
             _summaryTail = "";
             _summaryDue = Time.realtimeSinceStartup + 0.6f;
         }
@@ -1188,15 +1191,15 @@ namespace ShroomAccess
         internal static string TakeSeen()
         {
             if (_seen.Count == 0 || _inFight) return "";
-            string text = " Seen nearby: " + Group(_seen, ". ") + ".";
+            string text = " " + Loc.T("summary.seen", "Seen nearby: {0}.", Group(_seen, ". "));
             _seen.Clear();
             return text;
         }
 
         internal static void CampReached()
         {
-            if (_summaryDue > 0f && _summaryLead.StartsWith("Combat over")) _summaryLead += " You have stopped at a camp.";
-            else _summaryLead = "You have stopped at a camp.";
+            if (_summaryDue > 0f && _summaryLead.StartsWith("Combat over")) _summaryLead += " " + Loc.T("summary.camp", "You have stopped at a camp.");
+            else _summaryLead = Loc.T("summary.camp", "You have stopped at a camp.");
             _summaryTail = "";
             _summaryDue = Time.realtimeSinceStartup + 0.5f;
             _campAt = Time.realtimeSinceStartup;
@@ -1220,7 +1223,7 @@ namespace ShroomAccess
         {
             _inFight = false;
             _combatLinePending = false;
-            Announce("Combat over.", interrupt: false);
+            Announce(Loc.T("combat.over", "Combat over."), interrupt: false);
             // What was seen on the way in is said once every screen the fight leads to (the reward,
             // the map) has been dealt with, so that it is the last thing heard before walking on.
             _afterFight = true;
@@ -1284,16 +1287,16 @@ namespace ShroomAccess
                 // Every name with its count ("2 Terrys, 1 Touchy"); the walking voice runs commas
                 // together, so it gets full stops between them.
                 string sep = InputBridge.MoveHeld && Speaker.HasDirect ? ". " : ", ";
-                Announce("Combat started."
-                    + (enemies.Count > 0 ? " Enemies: " + Group(enemies, sep, countOne: true) + "." : "")
-                    + (others.Count > 0 ? " Also here: " + Group(others, sep) + "." : ""), interrupt: false);
+                Announce(Loc.T("combat.started", "Combat started.")
+                    + (enemies.Count > 0 ? " " + Loc.T("combat.enemies", "Enemies: {0}.", Group(enemies, sep, countOne: true)) : "")
+                    + (others.Count > 0 ? " " + Loc.T("combat.also_here", "Also here: {0}.", Group(others, sep)) : ""), interrupt: false);
             }
 
             if (_summaryDue > 0f && now >= _summaryDue && !_inFight)
             {
                 _summaryDue = 0f;
-                if (_seen.Count == 0 && _summaryLead == "You have stopped.") return;
-                string line = _summaryLead + (_seen.Count > 0 ? " Seen nearby: " + Group(_seen, ". ") + "." : "") + " " + _summaryTail;
+                if (_seen.Count == 0 && _summaryLead == Loc.T("summary.stopped", "You have stopped.")) return;
+                string line = _summaryLead + (_seen.Count > 0 ? " " + Loc.T("summary.seen", "Seen nearby: {0}.", Group(_seen, ". ")) : "") + " " + _summaryTail;
                 _seen.Clear();
                 Announce(line.Trim(), interrupt: false);
             }
@@ -1304,7 +1307,7 @@ namespace ShroomAccess
                 else if (now - _clearSince > 1.5f && now - _combatEndAt > 2.5f)
                 {
                     _afterFight = false;
-                    if (_seen.Count > 0) Announce("Seen nearby: " + Group(_seen, ". ") + ".", interrupt: false);
+                    if (_seen.Count > 0) Announce(Loc.T("summary.seen", "Seen nearby: {0}.", Group(_seen, ". ")), interrupt: false);
                     _seen.Clear();
                 }
             }
@@ -1333,7 +1336,7 @@ namespace ShroomAccess
 
             var lines = new List<string>(_batch);
             _batch.Clear();
-            if (lines.Contains("Your turn.")) lines.Remove("New turn.");
+            if (lines.Contains(Loc.T("turn.yours", "Your turn."))) lines.Remove(Loc.T("turn.new", "New turn."));
 
             // Several "Nearby:" lines become one list.
             var nearby = new List<string>();
@@ -1357,7 +1360,7 @@ namespace ShroomAccess
                 var parts = new List<string>();
                 foreach (string name in names)
                     parts.Add(counts[name] == 1 ? name : counts[name] + " " + Plural(name));
-                lines.Add("Nearby: " + string.Join(", ", parts) + ".");
+                lines.Add(Loc.T("nearby.list", "Nearby: {0}.", string.Join(", ", parts)));
             }
 
             var ordered = new List<string>();
@@ -1409,7 +1412,7 @@ namespace ShroomAccess
         {
             var list = new List<string>(_history);
             list.Reverse();
-            if (list.Count == 0) list.Add("No messages yet");
+            if (list.Count == 0) list.Add(Loc.T("history.empty", "No messages yet"));
             return list;
         }
 
@@ -1476,7 +1479,7 @@ namespace ShroomAccess
             if (_pendingAdded.Count > 0)
             {
                 // A whole hand arriving is a draw; the player reads the cards themselves.
-                Announce(_pendingAdded.Count > 1 ? "Drew " + _pendingAdded.Count + " cards." : "Added to hand: " + _pendingAdded[0] + ".", interrupt: false, holdWhileWalking: true);
+                Announce(_pendingAdded.Count > 1 ? Loc.T("hand.drew", "Drew {0} cards.", _pendingAdded.Count) : Loc.T("hand.added", "Added to hand: {0}.", _pendingAdded[0]), interrupt: false, holdWhileWalking: true);
                 _protectUntil = Time.realtimeSinceStartup + 1.5f;
             }
             _pendingAdded.Clear();
@@ -1497,10 +1500,10 @@ namespace ShroomAccess
                 {
                     IM_CardInstance model = card.IModel;
                     ICardData data = model != null ? model.IData : null;
-                    lines.Add(Clean(model != null ? model.CardName : "Card"));
+                    lines.Add(Clean(model != null ? model.CardName : Loc.T("card.unnamed", "Card")));
                     GameplayCardData gameplay = data != null ? data.TryCast<GameplayCardData>() : null;
-                    if (gameplay != null) lines.Add("Cost " + gameplay.EnergyUse + " energy");
-                    if (data != null) lines.Add(Humanize(data.ClassType.ToString()) + ", " + Humanize(data.DeckType.ToString()).ToLowerInvariant() + " deck");
+                    if (gameplay != null) lines.Add(Loc.T("card.cost_energy", "Cost {0} energy", gameplay.EnergyUse));
+                    if (data != null) lines.Add(Loc.T("card.class_deck", "{0}, {1} deck", Humanize(data.ClassType.ToString()), Humanize(data.DeckType.ToString()).ToLowerInvariant()));
                     string uses = CardUses(gameplay);
                     if (uses.Length > 0) lines.Add(uses);
                     string desc = data != null ? data.SingleDescription : null;
@@ -1517,8 +1520,8 @@ namespace ShroomAccess
                     M_Enemy m = enemy.Model;
                     lines.Add(EnemyName(enemy, m));
                     lines.Add(EnemyHealth(m));
-                    foreach (string intent in EnemyIntents(m, brief: false)) lines.Add("Will " + intent);
-                    if (lines.Count == 2) lines.Add("No intent showing");
+                    foreach (string intent in EnemyIntents(m, brief: false)) lines.Add(Loc.T("enemy.will", "Will {0}", intent));
+                    if (lines.Count == 2) lines.Add(Loc.T("enemy.no_intent", "No intent showing"));
                     foreach (string status in EnemyStatuses(m)) lines.Add(status + StatusTip(status));
                     AddLooks(lines, "enemy", EnemyName(enemy, m));
                     return lines;
@@ -1544,12 +1547,12 @@ namespace ShroomAccess
                 }
                 // Appearance lines are for things in the world, not for buttons and sliders.
                 if (lines.Count > 0 && item.TryCast<IControllerFocusTarget>() != null && item.TryCast<UnityEngine.UI.Selectable>() == null) AddLooks(lines, "thing", lines[0].Split(',')[0]);
-                if (lines.Count == 1) lines.Add("The game shows nothing more about this");
+                if (lines.Count == 1) lines.Add(Loc.T("detail.nothing_more", "The game shows nothing more about this"));
                 // A thing lying in the world shows a sighted player nothing but itself until it is
                 // opened, so there is nothing more to read here; say how to find out.
-                if (item.TryCast<EncounterStartWorldObject>() != null) lines.Add("Not opened yet. Enter opens it");
+                if (item.TryCast<EncounterStartWorldObject>() != null) lines.Add(Loc.T("detail.not_opened", "Not opened yet. Enter opens it"));
             }
-            catch (Exception ex) { lines.Add("Could not read this: " + ex.Message); }
+            catch (Exception ex) { lines.Add(Loc.T("detail.error", "Could not read this: {0}", ex.Message)); }
             return lines;
         }
 
@@ -1581,7 +1584,7 @@ namespace ShroomAccess
         private static void AddLooks(List<string> lines, string kind, string name)
         {
             string looks = AltText.Lookup(kind, name);
-            if (!string.IsNullOrWhiteSpace(looks)) lines.Add("Looks: " + looks);
+            if (!string.IsNullOrWhiteSpace(looks)) lines.Add(Loc.T("detail.looks", "Looks: {0}", looks));
         }
 
         private static IEnumerable<string> Sentences(string text)

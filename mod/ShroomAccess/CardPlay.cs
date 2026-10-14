@@ -32,7 +32,7 @@ namespace ShroomAccess
                     _castAt = 0f;
                     // A play is heard in the game's own sound; only where a camp card went is said.
                     if (focus.Mode != FocusMode.Target && _placedAt.Length > 0)
-                        FocusProbe.Announce(_name + " placed, " + _placedAt + ".", interrupt: false);
+                        FocusProbe.Announce(Loc.T("card.placed", "{0} placed, {1}.", _name, _placedAt), interrupt: false);
                 }
                 if (_checkAt > 0f && Time.realtimeSinceStartup >= _checkAt)
                 {
@@ -53,7 +53,9 @@ namespace ShroomAccess
                     try
                     {
                         string target = focus.CurrentFocus != null ? FocusProbe.Describe(focus.CurrentFocus, out _) : "";
-                        if (target.StartsWith("Empty plot, ")) _placedAt = target.Substring(12).Split(new[] { ", marked" }, StringSplitOptions.None)[0].TrimEnd('.', ' ');
+                        string empty = Loc.T("plot.empty", "Empty plot") + ", ";
+                        string marked = ", " + Loc.T("plot.marked", "marked {0}", "").Trim();
+                        if (target.StartsWith(empty)) _placedAt = target.Substring(empty.Length).Split(new[] { marked }, StringSplitOptions.None)[0].TrimEnd('.', ' ');
                     }
                     catch { }
                     FocusProbe.NotePlay(_name);
@@ -71,12 +73,12 @@ namespace ShroomAccess
                 try { unplayable = data != null && data.IsUnplayable; } catch { }
                 if (unplayable)
                 {
-                    FocusProbe.Speak(model.CardName + " is never played: it works by itself while it is in your hand.");
+                    FocusProbe.Speak(Loc.T("card.unplayable", "{0} is never played: it works by itself while it is in your hand.", model.CardName));
                     return;
                 }
                 if (data != null && data.EnergyUse > p.Energy)
                 {
-                    FocusProbe.Speak("Not enough energy for " + model.CardName + ": it costs " + data.EnergyUse + ", you have " + p.Energy + ". Space ends the turn.");
+                    FocusProbe.Speak(Loc.T("card.no_energy", "Not enough energy for {0}: it costs {1}, you have {2}. Space ends the turn.", model.CardName, data.EnergyUse, p.Energy));
                     return;
                 }
                 // A card that costs health ("Take 5 damage") when that is all the health left: a
@@ -87,7 +89,7 @@ namespace ShroomAccess
                     int cost = hurt.Success ? int.Parse(hurt.Groups[1].Value) : 0;
                     int hp = p.HealthData.CurrentHealth;
                     if (cost > 0 && cost >= hp)
-                        FocusProbe.Announce("Careful: " + model.CardName + " costs " + cost + " health and you have " + hp + ".", interrupt: false);
+                        FocusProbe.Announce(Loc.T("card.health_cost", "Careful: {0} costs {1} health and you have {2}.", model.CardName, cost, hp), interrupt: false);
                 }
                 catch { }
                 _card = model.Pointer;
@@ -141,7 +143,7 @@ namespace ShroomAccess
             try { pending = focus.HandResolver != null && focus.HandResolver.PendingCast; } catch { }
             if (pending || focus.PadOwnsCast)
             {
-                FocusProbe.Speak(_name + " is ready. Enter again to play it, Backspace to put it back.");
+                FocusProbe.Speak(Loc.T("card.ready", "{0} is ready. Enter again to play it, Backspace to put it back.", _name));
                 return;
             }
 
@@ -167,10 +169,10 @@ namespace ShroomAccess
             try { label = FocusProbe.CardLabel(focus.CurrentFocus); } catch { }
             bool spent = label.IndexOf("dead", StringComparison.OrdinalIgnoreCase) >= 0 || label.StartsWith("0 ");
             string why = !string.IsNullOrWhiteSpace(failure) && failure != _failureBefore ? " " + FocusProbe.Clean(failure) + "."
-                : notTurn ? " It is not your turn yet."
-                : spent ? " It shows: " + label + "."
-                : " Nothing here it can be used on.";
-            FocusProbe.Speak(_name + " was not played." + why);
+                : notTurn ? " " + Loc.T("card.not_your_turn", "It is not your turn yet.")
+                : spent ? " " + Loc.T("card.shows", "It shows: {0}.", label)
+                : " " + Loc.T("card.nothing_to_use_on", "Nothing here it can be used on.");
+            FocusProbe.Speak(Loc.T("card.not_played", "{0} was not played.", _name) + why);
         }
     }
 }

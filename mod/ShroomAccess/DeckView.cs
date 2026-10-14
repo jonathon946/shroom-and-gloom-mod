@@ -41,7 +41,7 @@ namespace ShroomAccess
                     {
                         Log("[deck] opened the draw pile");
                         // The pile shown is that of the deck in play: the combat deck in a fight.
-                        _kind = Hud.InFight(focus) ? "Combat deck" : "Explore deck";
+                        _kind = Hud.InFight(focus) ? Loc.T("deck.combat", "Combat deck") : Loc.T("deck.explore", "Explore deck");
                         // The summary comes first; the button the focus lands on is found with the arrows.
                         FocusProbe.Silent(2f);
                     }
@@ -53,13 +53,14 @@ namespace ShroomAccess
                 if (InputBridge.Key(InputActionId.Confirm) && focus.CurrentFocus != null)
                 {
                     Component b = focus.CurrentFocus.TryCast<Component>();
+                    string objectName = b != null ? b.gameObject.name.Trim() : "";
                     string label = b != null ? ButtonName(b.gameObject.name) : "";
                     if (label.Length > 0)
                     {
                         FocusProbe.Silent(1.5f);
-                        if (label.Contains("combat")) _kind = "Combat deck";
-                        else if (label.Contains("explore")) _kind = "Explore deck";
-                        else if (label.Contains("foresight")) _kind = "";
+                        if (objectName.StartsWith("Combat Deck")) _kind = Loc.T("deck.combat", "Combat deck");
+                        else if (objectName.StartsWith("Explore Deck")) _kind = Loc.T("deck.explore", "Explore deck");
+                        else if (objectName.StartsWith("Foresight Deck")) _kind = "";
                     }
                 }
                 if (tab)
@@ -81,8 +82,9 @@ namespace ShroomAccess
                     string what = _kind.Length > 0 && !title.ToUpperInvariant().Contains("FULL") && !title.ToUpperInvariant().Contains("FORESIGHT")
                         ? _kind + ", " + title.ToLowerInvariant() : Sentence(title);
                     string line = names.Count == 0
-                        ? what + ": empty."
-                        : what + ", " + names.Count + (names.Count == 1 ? " card: " : " cards: ") + FocusProbe.Group(names, ", ") + ".";
+                        ? Loc.T("deck.empty", "{0}: empty.", what)
+                        : names.Count == 1 ? Loc.T("deck.summary_one", "{0}, {1} card: {2}.", what, names.Count, FocusProbe.Group(names, ", "))
+                        : Loc.T("deck.summary", "{0}, {1} cards: {2}.", what, names.Count, FocusProbe.Group(names, ", "));
                     FocusProbe.Announce(line, interrupt: false);
                     FocusProbe.Silent(1.5f);
                 }
@@ -99,7 +101,7 @@ namespace ShroomAccess
                 if (deck == null || current == null) return "";
                 var cards = Cards(deck);
                 for (int i = 0; i < cards.Count; i++)
-                    if (cards[i].Pointer == current.Pointer) return ", " + (i + 1) + " of " + cards.Count;
+                    if (cards[i].Pointer == current.Pointer) return ", " + Loc.T("pos.of", "{0} of {1}", i + 1, cards.Count);
             }
             catch { }
             return "";
@@ -108,19 +110,19 @@ namespace ShroomAccess
         internal static string ButtonName(string objectName)
         {
             string n = objectName.Trim();
-            if (n.StartsWith("Draw Pile")) return "Show the draw pile";
-            if (n.StartsWith("Full Deck")) return "Show the full deck";
-            if (n.StartsWith("Combat Deck")) return "Show the combat deck";
-            if (n.StartsWith("Explore Deck")) return "Show the explore deck";
-            if (n.StartsWith("Foresight Deck")) return "Show the foresight cards";
-            if (n.StartsWith("Close")) return "Close the deck view";
+            if (n.StartsWith("Draw Pile")) return Loc.T("deck.show_draw", "Show the draw pile");
+            if (n.StartsWith("Full Deck")) return Loc.T("deck.show_full", "Show the full deck");
+            if (n.StartsWith("Combat Deck")) return Loc.T("deck.show_combat", "Show the combat deck");
+            if (n.StartsWith("Explore Deck")) return Loc.T("deck.show_explore", "Show the explore deck");
+            if (n.StartsWith("Foresight Deck")) return Loc.T("deck.show_foresight", "Show the foresight cards");
+            if (n.StartsWith("Close")) return Loc.T("deck.close", "Close the deck view");
             return "";
         }
 
         private static string Title(DeckDisplay deck)
         {
             string t = deck._titleText != null ? FocusProbe.Clean(deck._titleText.text) : "";
-            return t.Length > 0 ? t : "Deck";
+            return t.Length > 0 ? t : Loc.T("deck.title", "Deck");
         }
 
         private static string Sentence(string title) =>

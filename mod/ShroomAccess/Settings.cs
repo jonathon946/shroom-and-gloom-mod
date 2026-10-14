@@ -48,7 +48,7 @@ namespace ShroomAccess
             _directRate.Value = next;
             MelonPreferences.Save();
             Speaker.SetDirectRate(next);
-            Speaker.SayDirect("Walking voice rate " + (int)Math.Round(next * 100) + " percent.");
+            Speaker.SayDirect(Loc.T("settings.voice_rate", "Walking voice rate {0} percent.", (int)Math.Round(next * 100)));
         }
 
         // The rate the player has chosen in their screen reader, as 0 to 1, or 0.5 when unknown.

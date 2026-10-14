@@ -41,7 +41,7 @@ namespace ShroomAccess
                 if (ui == null)
                 {
                     // Taking a soup closes the screen and puts the soup in the hand.
-                    if (_screen != IntPtr.Zero && _picked.Length > 0) FocusProbe.Announce("Made " + _picked + ". It is in your hand.", interrupt: false);
+                    if (_screen != IntPtr.Zero && _picked.Length > 0) FocusProbe.Announce(Loc.T("soup.made", "Made {0}. It is in your hand.", _picked), interrupt: false);
                     _screen = IntPtr.Zero;
                     _picked = "";
                     return;
@@ -74,16 +74,15 @@ namespace ShroomAccess
                     if (soups[0].Cost < 0) LogShape(ui);
                     _value = value;
                     _open = open;
-                    var parts = soups.Select(s => s.Name + ", " + Needs(s) + (s.Open ? ", open" : ", locked"));
-                    FocusProbe.Announce("Make a soup. Soup value " + value + ". " + string.Join(". ", parts)
-                        + ". Put food in the pot to raise the value: Enter on a food card, then Enter on the pot. Up goes to the soups; Enter on an open one takes it.", interrupt: false);
+                    var parts = soups.Select(s => s.Name + ", " + Needs(s) + ", " + (s.Open ? Loc.T("state.open", "open") : Loc.T("state.locked", "locked")));
+                    FocusProbe.Announce(Loc.T("soup.intro", "Make a soup. Soup value {0}. {1}. Put food in the pot to raise the value: Enter on a food card, then Enter on the pot. Up goes to the soups; Enter on an open one takes it.", value, string.Join(". ", parts)), interrupt: false);
                     FocusProbe.Silent(2f);
                     return;
                 }
                 if (value != _value)
                 {
                     string newly = string.Join(", ", soups.Where(s => s.Open && !_open.Split(new[] { ", " }, StringSplitOptions.None).Contains(s.Name)).Select(s => s.Name));
-                    FocusProbe.Announce("Soup value " + value + "." + (newly.Length > 0 ? " Now open: " + newly + "." : ""), interrupt: false);
+                    FocusProbe.Announce(Loc.T("soup.value", "Soup value {0}.", value) + (newly.Length > 0 ? " " + Loc.T("soup.now_open", "Now open: {0}.", newly) : ""), interrupt: false);
                     FocusProbe.Silent(2f);
                     _value = value;
                     _open = open;
@@ -100,7 +99,7 @@ namespace ShroomAccess
                 AdditiveUnlockCampEncounterUI ui = Screen(focus);
                 if (ui == null || current == null) return "";
                 foreach (Entry s in Soups(ui))
-                    if (s.View == current.Pointer) return ", " + Needs(s) + (s.Open ? ", open" : ", locked");
+                    if (s.View == current.Pointer) return ", " + Needs(s) + ", " + (s.Open ? Loc.T("state.open", "open") : Loc.T("state.locked", "locked"));
             }
             catch { }
             return "";
@@ -129,7 +128,7 @@ namespace ShroomAccess
                 if (text != null && !string.IsNullOrWhiteSpace(text.text)) Log("[soup] on card '" + text.text + "' (" + text.gameObject.name + ")");
         }
 
-        private static string Needs(Entry s) => s.Cost >= 0 ? "needs " + s.Cost : "cost unknown";
+        private static string Needs(Entry s) => s.Cost >= 0 ? Loc.T("soup.needs", "needs {0}", s.Cost) : Loc.T("soup.cost_unknown", "cost unknown");
 
         private struct Entry
         {

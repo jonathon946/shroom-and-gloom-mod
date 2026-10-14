@@ -30,4 +30,8 @@ $zip = "$out.zip"
 if (Test-Path $zip) { Remove-Item $zip -Confirm:$false }
 Compress-Archive -Path (Join-Path $out '*') -DestinationPath $zip
 Get-ChildItem $out -Recurse -File | ForEach-Object { $_.FullName.Substring($out.Length + 1) }
+# The in-game installer refuses a release without this file beside the zip: attach both.
+$hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+Set-Content -Path "$zip.sha256" -Value "$hash  $(Split-Path $zip -Leaf)" -Encoding ascii
 Write-Host "PACKAGED $zip"
+Write-Host "SHA256 $hash (written to $(Split-Path $zip -Leaf).sha256; attach it to the release with the zip)"

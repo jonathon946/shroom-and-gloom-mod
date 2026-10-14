@@ -49,7 +49,7 @@ namespace ShroomAccess
             ScreenCapture.CaptureScreenshot(stem + ".png");
             File.WriteAllText(stem + ".txt", FocusProbe.StateDump());
             Log("[mark] " + _marks + " saved to " + stem);
-            FocusProbe.Announce("Mark " + _marks + ".");
+            FocusProbe.Announce(Loc.T("review.mark", "Mark {0}.", _marks));
         }
     }
 }

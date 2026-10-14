@@ -18,7 +18,7 @@ namespace ShroomAccess
             try
             {
                 MapUIController map = UnityEngine.Object.FindObjectOfType<MapUIController>();
-                if (map == null || map.Paths == null) { lines.Add("No map to read"); return lines; }
+                if (map == null || map.Paths == null) { lines.Add(Loc.T("map.none", "No map to read")); return lines; }
 
                 var segments = new List<MapSegment>();
                 for (int p = 0; p < map.Paths.Count; p++)
@@ -36,7 +36,7 @@ namespace ShroomAccess
                         }
                     }
                 }
-                if (segments.Count == 0) { lines.Add("The map is blank"); return lines; }
+                if (segments.Count == 0) { lines.Add(Loc.T("map.blank", "The map is blank")); return lines; }
 
                 // Tunnels at the same depth are a fork: the path splits and one of them is walked.
                 var depths = new SortedDictionary<int, List<MapSegment>>();
@@ -68,37 +68,37 @@ namespace ShroomAccess
                         raw.Append(" [" + pair.Key + " " + Code(s) + (boss ? " boss" : "") + (hidden ? " hidden" : "") + (isHere ? " here" : "") + "]");
 
                         var parts = new List<string>();
-                        if (isHere) parts.Add("you are here");
-                        if (boss) parts.Add("the boss");
-                        if (hidden) parts.Add("not yet explored");
-                        if (Shown(s.FinishedCombatIcon) || Shown(s.FinishedCombatIconUnrevealed)) parts.Add("fight won");
-                        else if (Shown(s.CombatIcon) || Shown(s.CombatIconUnrevealed)) parts.Add("a fight");
+                        if (isHere) parts.Add(Loc.T("map.you_are_here", "you are here"));
+                        if (boss) parts.Add(Loc.T("map.boss", "the boss"));
+                        if (hidden) parts.Add(Loc.T("map.unexplored", "not yet explored"));
+                        if (Shown(s.FinishedCombatIcon) || Shown(s.FinishedCombatIconUnrevealed)) parts.Add(Loc.T("map.fight_won", "fight won"));
+                        else if (Shown(s.CombatIcon) || Shown(s.CombatIconUnrevealed)) parts.Add(Loc.T("map.fight", "a fight"));
                         if (!hidden)
                         {
                             string rewards = Rewards(s);
                             if (rewards.Length > 0) parts.Add(rewards);
                         }
-                        if (parts.Count == 0) parts.Add("nothing marked");
-                        string side = at.Count == 1 ? "" : at.Count == 2 ? (i == 0 ? "left: " : "right: ") : i == 0 ? "left: " : i == at.Count - 1 ? "right: " : "middle: ";
+                        if (parts.Count == 0) parts.Add(Loc.T("map.nothing_marked", "nothing marked"));
+                        string side = at.Count == 1 ? "" : at.Count == 2 ? (i == 0 ? Loc.T("map.left", "left") + ": " : Loc.T("map.right", "right") + ": ") : i == 0 ? Loc.T("map.left", "left") + ": " : i == at.Count - 1 ? Loc.T("map.right", "right") + ": " : Loc.T("map.middle", "middle") + ": ";
                         options.Add(side + string.Join(", ", parts));
                     }
                     described.Add(new KeyValuePair<int, string>(pair.Key,
-                        "Tunnel " + pair.Key + (at.Count > 1 ? ", a fork of " + at.Count + ". " + string.Join(". ", options) : ": " + options[0])));
+                        at.Count > 1 ? Loc.T("map.fork", "Tunnel {0}, a fork of {1}. {2}", pair.Key, at.Count, string.Join(". ", options)) : Loc.T("map.tunnel", "Tunnel {0}: {1}", pair.Key, options[0])));
                 }
                 string rawText = raw.ToString();
                 if (rawText != _lastRaw) { _lastRaw = rawText; Log("[map]" + rawText); }
 
-                lines.Add("Map: " + depths.Count + " tunnels deep, " + segments.Count + " areas, " + known + " explored"
-                    + (hereDepth != int.MinValue ? ". You are in tunnel " + hereDepth : ""));
+                lines.Add(Loc.T("map.summary", "Map: {0} tunnels deep, {1} areas, {2} explored", depths.Count, segments.Count, known)
+                    + (hereDepth != int.MinValue ? ". " + Loc.T("map.here", "You are in tunnel {0}", hereDepth) : ""));
                 // From where the player is onward; what lies behind comes last and says so.
                 foreach (var pair in described) if (hereDepth == int.MinValue || pair.Key >= hereDepth) lines.Add(pair.Value);
                 for (int i = described.Count - 1; i >= 0; i--)
-                    if (hereDepth != int.MinValue && described[i].Key < hereDepth) lines.Add("Behind you. " + described[i].Value);
+                    if (hereDepth != int.MinValue && described[i].Key < hereDepth) lines.Add(Loc.T("map.behind", "Behind you.") + " " + described[i].Value);
             }
             catch (Exception ex)
             {
                 Log("[map] " + ex.GetType().Name + ": " + ex.Message);
-                lines.Add("The map could not be read");
+                lines.Add(Loc.T("map.error", "The map could not be read"));
             }
             return lines;
         }
@@ -132,7 +132,7 @@ namespace ShroomAccess
                 }
             }
             catch { }
-            return names.Count > 0 ? "holds " + string.Join(" and ", names) : "";
+            return names.Count > 0 ? Loc.T("map.holds", "holds {0}", string.Join(" " + Loc.T("map.and", "and") + " ", names)) : "";
         }
     }
 }

@@ -125,12 +125,12 @@ namespace ShroomAccess
                         FocusProbe.SuppressFocusUntil = Mathf.Max(FocusProbe.SuppressFocusUntil, _screenDue + 0.05f);
                     }
                     if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "BowlShopEncounterUI" && Time.realtimeSinceStartup - _shopSaidAt > 30f && (_shopSaidAt = Time.realtimeSinceStartup) > 0f)
-                        FocusProbe.Announce("A shop. Cards are paid for with food. Enter on a card to buy it. The Player buffer tells how much food you have.", interrupt: false);
+                        FocusProbe.Announce(Loc.T("shop.intro", "A shop. Cards are paid for with food. Enter on a card to buy it. The Player buffer tells how much food you have."), interrupt: false);
                     if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "S_MapReminder")
                     {
                         System.Collections.Generic.List<string> map = MapReader.Lines();
                         Navigator.FocusChanged();
-                        FocusProbe.Announce(map[0] + ". Control Up reads each area. M puts the map away.", interrupt: false);
+                        FocusProbe.Announce(map[0] + ". " + Loc.T("map.opened", "Control Up reads each area. M puts the map away."), interrupt: false);
                     }
                     string kind = scope != null ? scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name : "";
                     if (kind.Contains("ModifyCard") && ptr != _introSaidFor)
@@ -187,7 +187,7 @@ namespace ShroomAccess
                             // TO GAIN:") is the instruction, given in plain words instead.
                             var effect = words.Where(w => !w.TrimEnd().EndsWith(":")).ToList();
                             FocusProbe.Announce((effect.Count > 0 ? string.Join(". ", effect).TrimEnd('.') + ". " : "")
-                                + "Choose one of your cards with Left and Right; Enter picks it.", interrupt: false);
+                                + Loc.T("modify.choose", "Choose one of your cards with Left and Right; Enter picks it."), interrupt: false);
                         }
                         // The cards are there to be found with the arrows; none is read now.
                         FocusProbe.Silent(2f);
@@ -218,7 +218,7 @@ namespace ShroomAccess
                         if (!_offerWaitSaid)
                         {
                             _offerWaitSaid = true;
-                            FocusProbe.Announce("Wait: the cards are still being dealt. Stay in the game window until they are read.", interrupt: false);
+                            FocusProbe.Announce(Loc.T("offer.wait", "Wait: the cards are still being dealt. Stay in the game window until they are read."), interrupt: false);
                         }
                         _offerDue = Time.realtimeSinceStartup + 0.5f;
                         FocusProbe.SuppressFocusUntil = _offerDue;
@@ -227,13 +227,10 @@ namespace ShroomAccess
                     // One card on offer is read by its own focus line; only a spread needs introducing.
                     if (names.Count > 1)
                     {
-                        string lead = _offerKind.Contains("LootAll")
-                            ? "You are offered all of these, " + names.Count + " cards: "
-                            : "Choose one of " + names.Count + ": ";
-                        string how = _offerKind.Contains("LootAll")
-                            ? ". Left and Right read each card. Enter, or Down to Take, takes them all."
-                            : ". Left and Right to look, Enter to choose.";
-                        FocusProbe.Announce(lead + string.Join(", ", names) + how, interrupt: false);
+                        string line = _offerKind.Contains("LootAll")
+                            ? Loc.T("offer.all", "You are offered all of these, {0} cards: {1}. Left and Right read each card. Enter, or Down to Take, takes them all.", names.Count, string.Join(", ", names))
+                            : Loc.T("offer.choose", "Choose one of {0}: {1}. Left and Right to look, Enter to choose.", names.Count, string.Join(", ", names));
+                        FocusProbe.Announce(line, interrupt: false);
                     }
                     FocusProbe.Reannounce();
                 }
@@ -264,7 +261,7 @@ namespace ShroomAccess
                 // the first Enter seems to do nothing. Some (food) can be turned on other targets too.
                 bool target = focus.Mode == FocusMode.Target;
                 if (target && !_wasTarget && focus.CurrentFocus == null)
-                    FocusProbe.Announce("Aimed at you. Enter uses it on yourself; Left and Right look for another target; Backspace cancels.", interrupt: false);
+                    FocusProbe.Announce(Loc.T("target.aimed_at_you", "Aimed at you. Enter uses it on yourself; Left and Right look for another target; Backspace cancels."), interrupt: false);
                 _wasTarget = target;
             }
             catch (Exception ex) { Log("[messages] " + ex.GetType().Name + ": " + ex.Message); }
@@ -295,13 +292,13 @@ namespace ShroomAccess
                 _shopPrice = int.TryParse(digits, out int price) ? price : 0;
                 _shopPaid = paid;
                 // One line; the food hand, the bowl and Nevermind are found with the arrows.
-                FocusProbe.Announce((_shopPrice > 0 ? "Costs " + _shopPrice + " food." : "Pay with food.")
-                    + " Enter on a food card, then Enter on the bowl. Up is Nevermind.", interrupt: false);
+                FocusProbe.Announce((_shopPrice > 0 ? Loc.T("shop.costs", "Costs {0} food.", _shopPrice) : Loc.T("shop.pay", "Pay with food."))
+                    + " " + Loc.T("shop.pay_how", "Enter on a food card, then Enter on the bowl. Up is Nevermind."), interrupt: false);
                 FocusProbe.Silent(2.5f);
             }
             else if (state == "FeedMePlease" && paid > _shopPaid)
             {
-                FocusProbe.Announce("Paid " + paid + (_shopPrice > 0 ? " of " + _shopPrice : "") + ".", interrupt: false);
+                FocusProbe.Announce(_shopPrice > 0 ? Loc.T("shop.paid_of", "Paid {0} of {1}.", paid, _shopPrice) : Loc.T("shop.paid", "Paid {0}.", paid), interrupt: false);
                 _shopPaid = paid;
                 // Back in the food hand for the next one, without reading it again.
                 FocusProbe.Silent(2f);
@@ -317,7 +314,7 @@ namespace ShroomAccess
                 for (int i = 0; choices != null && i < choices.Count; i++)
                     if (choices[i] != null && choices[i].Pointer == _shopCard) { stillOffered = true; break; }
                 Log("[shop] after paying: " + _shopBuying + " still offered=" + stillOffered + " paid=" + _shopPaid + " of " + _shopPrice);
-                if (!stillOffered && _shopBuying.Length > 0) FocusProbe.Announce("Bought " + _shopBuying + ".", interrupt: false);
+                if (!stillOffered && _shopBuying.Length > 0) FocusProbe.Announce(Loc.T("shop.bought", "Bought {0}.", _shopBuying), interrupt: false);
             }
             _shopState = state;
         }
@@ -409,9 +406,9 @@ namespace ShroomAccess
         {
             if (!Walk.Scene.Contains("CharacterSelection")) return part;
             var m = System.Text.RegularExpressions.Regex.Match(part, @"^DISCOVERED:\s*(\d+)\s*/\s*(\d+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            if (m.Success) return "Starting cards found so far: " + m.Groups[1].Value + " of " + m.Groups[2].Value + ".";
-            if (part.Equals("Foresight", StringComparison.OrdinalIgnoreCase)) return "Up from Let's go is the starting foresight, and Left from it the starting cards.";
-            if (part.Equals("COMING SOON", StringComparison.OrdinalIgnoreCase)) return "A row of icons marked Coming soon: not in the game yet.";
+            if (m.Success) return Loc.T("character.discovered", "Starting cards found so far: {0} of {1}.", m.Groups[1].Value, m.Groups[2].Value);
+            if (part.Equals("Foresight", StringComparison.OrdinalIgnoreCase)) return Loc.T("character.foresight", "Up from Let's go is the starting foresight, and Left from it the starting cards.");
+            if (part.Equals("COMING SOON", StringComparison.OrdinalIgnoreCase)) return Loc.T("character.coming_soon", "A row of icons marked Coming soon: not in the game yet.");
             return part;
         }
     }

@@ -27,7 +27,7 @@ namespace ShroomAccess
         private static float _packLookAt;
         private static IntPtr _packSaidFor;
 
-        private const string PackPrompt = "A sealed pack of cards. Enter opens it.";
+        private static string PackPrompt => Loc.T("rewards.pack", "A sealed pack of cards. Enter opens it.");
 
         private static string Kind(IFocusScope scope) =>
             scope != null ? scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name : "";
@@ -52,7 +52,7 @@ namespace ShroomAccess
                 }
                 else if (kind == "DeathText")
                 {
-                    FocusProbe.Announce("Space continues.", interrupt: false);
+                    FocusProbe.Announce(Loc.T("rewards.space_continues", "Space continues."), interrupt: false);
                 }
                 else if (kind == "CardPackClaimedUI")
                 {
@@ -130,7 +130,7 @@ namespace ShroomAccess
             _statLines.Clear();
             _statLines.AddRange(lines);
             Navigator.FocusChanged();
-            FocusProbe.Announce(string.Join(". ", lines) + ". Control Up reads these again. Enter continues.", interrupt: false);
+            FocusProbe.Announce(string.Join(". ", lines) + ". " + Loc.T("rewards.stats_how", "Control Up reads these again. Enter continues."), interrupt: false);
         }
 
         private static void ReadCards(float now)
@@ -153,7 +153,7 @@ namespace ShroomAccess
             cards.Sort((a, b) => a.Key.CompareTo(b.Key));
             var names = new List<string>();
             foreach (var pair in cards) names.Add(pair.Value);
-            FocusProbe.Announce("The pack holds " + names.Count + (names.Count == 1 ? " card: " : " cards: ") + string.Join(". ", names) + ".", interrupt: false);
+            FocusProbe.Announce(names.Count == 1 ? Loc.T("rewards.pack_holds_one", "The pack holds {0} card: {1}.", names.Count, string.Join(". ", names)) : Loc.T("rewards.pack_holds", "The pack holds {0} cards: {1}.", names.Count, string.Join(". ", names)), interrupt: false);
         }
 
         private static bool UnderNamed(Transform t, string name)

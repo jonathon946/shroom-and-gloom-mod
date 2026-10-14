@@ -54,7 +54,10 @@ namespace ShroomAccess
                 LoggerInstance.Msg("Speech ready through " + Speaker.BackendName + ".");
                 Settings.Load();
                 UpdateCheck.Log = msg => LoggerInstance.Msg(msg);
-                if (Settings.CheckForUpdates) UpdateCheck.Start(Settings.UpdateRepository);
+                Installer.Log = msg => LoggerInstance.Msg(msg);
+                // Files an earlier in-game update moved aside.
+                Installer.CleanUp(MelonEnvironment.GameRootDirectory);
+                if (Settings.CheckForUpdates) UpdateCheck.Start(Settings.UpdateRepository, MelonEnvironment.GameRootDirectory);
             }
             else
                 LoggerInstance.Error("Speech is not available. The mod will stay silent.");
@@ -65,14 +68,14 @@ namespace ShroomAccess
             LoggerInstance.Msg("Scene initialised: " + buildIndex + " " + sceneName);
             Walk.Scene = sceneName ?? "";
             FocusProbe.SceneChanged(sceneName);
-            if (Walk.Scene.Contains("DeathWorld") && UnityEngine.Time.realtimeSinceStartup - Hud.DeathSaidAt > 60f) FocusProbe.Announce("You have died.", interrupt: false);
+            if (Walk.Scene.Contains("DeathWorld") && UnityEngine.Time.realtimeSinceStartup - Hud.DeathSaidAt > 60f) FocusProbe.Announce(Loc.T("hud.died", "You have died."), interrupt: false);
             if (_greeted || !Speaker.Ready) return;
             if (sceneName == null || sceneName.IndexOf("Title", StringComparison.OrdinalIgnoreCase) < 0) return;
             _greeted = true;
             FocusProbe.ArmedAt = UnityEngine.Time.realtimeSinceStartup + 3f;
             // The start-up screen is only the game's logo on black, and it is gone in seconds; the
             // title screen is described once so the player has the picture a sighted player gets.
-            FocusProbe.Announce("Shroom Access loaded. Shroom and Gloom: the title drips in slimy green and frosty blue letters over a black, star-speckled splat. Below it, three doorways stand side by side: a round steel vault door chained shut, a wooden door wrapped in thorny vines, and a padlocked cave mouth. Control Left and Right switch buffers; the last one is Help.", interrupt: false);
+            FocusProbe.Announce(Loc.T("title.greeting", "Shroom Access loaded. Shroom and Gloom: the title drips in slimy green and frosty blue letters over a black, star-speckled splat. Below it, three doorways stand side by side: a round steel vault door chained shut, a wooden door wrapped in thorny vines, and a padlocked cave mouth. Control Left and Right switch buffers; the last one is Help."), interrupt: false);
         }
 
         public override void OnUpdate()

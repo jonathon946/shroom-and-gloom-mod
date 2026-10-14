@@ -112,6 +112,13 @@ namespace ShroomAccess
                             Log("[dev] roundup " + (roundUp != null));
                             break;
                         }
+                        case "installzip":
+                        {
+                            // Test the in-game installer's file step with a zip on disk.
+                            string failure = Installer.InstallZip(System.IO.File.ReadAllBytes(arg), MelonLoader.Utils.MelonEnvironment.GameRootDirectory);
+                            Log("[dev] installzip " + (failure ?? "ok"));
+                            break;
+                        }
                         case "die":
                             Player().CMDDie();
                             Log("[dev] die");

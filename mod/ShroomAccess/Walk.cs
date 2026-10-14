@@ -44,7 +44,7 @@ namespace ShroomAccess
                     else if (tutorial != null && tutorial._isActive && focus.PlayerModel != null)
                     {
                         _noteDone = true;
-                        FocusProbe.Announce("A hand holds up a note with a picture: push forward. Hold W to walk.");
+                        FocusProbe.Announce(Loc.T("walk.tutorial_note", "A hand holds up a note with a picture: push forward. Hold W to walk."));
                     }
                 }
 
@@ -52,12 +52,12 @@ namespace ShroomAccess
                 if (pressed != 0 && blocked)
                 {
                     Il2CppBackend.M_Player p = focus.PlayerModel;
-                    string why = Hud.InFight(focus) ? " You are in a fight."
-                        : focus.Scope != null ? " Finish with this screen first."
-                        : p != null && p.IsInExploreEncounter ? " Use your cards on what is nearby, or press Space to end the turn."
-                        : " Something nearby needs dealing with first.";
+                    string why = Hud.InFight(focus) ? Loc.T("walk.in_fight", "You are in a fight.")
+                        : focus.Scope != null ? Loc.T("walk.screen_open", "Finish with this screen first.")
+                        : p != null && p.IsInExploreEncounter ? Loc.T("walk.camp", "Use your cards on what is nearby, or press Space to end the turn.")
+                        : Loc.T("walk.something_nearby", "Something nearby needs dealing with first.");
                     // In the voice a held key cannot silence: the player is very likely still holding W.
-                    string blockedText = "Can't walk right now." + why;
+                    string blockedText = Loc.T("walk.blocked", "Can't walk right now.") + " " + why;
                     Log("[say-direct] " + blockedText);
                     Cue.Play(Cue.Edge);
                     if (Application.isFocused) Speaker.SayDirect(blockedText, interrupt: true);
@@ -77,7 +77,7 @@ namespace ShroomAccess
                         {
                             _toldStuck = true;
                             Cue.Play(Cue.Edge);
-                            string text = (InputBridge.MoveY < 0 ? "Can't go back from here." : "Can't go further this way.") + FocusProbe.TakeSeen();
+                            string text = (InputBridge.MoveY < 0 ? Loc.T("walk.cant_back", "Can't go back from here.") : Loc.T("walk.cant_forward", "Can't go further this way.")) + FocusProbe.TakeSeen();
                             Log("[say-direct] " + text);
                             if (Application.isFocused) Speaker.SayDirect(text);
                         }

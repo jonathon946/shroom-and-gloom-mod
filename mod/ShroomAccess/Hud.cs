@@ -81,17 +81,17 @@ namespace ShroomAccess
                 try { armour = p.HealthData.Armour; } catch { }
                 if (_hp != int.MinValue && hp != _hp)
                 {
-                    string health = " Health " + hp + " of " + p.HealthData.MaxHealth + ".";
+                    string health = " " + Loc.T("hud.health", "Health {0} of {1}.", hp, p.HealthData.MaxHealth);
                     string cause = hp < _hp && _combat ? DamageSource(_hp - hp, Math.Max(0, _armourBefore - armour)) : "";
                     Say(cause.Length > 0 ? cause + health
-                        : (hp < _hp ? "Lost " + (_hp - hp) : "Gained " + (hp - _hp)) + " health." + health);
+                        : (hp < _hp ? Loc.T("hud.lost_health", "Lost {0} health.", _hp - hp) : Loc.T("hud.gained_health", "Gained {0} health.", hp - _hp)) + health);
                 }
                 _armourBefore = armour;
                 // At zero the run is over: what the game does next (a new turn, enemies leaving) is not news.
                 if (hp <= 0 && _hp > 0)
                 {
                     DeathSaidAt = Time.realtimeSinceStartup;
-                    Say("You have died.");
+                    Say(Loc.T("hud.died", "You have died."));
                 }
                 _hp = hp;
                 if (hp <= 0) { _combat = false; _phase = ""; _enemyHp.Clear(); _enemyArmour.Clear(); return; }
@@ -99,20 +99,20 @@ namespace ShroomAccess
                 // Energy refills some seconds into a new turn, so it is announced when it actually
                 // rises, not when the turn count changes.
                 int turns = p.ExploreTurnCount + p.CombatTurnCount;
-                if (_turns != int.MinValue && turns > _turns && !_combat) { Say("New turn."); FocusProbe.Silent(4f); }
+                if (_turns != int.MinValue && turns > _turns && !_combat) { Say(Loc.T("turn.new", "New turn.")); FocusProbe.Silent(4f); }
                 _turns = turns;
 
                 int energy = p.Energy;
                 if (_energy != int.MinValue && energy > _energy)
                 {
-                    string line = "Energy " + energy + " of " + p.EnergySoftCap + ".";
+                    string line = Loc.T("hud.energy", "Energy {0} of {1}.", energy, p.EnergySoftCap);
                     // In a fight the refill comes just before the game's turn changes and the new hand is
                     // dealt: keep it for the "Your turn" line, and keep the hand quiet while it is dealt.
                     if (_combat && _phase == "EnemyTurn")
                     {
                         // The refill is the first sign of the player's turn, as the new hand starts
                         // to be dealt: say it now rather than when the game's turn flag follows.
-                        Say("Your turn. " + line);
+                        Say(Loc.T("turn.yours", "Your turn.") + " " + line);
                         _turnSaid = true;
                         FocusProbe.Silent(3f);
                     }
@@ -145,8 +145,8 @@ namespace ShroomAccess
                     string phase = p.CombatTurn.ToString();
                     if (phase != _phase)
                     {
-                        if (phase == "PlayerTurn" && !_turnSaid) Say("Your turn.");
-                        else if (phase == "EnemyTurn") { Say("Enemy turn."); NoteAttacks(); }
+                        if (phase == "PlayerTurn" && !_turnSaid) Say(Loc.T("turn.yours", "Your turn."));
+                        else if (phase == "EnemyTurn") { Say(Loc.T("turn.enemy", "Enemy turn.")); NoteAttacks(); }
                         _turnSaid = false;
                         _phase = phase;
                     }
@@ -160,7 +160,7 @@ namespace ShroomAccess
                     if (_emptySince > 0f && Time.realtimeSinceStartup - _emptySince > 0.6f && phase == "PlayerTurn")
                     {
                         _emptySince = -1f;
-                        Say("Your hand is empty. Space ends the turn.");
+                        Say(Loc.T("hud.hand_empty", "Your hand is empty. Space ends the turn."));
                     }
                     _held = held;
                 }
@@ -223,7 +223,7 @@ namespace ShroomAccess
                     if (i < 0) return "";
                     string who = _attacks[i].Key;
                     _attacks.RemoveAt(i);
-                    return who + " hits you for " + lost + (armourLost > 0 ? ", " + armourLost + " blocked by your armour" : "") + ".";
+                    return armourLost > 0 ? Loc.T("hud.hit_blocked", "{0} hits you for {1}, {2} blocked by your armour.", who, lost, armourLost) : Loc.T("hud.hit", "{0} hits you for {1}.", who, lost);
                 }
                 if (_phase == "PlayerTurn")
                 {
@@ -232,7 +232,7 @@ namespace ShroomAccess
                         M_Enemy m = v != null ? v.Model : null;
                         if (m == null) continue;
                         foreach (string status in FocusProbe.EnemyStatuses(m))
-                            if (status == "Thorns " + lost) return "Thorns on " + FocusProbe.EnemyName(v, m) + ": lost " + lost + " health.";
+                            if (status == "Thorns " + lost) return Loc.T("hud.thorns", "Thorns on {0}: lost {1} health.", FocusProbe.EnemyName(v, m), lost);
                     }
                 }
             }
@@ -288,15 +288,15 @@ namespace ShroomAccess
                 bool known = _enemyHp.TryGetValue(key, out int before);
                 _enemyArmour.TryGetValue(key, out int armourBefore);
                 // A hit that armour soaks up changes no health; say what the armour took.
-                string blocked = known && armour < armourBefore && hp > 0 && _phase == "PlayerTurn" ? (armourBefore - armour) + " blocked by armour" : "";
+                string blocked = known && armour < armourBefore && hp > 0 && _phase == "PlayerTurn" ? Loc.T("enemy.blocked", "{0} blocked by armour", armourBefore - armour) : "";
                 if (known && hp != before)
                 {
-                    if (hp <= 0 || !m.IsAlive) Say(name + " dies.");
-                    else if (hp < before) Say(name + " takes " + (before - hp) + (blocked.Length > 0 ? ", " + blocked : "") + ", " + hp + " left.");
-                    else Say(name + " heals " + (hp - before) + ", " + hp + " of " + m.HealthData.MaxHealth + ".");
+                    if (hp <= 0 || !m.IsAlive) Say(Loc.T("enemy.dies", "{0} dies.", name));
+                    else if (hp < before) Say(blocked.Length > 0 ? Loc.T("enemy.takes_blocked", "{0} takes {1}, {2}, {3} left.", name, before - hp, blocked, hp) : Loc.T("enemy.takes", "{0} takes {1}, {2} left.", name, before - hp, hp));
+                    else Say(Loc.T("enemy.heals", "{0} heals {1}, {2} of {3}.", name, hp - before, hp, m.HealthData.MaxHealth));
                 }
-                else if (blocked.Length > 0) Say(name + ": " + blocked + (armour > 0 ? ", " + armour + " armour left." : ", no armour left."));
-                else if (known && armour > armourBefore && _phase == "EnemyTurn") Say(name + " gains " + (armour - armourBefore) + " armour.");
+                else if (blocked.Length > 0) Say(armour > 0 ? Loc.T("enemy.blocked_left", "{0}: {1}, {2} armour left.", name, blocked, armour) : Loc.T("enemy.blocked_none", "{0}: {1}, no armour left.", name, blocked));
+                else if (known && armour > armourBefore && _phase == "EnemyTurn") Say(Loc.T("enemy.gains_armour", "{0} gains {1} armour.", name, armour - armourBefore));
                 _enemyHp[key] = hp;
                 _enemyArmour[key] = armour;
             }
@@ -305,7 +305,7 @@ namespace ShroomAccess
             foreach (var pair in _enemyHp) if (!seen.Contains(pair.Key)) gone.Add(pair.Key);
             foreach (IntPtr key in gone)
             {
-                if (_enemyHp[key] > 0 && _enemyNames.TryGetValue(key, out string name)) Say(name + " is gone.");
+                if (_enemyHp[key] > 0 && _enemyNames.TryGetValue(key, out string name)) Say(Loc.T("enemy.gone", "{0} is gone.", name));
                 _enemyHp.Remove(key);
                 _enemyNames.Remove(key);
                 _enemyArmour.Remove(key);
