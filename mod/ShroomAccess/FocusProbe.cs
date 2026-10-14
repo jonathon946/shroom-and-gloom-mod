@@ -164,8 +164,19 @@ namespace ShroomAccess
                     _arrowValue = LiveValue(current);
                 }
                 // Applying a card change makes the game's focus skip across three things in a second.
-                if (mode == FocusMode.Target && TypeName(focus.Scope).Contains("ModifyCard") && InputBridge.Key(InputActionId.Confirm))
+                if (InputBridge.Key(InputActionId.Confirm) && InputBridge.ConfirmHeld(InputActionId.Confirm))
+                    Log("[hold] Enter held back: the card change is not ready");
+                else if (mode == FocusMode.Target && TypeName(focus.Scope).Contains("ModifyCard") && InputBridge.Key(InputActionId.Confirm))
+                {
                     _flickerUntil = Time.realtimeSinceStartup + 1.6f;
+                    // Released as soon as Take is focused (below).
+                    InputBridge.HoldConfirm(2.5f);
+                }
+                else if (mode == FocusMode.Hand && TypeName(focus.Scope).Contains("ModifyCard") && InputBridge.Key(InputActionId.Confirm))
+                {
+                    IV_CardInstance picked = current != null ? current.TryCast<IV_CardInstance>() : null;
+                    ModifyPicked = picked != null && picked.IModel != null ? picked.IModel.CardName : null;
+                }
                 if (_arrowAt > 0f && Time.realtimeSinceStartup - _arrowAt > 0.12f)
                 {
                     if (ptr == _arrowFrom && LiveValue(current) == _arrowValue && Time.realtimeSinceStartup >= SuppressFocusUntil)
@@ -223,6 +234,8 @@ namespace ShroomAccess
                     else if (zone == "hand") spoken = Loc.T("row.hand", "Your hand, {0}.", Cards(HeldCount(focus))) + " " + line;
                     else if (zone == "nearby" && focus.InCombat) spoken = Loc.T("row.enemies", "Enemies, {0}.", Navigator.NearbyInOrder(focus).Count) + " " + line;
                     else if (zone == "nearby") spoken = Loc.T("row.nearby", "Nearby, {0}.", Things(focus.WorldFocusCandidates != null ? focus.WorldFocusCandidates.Count : 0)) + " " + line;
+                    else if (zone == "targets" && current.TryCast<ModifyCardEncounterUI>() != null) spoken = line;
+                    else if (zone == "targets" && current.TryCast<IM_CardInstance>() != null) spoken = Loc.T("row.target_cards", "Choose one of your cards.") + " " + line;
                     else if (zone == "targets") spoken = Loc.T("row.targets", "Choose a target.") + " " + line;
                     else if (zone == "offer" && current.TryCast<IV_CardInstance>() != null) spoken = Loc.T("row.offered", "Offered: {0} Enter takes it.", line);
                 }
@@ -231,6 +244,7 @@ namespace ShroomAccess
                     Component button = current.TryCast<Component>();
                     if (button != null && button.gameObject.name == "Take It Button")
                     {
+                        InputBridge.HoldConfirmUntil = 0f;
                         string result = Messages.ModifyResult(focus, button);
                         if (!string.IsNullOrWhiteSpace(result)) 
                         {
@@ -252,6 +266,11 @@ namespace ShroomAccess
                 if (zone == "hand" || zone == "nearby")
                 {
                     Navigator.RowPosition(focus, current, out int index, out int count);
+                    if (count > 1) spoken = spoken.TrimEnd('.', ' ') + ", " + Loc.T("pos.of", "{0} of {1}", index, count);
+                }
+                if (zone == "targets" && current.TryCast<IM_CardInstance>() != null)
+                {
+                    CardTargetPosition(focus, out int index, out int count);
                     if (count > 1) spoken = spoken.TrimEnd('.', ' ') + ", " + Loc.T("pos.of", "{0} of {1}", index, count);
                 }
                 // The last card has gone, or the enemies are acting and the next hand is being dealt:
@@ -371,6 +390,17 @@ namespace ShroomAccess
         // Walking stops without a word when the player reaches something. Say what has come into reach.
         private static void AnnounceArrivals(S_ControllerFocus focus)
         {
+            // Enemies summoned one after another (a boss's babies) are said together.
+            if (_joinDue > 0f && Time.realtimeSinceStartup >= _joinDue)
+            {
+                _joinDue = 0f;
+                if (_inFight && _joinPending.Count > 0)
+                {
+                    Cue.Play(Cue.Arrival);
+                    Announce(Loc.T("fight.joined", "Joined the fight: {0}.", Group(_joinPending)), interrupt: false, holdWhileWalking: true);
+                }
+                _joinPending.Clear();
+            }
             WorldFocusCandidates world = focus.WorldFocusCandidates;
             int n = world != null ? world.Count : 0;
             // An empty list is a menu over the world, not the world emptied; while a target is being
@@ -415,8 +445,10 @@ namespace ShroomAccess
                 // The opening line names who is there; later arrivals have joined.
                 _seen.AddRange(freshOthers);
                 if (time - _combatStartAt < CombatOpening || freshEnemies.Count == 0) return;
-                Cue.Play(Cue.Arrival);
-                Announce(Loc.T("fight.joined", "Joined the fight: {0}.", Group(freshEnemies)), interrupt: false, holdWhileWalking: true);
+                // Wait a little for more; never more than three seconds after the first.
+                if (_joinPending.Count == 0) _joinFirstAt = time;
+                _joinPending.AddRange(freshEnemies);
+                _joinDue = Mathf.Min(time + 1.8f, _joinFirstAt + 3f);
                 return;
             }
             Cue.Play(Cue.Arrival);
@@ -432,6 +464,8 @@ namespace ShroomAccess
         }
 
         private static readonly Dictionary<IntPtr, float> _nearbyAt = new Dictionary<IntPtr, float>();
+        private static readonly List<string> _joinPending = new List<string>();
+        private static float _joinDue, _joinFirstAt;
         private static string _targetName = "";
 
         // Set by Main when the title screen loads: the time after which the one-off experiments run.
@@ -554,9 +588,33 @@ namespace ShroomAccess
                     if (t.GetComponentInParent<UnityEngine.UI.Selectable>() != null) continue;
                     parts.Add(t.text.Trim());
                 }
-                detail = "modify " + string.Join(" / ", parts);
-                // What it does was said when the screen opened; here only what Enter will do.
+                string chosen = null;
+                try { chosen = modify._augementingMCard != null ? modify._augementingMCard.CardName : null; } catch { }
+                if (string.IsNullOrWhiteSpace(chosen)) chosen = ModifyPicked;
+                string effect = ModifyEffect(modify, withMadeCards: false);
+                detail = "modify " + string.Join(" / ", parts) + " chosen=" + chosen;
+                // The card picked and what it is about to gain, then what Enter does.
+                if (!string.IsNullOrWhiteSpace(chosen) && effect.Length > 0)
+                    return Clean(Loc.T("modify.apply_to", "{0} gains: {1}. Enter applies it; Backspace goes back", chosen, effect.TrimEnd('.')));
                 return Loc.T("modify.apply", "Enter applies it to the card you chose; Backspace goes back");
+            }
+
+            // A card in the hand as the target of another card (Vile Oil): the game focuses the
+            // card itself rather than its picture, so the picture is found and read instead.
+            IM_CardInstance targetCard = obj.TryCast<IM_CardInstance>();
+            if (targetCard != null)
+            {
+                V_GameplayCardInstance shown = CardViewOf(targetCard.Pointer);
+                if (shown != null)
+                {
+                    string line = Describe(shown, out detail);
+                    detail = "card target: " + detail;
+                    return line;
+                }
+                ICardData data = Safe(() => targetCard.IData);
+                string desc = data != null ? Safe(() => data.SingleDescription) : null;
+                detail = "card target (no view) name=" + targetCard.CardName + " desc=" + desc;
+                return Clean(targetCard.CardName + (string.IsNullOrWhiteSpace(desc) ? "" : ". " + desc));
             }
 
             V_Enemy enemy = obj.TryCast<V_Enemy>();
@@ -1673,6 +1731,87 @@ namespace ShroomAccess
                     Log("[binding] " + id + " failed: " + ex.Message);
                 }
             }
+        }
+
+        // The card on screen that shows this card.
+        internal static V_GameplayCardInstance CardViewOf(IntPtr model)
+        {
+            try
+            {
+                foreach (V_GameplayCardInstance v in UnityEngine.Object.FindObjectsOfType<V_GameplayCardInstance>())
+                {
+                    IV_CardInstance iv = v != null ? v.Cast<Il2CppSystem.Object>().TryCast<IV_CardInstance>() : null;
+                    if (iv != null && iv.IModel != null && iv.IModel.Pointer == model) return v;
+                }
+            }
+            catch (Exception ex) { Log("[card target] " + ex.Message); }
+            return null;
+        }
+
+        // Where the focused card is among the cards the one being played can go on: the game keeps
+        // a mask over the hand of the cards that can be chosen.
+        private static void CardTargetPosition(S_ControllerFocus focus, out int index, out int count)
+        {
+            index = 0; count = 0;
+            try
+            {
+                TargetFocusResolver resolver = focus.TargetResolver;
+                CardTargetSet set = resolver != null ? resolver._cardTargets : null;
+                if (set == null || set._mask == null) return;
+                int at = resolver._cardIndex;
+                for (int i = 0; i < set._mask.Length && i < Math.Max(set._count, 0); i++)
+                {
+                    if (!set._mask[i]) continue;
+                    count++;
+                    if (i <= at) index = count;
+                }
+                if (_cardTargetLogged != at) { _cardTargetLogged = at; Log("[card target] index " + at + " -> " + index + " of " + count + " (legal " + set.LegalCount + ")"); }
+            }
+            catch (Exception ex) { Log("[card target] position: " + ex.Message); }
+        }
+
+        private static int _cardTargetLogged = -1;
+
+        // The card picked on a card-change screen, in case the game has not recorded it yet.
+        internal static string ModifyPicked;
+
+        // What a card change gives, as its screen prints it ("IF FATAL, DRAW 2 CARDS"), and, when it
+        // makes a card, what that card does. The heading ("SELECT A CARD TO GAIN:") is left out.
+        internal static string ModifyEffect(ModifyCardEncounterUI modify, bool withMadeCards)
+        {
+            var parts = new List<string>();
+            var made = new List<string>();
+            try
+            {
+                foreach (TMP_Text t in modify.GetComponentsInChildren<TMP_Text>(false))
+                {
+                    if (t == null || string.IsNullOrWhiteSpace(t.text)) continue;
+                    if (t.GetComponentInParent<UnityEngine.UI.Selectable>() != null) continue;
+                    if (t.GetComponentInParent<V_GameplayCardInstance>() != null) continue;
+                    string text = Clean(t.text);
+                    if (text.Length == 0 || text.EndsWith(":") || parts.Contains(text)) continue;
+                    parts.Add(text);
+                    if (!withMadeCards) continue;
+                    foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(t.text, "<link=mC>(.*?)</link>"))
+                    {
+                        string name = Clean(m.Groups[1].Value);
+                        ICardData card = null;
+                        try
+                        {
+                            if (!modify.TryGetLinkPreviewCard(m.Groups[1].Value, out card)) card = null;
+                            if (card == null && !modify.TryGetLinkPreviewCard(name, out card)) card = null;
+                        }
+                        catch (Exception ex) { Log("[modify] preview " + name + ": " + ex.Message); }
+                        string desc = card != null ? Clean(Safe(() => card.SingleDescription)) : "";
+                        Log("[modify] made card " + name + ": " + (card != null ? desc : "no preview"));
+                        if (desc.Length > 0) made.Add(Loc.T("modify.made_card", "{0} does: {1}", System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(name.ToLowerInvariant()), desc.TrimEnd('.')));
+                    }
+                }
+            }
+            catch (Exception ex) { Log("[modify] effect: " + ex.Message); }
+            string effect = string.Join(". ", parts.Select(p => p.TrimEnd('.')));
+            if (made.Count > 0) effect += ". " + string.Join(". ", made);
+            return effect;
         }
 
         // The small label printed under a card's title, when the card shows one, and what its

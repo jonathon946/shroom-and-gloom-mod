@@ -39,6 +39,17 @@
 #
 #   F. Timing: "Your turn" with the draw sound; lines generally close to what happens.
 #
+#   G. (new 2026-10-14, after the Megashroom run) A card played on another card in a fight
+#      (Vile Oil, Deadly Mould): "Choose one of your cards. Stab, cost 1. Deal 4 Damage, 1 of 5",
+#      and each arrow reads the card and its place.
+#
+#   H. A card-change screen (Grimoire, Practice Dummy): after picking a card, "Stab gains: ADD 5
+#      DAMAGE. Enter applies it". An extra Enter while the result is coming is ignored, so it can
+#      no longer land on No thanks. If the change makes a card, the opening line should also say
+#      what that card does ("Repressed Rage does: ...").
+#
+#   I. Several enemies summoned at once are said in one line: "Joined the fight: 4 Mega Babies."
+#
 #   Keep marking with Ctrl+B anywhere something seems wrong or silent.
 #
 # IF THERE IS NO SPEECH AT ALL: tell me, and I will read the log. Nothing else is needed from you.

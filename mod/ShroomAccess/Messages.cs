@@ -79,6 +79,13 @@ namespace ShroomAccess
         // Screen text said a moment ago is not said again by another watcher.
         private static readonly Dictionary<string, float> _saidAt = new Dictionary<string, float>();
 
+        // Lines read by TextWatch: the same words appear on a screen's own text a moment later.
+        internal static void NoteSaid(string part)
+        {
+            _saidAt[part] = Time.realtimeSinceStartup;
+            if (_saidAt.Count > 200) _saidAt.Clear();
+        }
+
         private static bool SaidLately(string part)
         {
             float now = Time.realtimeSinceStartup;
@@ -137,7 +144,7 @@ namespace ShroomAccess
                     {
                         _introScope = ptr;
                         _introDue = Time.realtimeSinceStartup + 0.8f;
-                        _introGiveUp = Time.realtimeSinceStartup + 2.5f;
+                        _introGiveUp = Time.realtimeSinceStartup + 6f;
                         FocusProbe.SuppressFocusUntil = _introDue + 0.2f;
                     }
                     if (kind.Contains("LootAll") || kind.Contains("CardChoice") || kind.Contains("ForesightChoice"))
@@ -167,8 +174,11 @@ namespace ShroomAccess
 
                 if (_introDue > 0f && Time.realtimeSinceStartup >= _introDue)
                 {
-                    List<string> words = scope != null && ptr == _introScope ? ScreenText(scope, 4) : new List<string>();
-                    if (words.Count == 0 && scope != null && ptr == _introScope && Time.realtimeSinceStartup < _introGiveUp)
+                    ModifyCardEncounterUI modify = scope != null && ptr == _introScope ? scope.Cast<Il2CppSystem.Object>().TryCast<ModifyCardEncounterUI>() : null;
+                    // The screen's words are written a moment after it opens; a camp structure
+                    // being placed (a Grimoire) can take a few seconds.
+                    string effect = modify != null ? FocusProbe.ModifyEffect(modify, withMadeCards: true) : "";
+                    if (effect.Length == 0 && scope != null && ptr == _introScope && Time.realtimeSinceStartup < _introGiveUp)
                     {
                         _introDue = Time.realtimeSinceStartup + 0.3f;
                         FocusProbe.SuppressFocusUntil = _introDue + 0.2f;
@@ -177,7 +187,7 @@ namespace ShroomAccess
                     {
                         _introDue = 0f;
                         _introSaidFor = _introScope;
-                        if (words.Count > 0)
+                        if (scope != null && ptr == _introScope)
                         {
                             _liveScope = ptr;
                             _liveText = ScreenText(scope, 6);
@@ -185,8 +195,8 @@ namespace ShroomAccess
                             _lastScreenAt = Time.realtimeSinceStartup;
                             // What it does first, then what to do. The game's heading ("SELECT A CARD
                             // TO GAIN:") is the instruction, given in plain words instead.
-                            var effect = words.Where(w => !w.TrimEnd().EndsWith(":")).ToList();
-                            FocusProbe.Announce((effect.Count > 0 ? string.Join(". ", effect).TrimEnd('.') + ". " : "")
+                            if (effect.Length == 0) Log("[modify] no effect text found");
+                            FocusProbe.Announce((effect.Length > 0 ? effect.TrimEnd('.') + ". " : "")
                                 + Loc.T("modify.choose", "Choose one of your cards with Left and Right; Enter picks it."), interrupt: false);
                         }
                         // The cards are there to be found with the arrows; none is read now.
@@ -323,6 +333,24 @@ namespace ShroomAccess
         // cannot be focused, so it is read with the button.
         internal static string ModifyResult(S_ControllerFocus focus, Component button)
         {
+            // The game's own record of the changed card, rather than whichever card is drawn
+            // nearest the Take button.
+            try
+            {
+                ModifyCardEncounterUI ui = focus.Scope != null ? focus.Scope.Cast<Il2CppSystem.Object>().TryCast<ModifyCardEncounterUI>() : null;
+                GameplayCardData data = ui != null ? ui.newGameplayCardData : null;
+                M_GameplayCardInstance card = ui != null ? ui._augementingMCard : null;
+                if (data == null || card == null) Log("[modify] result record: ui " + (ui != null) + ", data " + (data != null) + ", card " + (card != null));
+                if (data != null && card != null)
+                {
+                    ICardData face = data.TryCast<ICardData>();
+                    string desc = face != null ? face.SingleDescription : null;
+                    Log("[modify] result " + card.CardName + ": " + desc);
+                    if (!string.IsNullOrWhiteSpace(desc))
+                        return FocusProbe.Clean(card.CardName + ", " + Loc.T("card.cost", "cost {0}", data.EnergyUse) + ". " + desc);
+                }
+            }
+            catch (Exception ex) { Log("[messages] result data: " + ex.Message); }
             try
             {
                 var inHand = new HashSet<IntPtr>();

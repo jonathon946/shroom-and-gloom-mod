@@ -2,6 +2,12 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-14 — Session 04, part 10 — thirteenth playthrough: cards on cards
+
+- A card played on another card in a fight (Vile Oil) reads each card it can go on, with its place, instead of a program name.
+- Card-change screens say which card gains what before Enter applies it; an Enter pressed while the result is coming no longer lands on No thanks; a late-opening Grimoire is introduced; a card the change makes is described.
+- Dialogue lines are no longer said twice; enemies summoned together are announced together.
+
 ## 2026-10-14 — Session 04, part 9 — strings table, in-game install, rebindable keys
 
 - Everything the mod says goes through one table; a strings.txt translates it; a template of all 248 phrases ships with the mod.

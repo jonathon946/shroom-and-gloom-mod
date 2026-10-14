@@ -149,3 +149,9 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **KEY FINDING — A DLL the game has loaded cannot be overwritten or deleted, but it can be renamed.** The in-game installer moves each existing file to `.old`, writes the new one, and deletes the `.old` files on the next start. Tested with `ShroomAccess.dll` and `prism.dll` loaded.
 - **PATTERN — Strings with the English inline** (`Loc.T("key", "English", args)`): nothing goes silent when the table is missing, and the template is generated from the code, so it cannot fall out of step.
 
+
+## A card aimed at a card focuses the model, not the picture (2026-10-14)
+
+- In target mode for cards such as Vile Oil, `S_ControllerFocus.CurrentFocus` is an `M_GameplayCardInstance` (the card's model), not the `V_GameplayCardInstance` on screen, so a describer keyed on `IV_CardInstance` falls through to the type name. Find the view whose `IModel.Pointer` matches. The legal targets and the cursor are `TargetFocusResolver._cardTargets` (a mask over the hand) and `_cardIndex`.
+- On a card-change screen, `ModifyCardEncounterUI.newGameplayCardData` was empty when Take appeared; the card drawn beside Take is the result to read.
+- An odd-looking result ("Make 2 X SPICY TOASTY" after "Make a Repressed Rage") was the game's own: check the card later in the hand before calling the mod wrong.

@@ -45,6 +45,7 @@ namespace ShroomAccess
                 foreach (string key in now) Showing.Add(key);
                 if (fresh.Count == 0) return;
                 Log("[text] " + string.Join(" | ", fresh));
+                foreach (string part in fresh) Messages.NoteSaid(part);
                 FocusProbe.Announce(string.Join(". ", fresh).Replace(">>", "").Trim(), interrupt: false, holdWhileWalking: true);
             }
             catch (Exception ex) { Log("[text] " + ex.GetType().Name + ": " + ex.Message); }

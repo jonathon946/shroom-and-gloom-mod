@@ -269,10 +269,25 @@ namespace ShroomAccess
         private static bool IsArrow(InputActionId id) =>
             id == InputActionId.FocusPrev || id == InputActionId.FocusNext || id == InputActionId.FocusUp || id == InputActionId.FocusDown;
 
+        // A card change being applied: the game shows No thanks for a moment before Take, and an
+        // Enter pressed then would throw the change away. Enter is held back until Take is focused.
+        internal static float HoldConfirmUntil;
+        internal static int HoldConfirmFromFrame;
+
+        internal static void HoldConfirm(float seconds)
+        {
+            HoldConfirmUntil = Time.realtimeSinceStartup + seconds;
+            HoldConfirmFromFrame = Time.frameCount + 1;
+        }
+
+        internal static bool ConfirmHeld(InputActionId id) =>
+            id == InputActionId.Confirm && Time.frameCount >= HoldConfirmFromFrame && Time.realtimeSinceStartup < HoldConfirmUntil;
+
         private static bool Read(InputActionId id, int phase)
         {
             try
             {
+                if (ConfirmHeld(id)) return false;
                 if (id == _forwarded && id != InputActionId.None)
                 {
                     int age = Time.frameCount - _forwardedFrame;
@@ -296,12 +311,14 @@ namespace ShroomAccess
         private static void GetActionDownPostfix(InputActionId actionId, ref bool __result)
         {
             if (DevBridge.Enabled) Polled.Add("down:" + actionId);
+            if (Enabled && ConfirmHeld(actionId)) { __result = false; return; }
             if (!__result && Enabled) __result = Read(actionId, 0);
         }
 
         private static void GetActionPostfix(InputActionId actionId, ref bool __result)
         {
             if (DevBridge.Enabled) Polled.Add("held:" + actionId);
+            if (Enabled && ConfirmHeld(actionId)) { __result = false; return; }
             if (!__result && Enabled) __result = Read(actionId, 1);
         }
 
@@ -313,6 +330,7 @@ namespace ShroomAccess
         private static void GetActionUpPostfix(InputActionId actionId, ref bool __result)
         {
             if (DevBridge.Enabled) Polled.Add("up:" + actionId);
+            if (Enabled && ConfirmHeld(actionId)) { __result = false; return; }
             if (!__result && Enabled) __result = Read(actionId, 2);
         }
 
