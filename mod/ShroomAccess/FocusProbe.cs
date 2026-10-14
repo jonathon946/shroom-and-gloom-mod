@@ -1234,7 +1234,7 @@ namespace ShroomAccess
         internal static void FlushBatch(bool force = false)
         {
             if (_batch.Count == 0) return;
-            if (!force && Time.realtimeSinceStartup - _batchAt < 0.7f) return;
+            if (!force && Time.realtimeSinceStartup - _batchAt < 0.3f) return;
             // With no second voice, anything said while a walk key is down is lost: keep waiting.
             if (InputBridge.MoveHeld && !Speaker.HasDirect && !force) return;
 
@@ -1359,7 +1359,7 @@ namespace ShroomAccess
             if (added.Count > 0)
             {
                 _pendingAdded.AddRange(added);
-                _pendingAddedAt = Time.realtimeSinceStartup + 1.1f;
+                _pendingAddedAt = Time.realtimeSinceStartup + 0.5f;
                 // The game's focus hops along the cards as they are dealt; none of it is read.
                 // An explore turn deals one card at a time, more slowly than a fight; keep quiet
                 // from the first card on.

@@ -65,7 +65,8 @@ namespace ShroomAccess
         private static string _threatSeen = "";
         private static float _threatDue;
         internal static float DeathSaidAt = -100f;
-        private static string _energyHeld = "";
+        private static bool _turnSaid;
+        private static float _emptySince = -1f;
         private static int _held = -1;
 
         internal static void AnnounceChanges(S_ControllerFocus focus)
@@ -101,7 +102,10 @@ namespace ShroomAccess
                     // dealt: keep it for the "Your turn" line, and keep the hand quiet while it is dealt.
                     if (_combat && _phase == "EnemyTurn")
                     {
-                        _energyHeld = line;
+                        // The refill is the first sign of the player's turn, as the new hand starts
+                        // to be dealt: say it now rather than when the game's turn flag follows.
+                        Say("Your turn. " + line);
+                        _turnSaid = true;
                         FocusProbe.Silent(3f);
                     }
                     else
@@ -133,15 +137,23 @@ namespace ShroomAccess
                     string phase = p.CombatTurn.ToString();
                     if (phase != _phase)
                     {
-                        if (phase == "PlayerTurn") Say("Your turn." + (_energyHeld.Length > 0 ? " " + _energyHeld : ""));
+                        if (phase == "PlayerTurn" && !_turnSaid) Say("Your turn.");
                         else if (phase == "EnemyTurn") Say("Enemy turn.");
-                        if (phase == "PlayerTurn") _energyHeld = "";
+                        _turnSaid = false;
                         _phase = phase;
                     }
                     WatchEnemies();
                     int held = -1;
                     try { held = p.GetActiveHand() != null && p.GetActiveHand().HeldCards != null ? p.GetActiveHand().HeldCards.Count : -1; } catch { }
-                    if (held == 0 && _held > 0 && phase == "PlayerTurn") Say("Your hand is empty. Space ends the turn.");
+                    // Said once the hand has stayed empty a moment: a card played can make another
+                    // (Roast makes a Toasty) a fraction of a second later.
+                    if (held == 0 && _held > 0) _emptySince = Time.realtimeSinceStartup;
+                    if (held != 0) _emptySince = -1f;
+                    if (_emptySince > 0f && Time.realtimeSinceStartup - _emptySince > 0.6f && phase == "PlayerTurn")
+                    {
+                        _emptySince = -1f;
+                        Say("Your hand is empty. Space ends the turn.");
+                    }
                     _held = held;
                 }
                 else { _enemyHp.Clear(); _enemyArmour.Clear(); }

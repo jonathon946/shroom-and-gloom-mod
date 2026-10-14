@@ -2,6 +2,12 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-14 — Session 04, part 4 — eleventh playthrough: timing, alt text
+
+- "Your turn. Energy 3 of 3." is said as the new hand starts dealing; "Drew N cards" half a second after the last card; batched lines wait 0.3 seconds, not 0.7.
+- "Your hand is empty" waits until the hand has stayed empty a moment.
+- 56 more appearance descriptions (cards, Gill Beast, Lekker Limbs, Shiitanke Moss, Frog King, Gloom Heart, the bowl and others); about 165 in all.
+
 ## 2026-10-14 — Session 04, part 3 — tenth playthrough
 
 - A camp's new turn stays quiet until its slower deal is done.
