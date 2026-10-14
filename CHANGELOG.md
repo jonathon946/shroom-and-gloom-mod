@@ -2,6 +2,10 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-14 — Session 04, part 7 — who hit you
+
+- Enemy hits name the enemy: "Brain Baby hits you for 6. Health 14 of 25."; thorns damage says so.
+
 ## 2026-10-14 — Session 04, part 6 — deck view and camp hazards
 
 - Tab opens the deck view in a run (it was unreachable from the keyboard): the draw pile, then the discard pile, then closed; a summary of the cards shown, each card's place, the buttons for the full deck and the other decks.

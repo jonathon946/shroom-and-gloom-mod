@@ -77,8 +77,16 @@ namespace ShroomAccess
                 if (p == null) { _hp = int.MinValue; _turns = int.MinValue; _energy = int.MinValue; _threat = ""; return; }
 
                 int hp = p.HealthData.CurrentHealth;
+                int armour = 0;
+                try { armour = p.HealthData.Armour; } catch { }
                 if (_hp != int.MinValue && hp != _hp)
-                    Say((hp < _hp ? "Lost " + (_hp - hp) : "Gained " + (hp - _hp)) + " health. Health " + hp + " of " + p.HealthData.MaxHealth + ".");
+                {
+                    string health = " Health " + hp + " of " + p.HealthData.MaxHealth + ".";
+                    string cause = hp < _hp && _combat ? DamageSource(_hp - hp, Math.Max(0, _armourBefore - armour)) : "";
+                    Say(cause.Length > 0 ? cause + health
+                        : (hp < _hp ? "Lost " + (_hp - hp) : "Gained " + (hp - _hp)) + " health." + health);
+                }
+                _armourBefore = armour;
                 // At zero the run is over: what the game does next (a new turn, enemies leaving) is not news.
                 if (hp <= 0 && _hp > 0)
                 {
@@ -138,7 +146,7 @@ namespace ShroomAccess
                     if (phase != _phase)
                     {
                         if (phase == "PlayerTurn" && !_turnSaid) Say("Your turn.");
-                        else if (phase == "EnemyTurn") Say("Enemy turn.");
+                        else if (phase == "EnemyTurn") { Say("Enemy turn."); NoteAttacks(); }
                         _turnSaid = false;
                         _phase = phase;
                     }
@@ -175,6 +183,62 @@ namespace ShroomAccess
         }
 
         private static float _shopUntil = -100f;
+        private static int _armourBefore;
+
+        // The attacks the enemies showed at the start of their turn, in the order they stand.
+        private static readonly List<KeyValuePair<string, int>> _attacks = new List<KeyValuePair<string, int>>();
+
+        private static void NoteAttacks()
+        {
+            _attacks.Clear();
+            try
+            {
+                var views = new List<V_Enemy>();
+                foreach (V_Enemy v in UnityEngine.Object.FindObjectsOfType<V_Enemy>()) if (v != null) views.Add(v);
+                views.Sort((a, b) => a.transform.position.x.CompareTo(b.transform.position.x));
+                foreach (V_Enemy v in views)
+                {
+                    M_Enemy m = v.Model;
+                    if (m == null || !m.IsAlive || m.CurrentTurnAction == null) continue;
+                    var pairs = m.CurrentTurnAction.EnemyIntentPairs;
+                    for (int i = 0; pairs != null && i < pairs.Count; i++)
+                        if (pairs[i] != null && pairs[i].Intent != null && FocusProbe.Humanize(pairs[i].Intent.name).Contains("Deal Damage"))
+                            _attacks.Add(new KeyValuePair<string, int>(FocusProbe.EnemyName(v, m), pairs[i].ModifiedNumber));
+                }
+            }
+            catch (Exception ex) { Log("[hud] attacks: " + ex.Message); }
+        }
+
+        // Whose doing a loss of health was, when it can be told: an announced attack of that size in
+        // the enemy turn, or thorns on an enemy in the player's turn. Empty when it cannot.
+        private static string DamageSource(int lost, int armourLost)
+        {
+            try
+            {
+                if (_phase == "EnemyTurn")
+                {
+                    int hit = lost + armourLost;
+                    int i = _attacks.FindIndex(a => a.Value == hit);
+                    if (i < 0) i = _attacks.FindIndex(a => a.Value == lost);
+                    if (i < 0) return "";
+                    string who = _attacks[i].Key;
+                    _attacks.RemoveAt(i);
+                    return who + " hits you for " + lost + (armourLost > 0 ? ", " + armourLost + " blocked by your armour" : "") + ".";
+                }
+                if (_phase == "PlayerTurn")
+                {
+                    foreach (V_Enemy v in UnityEngine.Object.FindObjectsOfType<V_Enemy>())
+                    {
+                        M_Enemy m = v != null ? v.Model : null;
+                        if (m == null) continue;
+                        foreach (string status in FocusProbe.EnemyStatuses(m))
+                            if (status == "Thorns " + lost) return "Thorns on " + FocusProbe.EnemyName(v, m) + ": lost " + lost + " health.";
+                    }
+                }
+            }
+            catch (Exception ex) { Log("[hud] damage source: " + ex.Message); }
+            return "";
+        }
         private static bool _shopUnderMenu;
 
         // The enemies are acting; the player's hand is being cleared and the next one dealt.
