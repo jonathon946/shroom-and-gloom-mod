@@ -144,4 +144,6 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **GOTCHA — "Same moment" must mean the same frame, not a short time window.** A pile step that took longer than 0.05 seconds (an automatic picture) slipped past a time-based check. Compare `Time.frameCount`.
 - **KEY FINDING — A card refused with no failure reason and `CanCast` true had nothing to act on.** The game gives no words for it; "Nothing here it can be used on" is right.
 - **KEY FINDING — Cards carry a label under the title** (`V_GameplayCardInstance._usesRoot`, `_usesText`, `_usesTooltip`): uses, battery, evolve. It can be the only explanation of a refused play ("Dead Battery"). Read any small text on a card, not only its name and rules.
+- **GOTCHA — GitHub's API refuses requests with no user agent, and answers 404 for a private repository.** The update check sets one and treats any failure as silence.
+- **GOTCHA — MelonLoader writes new preference entries only when the game closes.** Edit `MelonPreferences.cfg` with the game closed, after one run has created the entries.
 

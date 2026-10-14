@@ -346,6 +346,7 @@ namespace ShroomAccess
             "A card's name is followed by the label under its title when it has one: uses left, battery, evolve",
             "Control Page Up and Control Page Down make the walking voice faster or slower",
             "Control B marks the moment for a bug report",
+            "When the title screen says a new version is out, Control O opens its download page",
         };
         private static int _buffer;
         private static int _line;

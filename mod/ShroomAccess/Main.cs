@@ -4,7 +4,7 @@ using MelonLoader;
 using MelonLoader.Utils;
 using ShroomAccess.Speech;
 
-[assembly: MelonInfo(typeof(ShroomAccess.Main), "Shroom Access", "0.0.1", "Shroom Access contributors")]
+[assembly: MelonInfo(typeof(ShroomAccess.Main), "Shroom Access", ShroomAccess.UpdateCheck.Version, "Shroom Access contributors")]
 [assembly: MelonGame("Team Lazerbeam", "Shroom and Gloom")]
 
 namespace ShroomAccess
@@ -51,6 +51,8 @@ namespace ShroomAccess
             {
                 LoggerInstance.Msg("Speech ready through " + Speaker.BackendName + ".");
                 Settings.Load();
+                UpdateCheck.Log = msg => LoggerInstance.Msg(msg);
+                if (Settings.CheckForUpdates) UpdateCheck.Start(Settings.UpdateRepository);
             }
             else
                 LoggerInstance.Error("Speech is not available. The mod will stay silent.");
@@ -78,6 +80,7 @@ namespace ShroomAccess
             FocusProbe.Tick();
             WorldAssist.Tick();
             DevBridge.Tick();
+            UpdateCheck.Tick(Walk.Scene.Contains("Title"));
         }
 
         public override void OnDeinitializeMelon()

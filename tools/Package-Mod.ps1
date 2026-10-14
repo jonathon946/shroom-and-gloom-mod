@@ -2,11 +2,16 @@
 # game folder. Nothing from this machine's testing goes in (no dev flag, marks, pictures or logs).
 # The player still needs MelonLoader 0.7.x installed in the game; the README in the zip says how.
 param(
-    [string]$Version = '0.1.0'
+    # Defaults to the version the mod reports (UpdateCheck.Version), so the two cannot drift apart.
+    [string]$Version = ''
 )
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path $PSScriptRoot -Parent
+if (-not $Version) {
+    $source = Get-Content (Join-Path $root 'mod\ShroomAccess\UpdateCheck.cs') -Raw
+    if ($source -match 'const string Version = "([0-9.]+)"') { $Version = $Matches[1] } else { Write-Host 'Version not found in UpdateCheck.cs'; exit 2 }
+}
 $dll = Join-Path $root 'mod\ShroomAccess\bin\ShroomAccess.dll'
 $prism = Join-Path $root 'deps\prism-0.18.3'
 if (-not (Test-Path $dll)) { Write-Host 'Build first: tools\Build-Mod.ps1'; exit 2 }

@@ -2,6 +2,11 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-14 — Session 04, part 8 — update check
+
+- On start the mod asks GitHub for its newest release; a newer one is said on the title screen and Control O opens its page. It can be turned off in the preferences file.
+- One version number for the mod and its package (0.1.0).
+
 ## 2026-10-14 — Session 04, part 7 — who hit you
 
 - Enemy hits name the enemy: "Brain Baby hits you for 6. Health 14 of 25."; thorns damage says so.

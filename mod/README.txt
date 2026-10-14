@@ -37,15 +37,25 @@ W and S (hold)         walk forward and back
 Space                  end turn; at a camp, rest for the night
                        after a death, move through the words on screen
 M                      map
-Tab                    deck
+Tab                    your draw pile; again, the discard pile; again, closes it
 Control Up and Down    read the next and previous line of the current buffer
 Control Left and Right switch buffer: Item, Player, Surroundings, Messages, Help
 Control Page Up, Down  walking voice faster, slower
 Control B              mark this moment (for bug reports)
+Control O              after a new version is announced: open its download page
 
 The Help buffer in the game has the same list.
 
 Avoid other Control combinations in the game: some are developer cheat keys.
+
+
+UPDATES
+
+Once each time the game starts, the mod asks GitHub whether a newer version of Shroom Access has
+been released. If one has, the title screen says so, and Control O opens its download page in your
+browser. Nothing is downloaded or installed by the mod; GitHub sees only that the question was
+asked. To turn this off, close the game, open UserData\MelonPreferences.cfg in the game folder and
+set CheckForUpdates = false under [ShroomAccess].
 
 
 REMOVING

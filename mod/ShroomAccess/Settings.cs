@@ -12,6 +12,11 @@ namespace ShroomAccess
 
         private static MelonPreferences_Entry<float> _directRate;
         private static MelonPreferences_Entry<float> _cueVolume;
+        private static MelonPreferences_Entry<bool> _checkUpdates;
+        private static MelonPreferences_Entry<string> _repository;
+
+        internal static bool CheckForUpdates => _checkUpdates == null || _checkUpdates.Value;
+        internal static string UpdateRepository => _repository != null ? _repository.Value : "";
 
         internal static float CueVolume => _cueVolume != null ? _cueVolume.Value : 0.5f;
 
@@ -21,6 +26,10 @@ namespace ShroomAccess
             _directRate = category.CreateEntry("WalkingVoiceRate", -1f, "Walking voice rate",
                 "Speed of the voice used while a walk key is held. 0 slowest, 0.5 normal, 1 fastest. -1 follows the screen reader's rate where it can be read.");
             _cueVolume = category.CreateEntry("CueVolume", 0.5f, "Cue volume", "Loudness of the mod's own sounds, 0 to 1.");
+            _checkUpdates = category.CreateEntry("CheckForUpdates", true, "Check for updates",
+                "Once at start, ask GitHub whether a newer version of the mod has been released. Nothing is downloaded.");
+            _repository = category.CreateEntry("UpdateRepository", "jonathon946/shroom-and-gloom-mod", "Update repository",
+                "The GitHub project (owner/name) whose releases are checked.");
 
             float rate = _directRate.Value;
             if (rate < 0f)
