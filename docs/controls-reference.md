@@ -12,6 +12,7 @@ The mod does not invent its own navigation. The game already has a full set of g
 - **Ctrl+Right / Ctrl+Left:** next / previous buffer: Item, Player, Surroundings, Messages, Help. Moving focus returns to Item. The Help buffer lists these keys in the game; `mod/README.txt` carries the same list for players and must be kept in step.
 - **Ctrl+Page Up / Ctrl+Page Down:** walking voice faster / slower.
 - **Ctrl+B:** drop a mark for later review (says "Mark 1", and so on).
+- **Ctrl+N:** after an announced release, pressed twice: download, verify against the release's .sha256 and install (`Installer.cs`); the new version runs after a restart.
 - **Ctrl+O:** after the title screen has announced a newer release, open its GitHub page in the browser (`UpdateCheck.cs`). Ctrl+U was avoided: it is one of the game's cheat keys.
 - **Space:** end turn; in camp, rest for the night. After a death, Space moves through the words on screen.
 - **Enter on a sealed card pack** (a quest reward after a run): opens it. The game itself opens it only on a mouse click.
@@ -42,3 +43,8 @@ The game has its own Ctrl combinations for developer cheats, and their input map
 
 - Keyboard and mouse: move W A S D or arrows; run Shift; look with the mouse; interact left click; inspect right click; end turn Space; map M; UI submit Enter; UI cancel Escape.
 - Gamepad: move left stick; look right stick; focus d-pad; confirm A; cancel B; inspect X; end turn Y; pause Start; deck view Select; page with the triggers; map left shoulder; sort hand right shoulder; recentre right stick press.
+
+## Rebinding (Session 04, 2026-10-14)
+
+Every key above can be changed by the player in `UserData\MelonPreferences.cfg`, section `[ShroomAccessKeys]`: one entry per game action the mod answers (`FocusPrev`, `Confirm`, ...), the walk keys (`WalkForward`, ...) and the letters of the mod's Ctrl commands (`CtrlPlusMark`, `CtrlPlusOpenUpdatePage`, `CtrlPlusInstallUpdate`). Values are comma-separated Input System key names; an unknown name is logged and the default kept. The cheat-key list above still applies when choosing letters for Ctrl commands.
+

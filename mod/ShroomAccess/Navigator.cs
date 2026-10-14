@@ -346,7 +346,8 @@ namespace ShroomAccess
             Loc.T("help.card_label", "A card's name is followed by the label under its title when it has one: uses left, battery, evolve"),
             Loc.T("help.voice_rate", "Control Page Up and Control Page Down make the walking voice faster or slower"),
             Loc.T("help.bug_mark", "Control B marks the moment for a bug report"),
-            Loc.T("help.update", "When the title screen says a new version is out, Control O opens its download page"),
+            Loc.T("help.update", "When the title screen says a new version is out, Control O opens its download page and Control N, pressed twice, installs it"),
+            Loc.T("help.keys", "Every key can be changed in the preferences file; the README says how"),
         };
         private static int _buffer;
         private static int _line;

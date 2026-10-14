@@ -146,4 +146,6 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **KEY FINDING — Cards carry a label under the title** (`V_GameplayCardInstance._usesRoot`, `_usesText`, `_usesTooltip`): uses, battery, evolve. It can be the only explanation of a refused play ("Dead Battery"). Read any small text on a card, not only its name and rules.
 - **GOTCHA — GitHub's API refuses requests with no user agent, and answers 404 for a private repository.** The update check sets one and treats any failure as silence.
 - **GOTCHA — MelonLoader writes new preference entries only when the game closes.** Edit `MelonPreferences.cfg` with the game closed, after one run has created the entries.
+- **KEY FINDING — A DLL the game has loaded cannot be overwritten or deleted, but it can be renamed.** The in-game installer moves each existing file to `.old`, writes the new one, and deletes the `.old` files on the next start. Tested with `ShroomAccess.dll` and `prism.dll` loaded.
+- **PATTERN — Strings with the English inline** (`Loc.T("key", "English", args)`): nothing goes silent when the table is missing, and the template is generated from the code, so it cannot fall out of step.
 

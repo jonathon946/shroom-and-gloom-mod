@@ -2,6 +2,12 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-14 — Session 04, part 9 — strings table, in-game install, rebindable keys
+
+- Everything the mod says goes through one table; a strings.txt translates it; a template of all 248 phrases ships with the mod.
+- Control N, pressed twice after a new version is announced, downloads it, checks it against its published checksum and installs it for the next start; nothing is changed if anything fails.
+- Every key the mod uses can be changed in the preferences file.
+
 ## 2026-10-14 — Session 04, part 8 — update check
 
 - On start the mod asks GitHub for its newest release; a newer one is said on the title screen and Control O opens its page. It can be turned off in the preferences file.

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using MelonLoader;
 using ShroomAccess.Speech;
@@ -31,6 +32,8 @@ namespace ShroomAccess
             _repository = category.CreateEntry("UpdateRepository", "jonathon946/shroom-and-gloom-mod", "Update repository",
                 "The GitHub project (owner/name) whose releases are checked.");
 
+            LoadKeys();
+
             float rate = _directRate.Value;
             if (rate < 0f)
             {
@@ -38,6 +41,36 @@ namespace ShroomAccess
                 Log("Walking voice rate follows the screen reader: " + rate.ToString("F2"));
             }
             Speaker.SetDirectRate(rate);
+        }
+
+        // Every key the mod listens to, in its own section of the preferences file: one entry per
+        // action, keys separated by commas, named as the Input System names them ("leftArrow",
+        // "enter", "w"). A name it does not know is logged and the default kept, so no action can
+        // be left without a key by a typing mistake.
+        private static void LoadKeys()
+        {
+            MelonPreferences_Category keys = MelonPreferences.CreateCategory("ShroomAccessKeys", "Shroom Access keys");
+            foreach (var id in new List<Il2Cpp.InputActionId>(InputBridge.Map.Keys))
+                InputBridge.Map[id] = Read(keys, id.ToString(), InputBridge.Map[id]);
+            foreach (string name in new List<string>(InputBridge.WalkKeys.Keys))
+                InputBridge.WalkKeys[name] = Read(keys, name, InputBridge.WalkKeys[name]);
+            foreach (string name in new List<string>(InputBridge.CommandKeys.Keys))
+                InputBridge.CommandKeys[name] = Read(keys, "CtrlPlus" + name, InputBridge.CommandKeys[name]);
+        }
+
+        private static string[] Read(MelonPreferences_Category keys, string name, string[] defaults)
+        {
+            MelonPreferences_Entry<string> entry = keys.CreateEntry(name, string.Join(", ", defaults));
+            var chosen = new List<string>();
+            foreach (string raw in (entry.Value ?? "").Split(','))
+            {
+                string key = raw.Trim();
+                if (key.Length == 0) continue;
+                if (InputBridge.IsKeyName(key)) chosen.Add(key);
+                else Log("Keys: \"" + key + "\" for " + name + " is not a key name; ignored.");
+            }
+            if (chosen.Count == 0) { Log("Keys: " + name + " has no usable key; using " + string.Join(", ", defaults)); return defaults; }
+            return chosen.ToArray();
         }
 
         internal static void NudgeDirectRate(int direction)

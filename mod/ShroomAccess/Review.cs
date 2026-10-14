@@ -36,7 +36,7 @@ namespace ShroomAccess
                         Log("[key] " + (ctrl ? "Ctrl+" : "") + id);
                     }
 
-                if (ctrl && InputBridge.NamedKey("b")) Mark(focus);
+                if (ctrl && InputBridge.CommandKey("Mark")) Mark(focus);
             }
             catch (Exception ex) { Log("[review] " + ex.GetType().Name + ": " + ex.Message); }
         }

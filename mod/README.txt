@@ -43,6 +43,7 @@ Control Left and Right switch buffer: Item, Player, Surroundings, Messages, Help
 Control Page Up, Down  walking voice faster, slower
 Control B              mark this moment (for bug reports)
 Control O              after a new version is announced: open its download page
+Control N              after a new version is announced: download and install it (press twice)
 
 The Help buffer in the game has the same list.
 
@@ -52,10 +53,31 @@ Avoid other Control combinations in the game: some are developer cheat keys.
 UPDATES
 
 Once each time the game starts, the mod asks GitHub whether a newer version of Shroom Access has
-been released. If one has, the title screen says so, and Control O opens its download page in your
-browser. Nothing is downloaded or installed by the mod; GitHub sees only that the question was
-asked. To turn this off, close the game, open UserData\MelonPreferences.cfg in the game folder and
-set CheckForUpdates = false under [ShroomAccess].
+been released. If one has, the title screen says so. Control O opens its download page in your
+browser. Control N, pressed twice, downloads it, checks it against the checksum published with the
+release, and puts the new files in place; restart the game to use it. If anything goes wrong,
+nothing is changed. Only the mod's own files are written. To turn the check off, close the game,
+open UserData\MelonPreferences.cfg in the game folder and set CheckForUpdates = false under
+[ShroomAccess].
+
+
+CHANGING KEYS
+
+Close the game and open UserData\MelonPreferences.cfg in the game folder. Under
+[ShroomAccessKeys] each action has its keys, separated by commas, for example
+    Confirm = "enter, numpadEnter"
+Key names are those of Unity's Input System: letters (a to z), digits, space, enter, tab,
+backspace, escape, upArrow, downArrow, leftArrow, rightArrow, pageUp, pageDown, numpad1 and so on.
+The entries starting CtrlPlus are the letters of the mod's own Control commands. A name the mod
+does not recognise is ignored and the usual key kept. The Help buffer still names the usual keys.
+
+
+TRANSLATING
+
+Everything the mod says in its own words is listed in Mods\ShroomAccess\strings-template.txt.
+Copy it to strings.txt in the same folder and change the text after " = " on each line, keeping
+{0}, {1} and so on where the values go. Lines left out are said in English. Names and texts that
+come from the game itself are already in the game's language.
 
 
 REMOVING

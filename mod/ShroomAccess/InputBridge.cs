@@ -19,9 +19,10 @@ namespace ShroomAccess
         private static bool _readFailed;
         private static IntPtr _uiModuleDone;
 
-        // Keyboard controls that stand in for each game action, as Input System control paths.
-        // Ctrl is reserved for mod commands.
-        private static readonly Dictionary<InputActionId, string[]> Map = new Dictionary<InputActionId, string[]>
+        // Keyboard controls that stand in for each game action, as Input System control names.
+        // Ctrl is reserved for mod commands. These are the defaults; the player's own choices from
+        // the preferences file replace them before the actions are made (ApplyBindings).
+        internal static readonly Dictionary<InputActionId, string[]> Map = new Dictionary<InputActionId, string[]>
         {
             { InputActionId.FocusPrev, new[] { "leftArrow" } },
             { InputActionId.FocusNext, new[] { "rightArrow" } },
@@ -53,13 +54,28 @@ namespace ShroomAccess
             return action;
         }
 
+        // Walking, and the letters of the mod's own Ctrl commands, also rebindable.
+        internal static readonly Dictionary<string, string[]> WalkKeys = new Dictionary<string, string[]>
+        {
+            { "WalkForward", new[] { "w" } }, { "WalkBack", new[] { "s" } },
+            { "WalkLeft", new[] { "a" } }, { "WalkRight", new[] { "d" } },
+        };
+        internal static readonly Dictionary<string, string[]> CommandKeys = new Dictionary<string, string[]>
+        {
+            { "Mark", new[] { "b" } }, { "OpenUpdatePage", new[] { "o" } }, { "InstallUpdate", new[] { "n" } },
+        };
+
+        // True when the name is a keyboard key the Input System knows ("leftArrow", "enter", "w").
+        internal static bool IsKeyName(string name) =>
+            !string.IsNullOrWhiteSpace(name) && Enum.TryParse(name.Trim(), true, out UnityEngine.InputSystem.Key key) && key != UnityEngine.InputSystem.Key.None;
+
         private static void EnsureActions()
         {
             if (_actions != null) return;
             var made = new Dictionary<InputActionId, InputAction>();
             foreach (var pair in Map) made[pair.Key] = Button(pair.Key.ToString(), pair.Value);
-            _moveUp = Button("MoveUp", "w"); _moveDown = Button("MoveDown", "s");
-            _moveLeft = Button("MoveLeft", "a"); _moveRight = Button("MoveRight", "d");
+            _moveUp = Button("MoveUp", WalkKeys["WalkForward"]); _moveDown = Button("MoveDown", WalkKeys["WalkBack"]);
+            _moveLeft = Button("MoveLeft", WalkKeys["WalkLeft"]); _moveRight = Button("MoveRight", WalkKeys["WalkRight"]);
             _actions = made;
             Log("Keyboard actions ready: " + _actions.Count);
         }
@@ -190,6 +206,19 @@ namespace ShroomAccess
 
         // A key that is not a game action (mod commands such as Ctrl+B).
         private static readonly Dictionary<string, InputAction> _named = new Dictionary<string, InputAction>();
+
+        // A mod command's key, as the player has set it (pressed this frame).
+        internal static bool CommandKey(string command)
+        {
+            if (!_commandActions.TryGetValue(command, out InputAction action))
+            {
+                _commandActions[command] = Button("Command." + command, CommandKeys.TryGetValue(command, out string[] keys) ? keys : new string[0]);
+                return false;
+            }
+            return Application.isFocused && action.WasPressedThisFrame();
+        }
+
+        private static readonly Dictionary<string, InputAction> _commandActions = new Dictionary<string, InputAction>();
 
         internal static bool NamedKey(string control)
         {

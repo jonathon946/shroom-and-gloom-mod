@@ -79,8 +79,8 @@ namespace ShroomAccess
                         : Loc.T("update.keys_page", "Control O opens its download page.")), interrupt: false);
             }
             // Read every frame once announced, so the first press counts.
-            bool open = _said && InputBridge.NamedKey("o");
-            bool install = _said && InputBridge.NamedKey("n");
+            bool open = _said && InputBridge.CommandKey("OpenUpdatePage");
+            bool install = _said && InputBridge.CommandKey("InstallUpdate");
             if (!InputBridge.CtrlHeld) return;
 
             if (open && _page.StartsWith("https://github.com/"))
