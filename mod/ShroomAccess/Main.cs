@@ -45,6 +45,8 @@ namespace ShroomAccess
             // SHROOMACCESS_BACKEND=SAPI forces a Windows voice; used for dev tests where no one is listening.
             string backend = Environment.GetEnvironmentVariable("SHROOMACCESS_BACKEND");
 
+            Loc.Log = msg => LoggerInstance.Msg(msg);
+            Loc.Load(Path.Combine(MelonEnvironment.ModsDirectory, "ShroomAccess", "strings.txt"));
             Settings.Log = msg => LoggerInstance.Msg(msg);
             Cue.Log = msg => LoggerInstance.Msg(msg);
             if (Speaker.Init(prism, backend))
