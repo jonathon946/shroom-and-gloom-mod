@@ -280,7 +280,7 @@ namespace ShroomAccess
 
         // When an arrow last stepped the pile here: the game's own focus did not move, and that
         // is not the end of a row.
-        internal static float PileArrowAt = -100f;
+        internal static int PileArrowFrame = -100;
 
         private static void PileStep(S_ControllerFocus focus, int dx)
         {
@@ -301,7 +301,7 @@ namespace ShroomAccess
             }
 
             int next = _pileIndex + dx;
-            PileArrowAt = Time.realtimeSinceStartup;
+            PileArrowFrame = Time.frameCount;
             if (next < 0 || next >= count) { Edge(focus); return; }
             _pileIndex = next;
             Il2CppSystem.Object card = cards[next].Cast<Il2CppSystem.Object>();

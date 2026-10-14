@@ -154,7 +154,7 @@ namespace ShroomAccess
                 Il2CppSystem.Object current = focus.CurrentFocus;
                 IntPtr ptr = current != null ? current.Pointer : IntPtr.Zero;
                 if (!InputBridge.NavigatorOwnsArrows && !InputBridge.CtrlHeld && ptr != IntPtr.Zero && !Navigator.InStatusRow
-                    && Time.realtimeSinceStartup - Navigator.PileArrowAt > 0.05f
+                    && Time.frameCount != Navigator.PileArrowFrame
                     && (InputBridge.Key(InputActionId.FocusPrev) || InputBridge.Key(InputActionId.FocusNext) || InputBridge.Key(InputActionId.FocusUp) || InputBridge.Key(InputActionId.FocusDown)))
                 {
                     _arrowAt = Time.realtimeSinceStartup;
@@ -1361,7 +1361,9 @@ namespace ShroomAccess
                 _pendingAdded.AddRange(added);
                 _pendingAddedAt = Time.realtimeSinceStartup + 1.1f;
                 // The game's focus hops along the cards as they are dealt; none of it is read.
-                if (_pendingAdded.Count > 1) Silent(_pendingAddedAt + 0.6f - Time.realtimeSinceStartup);
+                // An explore turn deals one card at a time, more slowly than a fight; keep quiet
+                // from the first card on.
+                if (focus.Scope == null) Silent(_pendingAddedAt + 0.6f - Time.realtimeSinceStartup);
             }
             if (_pendingAdded.Count == 0 || Time.realtimeSinceStartup < _pendingAddedAt) return;
 

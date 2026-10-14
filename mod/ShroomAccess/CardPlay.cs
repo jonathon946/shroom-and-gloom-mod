@@ -79,6 +79,17 @@ namespace ShroomAccess
                     FocusProbe.Speak("Not enough energy for " + model.CardName + ": it costs " + data.EnergyUse + ", you have " + p.Energy + ". Space ends the turn.");
                     return;
                 }
+                // A card that costs health ("Take 5 damage") when that is all the health left: a
+                // sighted player sees the health bar beside the card.
+                try
+                {
+                    var hurt = System.Text.RegularExpressions.Regex.Match(FocusProbe.Clean(data != null ? data.SingleDescription : ""), @"Take (\d+) damage", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    int cost = hurt.Success ? int.Parse(hurt.Groups[1].Value) : 0;
+                    int hp = p.HealthData.CurrentHealth;
+                    if (cost > 0 && cost >= hp)
+                        FocusProbe.Announce("Careful: " + model.CardName + " costs " + cost + " health and you have " + hp + ".", interrupt: false);
+                }
+                catch { }
                 _card = model.Pointer;
                 _name = model.CardName;
                 _failureBefore = Failure(focus);
@@ -149,9 +160,11 @@ namespace ShroomAccess
             }
             catch (Exception ex) { target = ex.GetType().Name; }
             Log("[cardplay] " + _name + " not played; failure reason: " + failure + "; canCast=" + canCast + " notTurn=" + notTurn + " target=" + target);
+            // With no reason given and the game's own check passing, the card had nothing to act on
+            // (seen with Shovel and Tool when nothing nearby could be dug or fixed).
             string why = !string.IsNullOrWhiteSpace(failure) && failure != _failureBefore ? " " + FocusProbe.Clean(failure) + "."
                 : notTurn ? " It is not your turn yet."
-                : " The game gives no reason.";
+                : " Nothing here it can be used on.";
             FocusProbe.Speak(_name + " was not played." + why);
         }
     }

@@ -104,7 +104,12 @@ namespace ShroomAccess
                         _energyHeld = line;
                         FocusProbe.Silent(3f);
                     }
-                    else Say(line);
+                    else
+                    {
+                        Say(line);
+                        // Outside a fight the refill starts a new turn's deal.
+                        if (!_combat) FocusProbe.Silent(3f);
+                    }
                 }
                 _energy = energy;
 

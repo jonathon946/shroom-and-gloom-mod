@@ -2,6 +2,13 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-14 — Session 04, part 3 — tenth playthrough
+
+- A camp's new turn stays quiet until its slower deal is done.
+- The backpack pile no longer plays the edge sound in the middle.
+- A card with nothing to act on says "Nothing here it can be used on" again.
+- A card whose health cost would use up all your health says "Careful: ... costs 5 health and you have 5." when chosen.
+
 ## 2026-10-14 — Session 04, part 2 — ninth playthrough: less speech
 
 - After a play, a draw, a new turn, a fight opening, a payment or a screen's introduction, the card the focus lands on is not read; the next arrow is.

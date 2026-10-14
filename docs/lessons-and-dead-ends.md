@@ -141,4 +141,6 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **GOTCHA — Every menu in this game, including the pause menu and the character pages, is a `MenuFocusScope`.** Recognise the pause menu by its place under the pause canvas or its Unpause button.
 - **GOTCHA — TextMeshPro text carries colour tags with digits** (`<#FFAF61FF>`). Clean the text before taking numbers out of it.
 - **GOTCHA — Edge detection by "did the focus move" needs a short wait** (the game moves it within about 0.06 seconds); a quarter second felt laggy. And a row the mod steps itself (the backpack pile) never moves the game's focus, so it must be excluded.
+- **GOTCHA — "Same moment" must mean the same frame, not a short time window.** A pile step that took longer than 0.05 seconds (an automatic picture) slipped past a time-based check. Compare `Time.frameCount`.
+- **KEY FINDING — A card refused with no failure reason and `CanCast` true had nothing to act on.** The game gives no words for it; "Nothing here it can be used on" is right.
 
