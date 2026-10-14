@@ -85,6 +85,9 @@ namespace ShroomAccess.Speech
         //          voice gives way (its line is said again afterwards).
         //   not asked: the line waits until the direct voice has finished.
         private static long _mainBusyUntil;
+        // Set every frame: a walk key is down. The direct voice exists for that time only; once
+        // the key is up, whatever it had not yet said is given to the screen reader.
+        internal static bool WalkHeld;
         private static readonly System.Collections.Generic.Queue<string> _mainDeferred = new System.Collections.Generic.Queue<string>();
         private static string _directCurrent;
         private static int _directCurrentCuts;
@@ -237,16 +240,24 @@ namespace ShroomAccess.Speech
                     // Just after a line is handed over the voice may not report speaking yet.
                     if (Environment.TickCount64 - _directStartedAt < 250) return;
                     if (PrismNative.prism_backend_is_speaking(_direct, out bool speaking) == PrismNative.Ok && speaking) return;
+                    if (_directQueue.Count > 0 && !WalkHeld)
+                    {
+                        // The walk is over: the screen reader can be heard again, so it takes the rest.
+                        var rest = new System.Collections.Generic.List<string>(_directQueue);
+                        _directQueue.Clear();
+                        foreach (string line in _mainDeferred) rest.Add(line);
+                        _mainDeferred.Clear();
+                        foreach (string line in rest) { Log("[handed-over] " + line); SayNow(line, false); }
+                        return;
+                    }
                     if (_directQueue.Count == 0)
                     {
                         // The direct voice has finished: now the lines that waited for it.
-                        string waited = string.Join(" ", _mainDeferred);
+                        var waited = new System.Collections.Generic.List<string>(_mainDeferred);
                         _mainDeferred.Clear();
-                        SayNow(waited, false);
+                        foreach (string line in waited) SayNow(line, false);
                         return;
                     }
-                    // The screen reader is, by its length, still on its last line.
-                    if (Environment.TickCount64 < _mainBusyUntil) return;
                     string text = _directQueue.Dequeue();
                     if (text != _directCurrent) _directCurrentCuts = 0;
                     _directCurrent = text;

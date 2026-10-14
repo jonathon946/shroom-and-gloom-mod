@@ -223,6 +223,9 @@ namespace ShroomAccess
         // When the player last pressed a key the mod acts on (not the walk keys).
         internal static float LastKeyAt = -100f;
         internal static bool JustPressed => Time.realtimeSinceStartup - LastKeyAt < 0.6f;
+        internal static float LastArrowAt = -100f, LastConfirmAt = -100f;
+        internal static bool ArrowJustPressed => Time.realtimeSinceStartup - LastArrowAt < 0.6f;
+        internal static bool IsArrowKey(InputActionId id) => IsArrow(id);
 
         private static InputActionId _forwarded = InputActionId.None;
         private static int _forwardedFrame;

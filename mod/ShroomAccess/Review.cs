@@ -31,6 +31,8 @@ namespace ShroomAccess
                     if (InputBridge.Key(id))
                     {
                         InputBridge.LastKeyAt = Time.realtimeSinceStartup;
+                        if (InputBridge.IsArrowKey(id)) InputBridge.LastArrowAt = Time.realtimeSinceStartup;
+                        if (id == InputActionId.Confirm) InputBridge.LastConfirmAt = Time.realtimeSinceStartup;
                         Log("[key] " + (ctrl ? "Ctrl+" : "") + id);
                     }
 

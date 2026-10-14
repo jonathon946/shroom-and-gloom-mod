@@ -53,6 +53,20 @@ namespace ShroomAccess
         private static bool _wasTarget;
 
         private static IntPtr _introSaidFor;
+        private static float _screenDue;
+        private static IntPtr _screenScope;
+
+        // Screen text said a moment ago is not said again by another watcher.
+        private static readonly Dictionary<string, float> _saidAt = new Dictionary<string, float>();
+
+        private static bool SaidLately(string part)
+        {
+            float now = Time.realtimeSinceStartup;
+            bool lately = _saidAt.TryGetValue(part, out float at) && now - at < 4f;
+            _saidAt[part] = now;
+            if (_saidAt.Count > 200) _saidAt.Clear();
+            return lately;
+        }
 
         internal static void Tick(S_ControllerFocus focus)
         {
@@ -67,8 +81,16 @@ namespace ShroomAccess
                 {
                     _lastScope = ptr;
                     if (scope == null) _introSaidFor = IntPtr.Zero;
-                    if (scope != null && !Rewards.Handles(scope)) AnnounceScreen(scope);
-                    if (scope != null) Rewards.ScreenOpened(scope);
+                    // A screen that is up for a blink on the way to another is not read: wait and see
+                    // that it is still there. Choosing a character flips back through its first page.
+                    _screenDue = 0f;
+                    if (scope != null)
+                    {
+                        bool flipping = Walk.Scene.Contains("CharacterSelection") && Time.realtimeSinceStartup - InputBridge.LastConfirmAt < 0.5f;
+                        _screenDue = Time.realtimeSinceStartup + (flipping ? 0.85f : 0.3f);
+                        _screenScope = ptr;
+                        FocusProbe.SuppressFocusUntil = Mathf.Max(FocusProbe.SuppressFocusUntil, _screenDue + 0.05f);
+                    }
                     if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "BowlShopEncounterUI" && Time.realtimeSinceStartup - _shopSaidAt > 30f && (_shopSaidAt = Time.realtimeSinceStartup) > 0f)
                         FocusProbe.Announce("A shop. Cards are paid for with food. Enter on a card to choose it, then Enter on a food card in your hand and Enter on the bowl to pay.", interrupt: false);
                     if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "S_MapReminder")
@@ -95,6 +117,16 @@ namespace ShroomAccess
                         _offerGiveUp = Time.realtimeSinceStartup + 25f;
                         _offerWaitSaid = false;
                         FocusProbe.SuppressFocusUntil = _offerDue;
+                    }
+                }
+
+                if (_screenDue > 0f && Time.realtimeSinceStartup >= _screenDue)
+                {
+                    _screenDue = 0f;
+                    if (scope != null && ptr == _screenScope)
+                    {
+                        if (!Rewards.Handles(scope)) AnnounceScreen(scope);
+                        Rewards.ScreenOpened(scope);
                     }
                 }
 
@@ -177,7 +209,7 @@ namespace ShroomAccess
                         if (fresh.Count > 0 && fresh.Count <= 3)
                         {
                             Log("[screen-change] " + string.Join(" | ", fresh));
-                            FocusProbe.Announce(string.Join(". ", fresh).Replace("!.", "!").Replace("?.", "?"), interrupt: false);
+                            foreach (string part in fresh) if (!SaidLately(part)) FocusProbe.Announce(part, interrupt: false);
                         }
                     }
                     _liveScope = ptr;
@@ -246,6 +278,7 @@ namespace ShroomAccess
                 if (t == null || t.GetComponentInParent<Selectable>() != null) continue;
                 if (IsControlLabel(t.transform)) continue;
                 if (t.GetComponentInParent<V_GameplayCardInstance>() != null || t.GetComponentInParent<V_ForesightCardInstance>() != null) continue;
+                if (t.GetComponentInParent<CharacterSelection_Button>() != null) continue;
                 string text = FocusProbe.Clean(t.text);
                 if (text.Length < 2 || text.Length > 220 || parts.Contains(text)) continue;
                 // Price tags belong to the cards; the pause menu prints build and session identifiers.
@@ -268,14 +301,8 @@ namespace ShroomAccess
             _lastScreenText = joined;
             _lastScreenAt = Time.realtimeSinceStartup;
             Log("[screen] " + string.Join(" | ", parts));
-            var sb = new System.Text.StringBuilder();
-            foreach (string part in parts)
-            {
-                sb.Append(part);
-                char last = part[part.Length - 1];
-                sb.Append(last == '.' || last == '?' || last == '!' || last == ':' ? " " : ". ");
-            }
-            FocusProbe.Announce(sb.ToString().Trim(), interrupt: false);
+            // Each piece is its own utterance, so the screen reader pauses between them.
+            foreach (string part in parts) if (!SaidLately(part)) FocusProbe.Announce(part, interrupt: false);
         }
     }
 }

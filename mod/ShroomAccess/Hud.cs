@@ -61,6 +61,7 @@ namespace ShroomAccess
 
         private static int _hp = int.MinValue, _turns = int.MinValue, _energy = int.MinValue;
         private static string _threat = "";
+        private static string _threatOutcome = "";
         private static string _threatSeen = "";
         private static float _threatDue;
 
@@ -89,7 +90,7 @@ namespace ShroomAccess
                 bool exploring = p.IsInExploreEncounter;
                 if (exploring != _exploring)
                 {
-                    if (exploring && !focus.InCombat) FocusProbe.CampReached();
+                    if (exploring && !focus.InCombat) { FocusProbe.CampReached(); _threatOutcome = ""; }
                     _exploring = exploring;
                 }
 
@@ -119,7 +120,11 @@ namespace ShroomAccess
                 if (_threatDue > 0f && Time.realtimeSinceStartup >= _threatDue)
                 {
                     _threatDue = 0f;
-                    if (threat != _threat && threat.Length > 0) Say(threat + ".");
+                    // Said when what will happen changes (safe, balanced, or taking damage), and once on
+                    // reaching a camp. A different number with the same outcome stays on the Status row.
+                    string outcome = threat.Contains("Take ") ? "damage" : threat.Contains("Safe") ? "safe" : threat.Length > 0 ? "other" : "";
+                    if (threat != _threat && threat.Length > 0 && outcome != _threatOutcome) Say(threat + ".");
+                    if (threat.Length > 0) _threatOutcome = outcome;
                     _threat = threat;
                 }
             }

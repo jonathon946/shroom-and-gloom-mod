@@ -17,6 +17,8 @@ namespace ShroomAccess
         private static float _castAt;
         private static string _failureBefore;
 
+        private static string _placedAt = "";
+
         internal static void Tick(S_ControllerFocus focus)
         {
             try
@@ -28,7 +30,7 @@ namespace ShroomAccess
                 {
                     _castAt = 0f;
                     if (focus.Mode != FocusMode.Target && !string.IsNullOrWhiteSpace(_name))
-                        FocusProbe.Announce("Played " + _name + ".", interrupt: false);
+                        FocusProbe.Announce(_placedAt.Length > 0 ? _name + " placed, " + _placedAt + "." : "Played " + _name + ".", interrupt: false);
                 }
                 if (_checkAt > 0f && Time.realtimeSinceStartup >= _checkAt)
                 {
@@ -42,6 +44,17 @@ namespace ShroomAccess
                 {
                     _name = focus.TargetResolver.CastingCardName;
                     _castAt = Time.realtimeSinceStartup + 0.9f;
+                    // The check started by the first Enter (on the card) no longer applies.
+                    _checkAt = 0f;
+                    // A camp card set down on an empty plot: say where it went.
+                    _placedAt = "";
+                    try
+                    {
+                        string target = focus.CurrentFocus != null ? FocusProbe.Describe(focus.CurrentFocus, out _) : "";
+                        if (target.StartsWith("Empty plot, ")) _placedAt = target.Substring(12).Split(new[] { ", marked" }, StringSplitOptions.None)[0].TrimEnd('.', ' ');
+                    }
+                    catch { }
+                    FocusProbe.NotePlay(_name);
                     return;
                 }
                 if (focus.Mode.ToString() != "Hand" || focus.Scope != null) return;
@@ -80,7 +93,7 @@ namespace ShroomAccess
             for (int i = 0; held != null && i < held.Count; i++)
                 if (held[i] != null && held[i].Pointer == _card) { stillHeld = true; break; }
 
-            if (!stillHeld) { FocusProbe.Announce("Played " + _name + ".", interrupt: false); return; }
+            if (!stillHeld) { FocusProbe.NotePlay(_name); FocusProbe.Announce("Played " + _name + ".", interrupt: false); return; }
 
             // A card with no target is lifted by the first Enter and played by the second.
             bool pending = false;

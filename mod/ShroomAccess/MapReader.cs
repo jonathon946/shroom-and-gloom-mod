@@ -38,39 +38,62 @@ namespace ShroomAccess
                 }
                 if (segments.Count == 0) { lines.Add("The map is blank"); return lines; }
 
-                int here = -1, known = 0;
-                var described = new List<string>();
-                for (int i = 0; i < segments.Count; i++)
+                // Tunnels at the same depth are a fork: the path splits and one of them is walked.
+                var depths = new SortedDictionary<int, List<MapSegment>>();
+                foreach (MapSegment s in segments)
                 {
-                    MapSegment s = segments[i];
-                    bool hidden = false;
-                    try { hidden = s._hidden; } catch { }
-                    bool isHere = s.YrHereRoot != null && s.YrHereRoot.activeInHierarchy;
-                    if (isHere) here = i;
-                    if (!hidden) known++;
+                    int depth = 0;
+                    try { depth = s.TunnelDepth; } catch { }
+                    if (!depths.TryGetValue(depth, out List<MapSegment> at)) depths[depth] = at = new List<MapSegment>();
+                    at.Add(s);
+                }
 
-                    var parts = new List<string>();
-                    if (isHere) parts.Add("you are here");
-                    if (hidden) parts.Add("not yet explored");
-                    if (Shown(s.FinishedCombatIcon) || Shown(s.FinishedCombatIconUnrevealed)) parts.Add("fight won");
-                    else if (Shown(s.CombatIcon) || Shown(s.CombatIconUnrevealed)) parts.Add("a fight");
-                    if (!hidden)
+                int hereDepth = int.MinValue, known = 0;
+                var raw = new System.Text.StringBuilder();
+                var described = new List<KeyValuePair<int, string>>();
+                foreach (var pair in depths)
+                {
+                    List<MapSegment> at = pair.Value;
+                    at.Sort((x, y) => x.transform.position.x.CompareTo(y.transform.position.x));
+                    var options = new List<string>();
+                    for (int i = 0; i < at.Count; i++)
                     {
-                        string rewards = Rewards(s);
-                        if (rewards.Length > 0) parts.Add(rewards);
-                    }
-                    described.Add("Area " + (i + 1) + " of " + segments.Count + (parts.Count > 0 ? ": " + string.Join(", ", parts) : ""));
-                }
+                        MapSegment s = at[i];
+                        bool hidden = false, boss = false;
+                        try { hidden = s._hidden; } catch { }
+                        try { boss = s.IsBoss; } catch { }
+                        bool isHere = s.YrHereRoot != null && s.YrHereRoot.activeInHierarchy;
+                        if (isHere) hereDepth = pair.Key;
+                        if (!hidden) known++;
+                        raw.Append(" [" + pair.Key + " " + Code(s) + (boss ? " boss" : "") + (hidden ? " hidden" : "") + (isHere ? " here" : "") + "]");
 
-                lines.Add("Map: " + segments.Count + " areas on this path, " + known + " explored"
-                    + (here >= 0 ? ". You are in area " + (here + 1) : ""));
-                // Start reading from where the player is, then onward, then back.
-                if (here >= 0)
-                {
-                    for (int i = here; i < described.Count; i++) lines.Add(described[i]);
-                    for (int i = here - 1; i >= 0; i--) lines.Add(described[i]);
+                        var parts = new List<string>();
+                        if (isHere) parts.Add("you are here");
+                        if (boss) parts.Add("the boss");
+                        if (hidden) parts.Add("not yet explored");
+                        if (Shown(s.FinishedCombatIcon) || Shown(s.FinishedCombatIconUnrevealed)) parts.Add("fight won");
+                        else if (Shown(s.CombatIcon) || Shown(s.CombatIconUnrevealed)) parts.Add("a fight");
+                        if (!hidden)
+                        {
+                            string rewards = Rewards(s);
+                            if (rewards.Length > 0) parts.Add(rewards);
+                        }
+                        if (parts.Count == 0) parts.Add("nothing marked");
+                        string side = at.Count == 1 ? "" : at.Count == 2 ? (i == 0 ? "left: " : "right: ") : i == 0 ? "left: " : i == at.Count - 1 ? "right: " : "middle: ";
+                        options.Add(side + string.Join(", ", parts));
+                    }
+                    described.Add(new KeyValuePair<int, string>(pair.Key,
+                        "Tunnel " + pair.Key + (at.Count > 1 ? ", a fork of " + at.Count + ". " + string.Join(". ", options) : ": " + options[0])));
                 }
-                else lines.AddRange(described);
+                string rawText = raw.ToString();
+                if (rawText != _lastRaw) { _lastRaw = rawText; Log("[map]" + rawText); }
+
+                lines.Add("Map: " + depths.Count + " tunnels deep, " + segments.Count + " areas, " + known + " explored"
+                    + (hereDepth != int.MinValue ? ". You are in tunnel " + hereDepth : ""));
+                // From where the player is onward; what lies behind comes last and says so.
+                foreach (var pair in described) if (hereDepth == int.MinValue || pair.Key >= hereDepth) lines.Add(pair.Value);
+                for (int i = described.Count - 1; i >= 0; i--)
+                    if (hereDepth != int.MinValue && described[i].Key < hereDepth) lines.Add("Behind you. " + described[i].Value);
             }
             catch (Exception ex)
             {
@@ -78,6 +101,13 @@ namespace ShroomAccess
                 lines.Add("The map could not be read");
             }
             return lines;
+        }
+
+        private static string _lastRaw = "";
+
+        private static string Code(MapSegment s)
+        {
+            try { return s.TunnelCode ?? "?"; } catch { return "?"; }
         }
 
         private static bool Shown(SpriteRenderer r)
