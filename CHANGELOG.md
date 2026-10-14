@@ -2,6 +2,11 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-14 — Session 04, part 11 — first public release (0.1.0)
+
+- The zip now contains everything: MelonLoader, the mod, the speech library and an installer. Press Enter on "Install Shroom Access.cmd": it finds the game through Steam, installs .NET 6 if needed, and copies the files.
+- The repository is public and the release is on GitHub, so the update check and Control N work.
+
 ## 2026-10-14 — Session 04, part 10 — thirteenth playthrough: cards on cards
 
 - A card played on another card in a fight (Vile Oil) reads each card it can go on, with its place, instead of a program name.

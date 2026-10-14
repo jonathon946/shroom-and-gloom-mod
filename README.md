@@ -4,7 +4,13 @@
 
 Make Shroom and Gloom (Team Lazerbeam / Devolver Digital; Unity 2022.3.62f3, IL2CPP; Steam Early Access) fully playable by a blind screen-reader user: every menu, both decks, combat, exploration, the map, rewards and shops spoken through Prism and operable from the keyboard.
 
-The mod runs in the game: the title screen, pause menu and tutorial opening are keyboard-operable and spoken in dev tests. Nothing is confirmed by ear in the game yet.
+## For players: download and install
+
+This is an early test build (Shroom Access). Get the newest `ShroomAccess-<version>.zip` from the [Releases page](https://github.com/jonathon946/shroom-and-gloom-mod/releases/latest), extract it, and press Enter on `Install Shroom Access.cmd`. It finds the game through Steam, installs the .NET 6 runtime if needed, and copies in MelonLoader, the mod and its speech library. The `README.txt` in the zip has the keys and everything else. The mod tells you on the title screen when a newer version is out, and Control N installs it.
+
+## For developers
+
+The mod plays through the whole game in dev tests and by ear; [docs/STATE.md](docs/STATE.md) says what is confirmed.
 
 ## Reading order (start of every session)
 
@@ -41,4 +47,4 @@ The mod runs in the game: the title screen, pause menu and tutorial opening are 
 
 - Game install: `C:\Program Files (x86)\Steam\steamapps\common\Shroom and Gloom\` (Steam app 3271280).
 - Logs and saves: `%USERPROFILE%\AppData\LocalLow\Team Lazerbeam\Shroom and Gloom\` (`Player.log`, `LoadTimings.log`, `SaveData\`).
-- Repository: [jonathon946/shroom-and-gloom-mod](https://github.com/jonathon946/shroom-and-gloom-mod) (private).
+- Repository: [jonathon946/shroom-and-gloom-mod](https://github.com/jonathon946/shroom-and-gloom-mod) (public since 2026-10-14).

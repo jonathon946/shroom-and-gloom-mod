@@ -25,11 +25,20 @@ Copy-Item (Join-Path $root 'mod\ShroomAccess\data\*') (Join-Path $out 'Mods\Shro
 Copy-Item (Join-Path $prism 'prism.dll') (Join-Path $out 'UserLibs')
 Copy-Item (Join-Path $prism 'prism-licenses') (Join-Path $out 'UserLibs') -Recurse
 Copy-Item (Join-Path $root 'mod\README.txt') $out
+# The loader, so a player needs nothing else: version.dll and MelonLoader\ at the zip's root, laid
+# out as in the game folder (its licence is in MelonLoader\Documentation). The in-game updater
+# takes only the mod's own files from the same zip.
+$loader = Join-Path $root 'deps\melonloader-0.7.3\MelonLoader.x64.zip'
+if (-not (Test-Path $loader)) { Write-Host "Missing $loader"; exit 2 }
+Expand-Archive -Path $loader -DestinationPath $out -Force
+Copy-Item (Join-Path $root 'installer\install.ps1') $out
+Copy-Item (Join-Path $root 'installer\Install Shroom Access.cmd') $out
 
 $zip = "$out.zip"
 if (Test-Path $zip) { Remove-Item $zip -Confirm:$false }
 Compress-Archive -Path (Join-Path $out '*') -DestinationPath $zip
-Get-ChildItem $out -Recurse -File | ForEach-Object { $_.FullName.Substring($out.Length + 1) }
+Get-ChildItem $out -Recurse -File | Where-Object { $_.FullName -notlike "$out\MelonLoader\*" } | ForEach-Object { $_.FullName.Substring($out.Length + 1) }
+Write-Host "(plus MelonLoader\, $((Get-ChildItem (Join-Path $out 'MelonLoader') -Recurse -File).Count) files)"
 # The in-game installer refuses a release without this file beside the zip: attach both.
 $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -Path "$zip.sha256" -Value "$hash  $(Split-Path $zip -Leaf)" -Encoding ascii

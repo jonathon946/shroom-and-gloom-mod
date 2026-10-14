@@ -7,19 +7,29 @@ running, and through a Windows voice if none is.
 
 WHAT YOU NEED
 
-- Shroom and Gloom on Steam (Windows).
-- MelonLoader 0.7.3 or later installed into the game. Get the installer from
-  https://github.com/LavaGang/MelonLoader/releases and point it at the game. Start the game once
-  after installing it and let it finish its first-time setup, which takes a few minutes.
+Shroom and Gloom on Steam (Windows), installed, and an internet connection. Everything else comes
+with this zip or is fetched by the installer.
 
 
 INSTALLING
 
-Copy the Mods and UserLibs folders from this zip into the game's folder, next to
-"Shroom and Gloom.exe". To find that folder in Steam: right-click the game, Manage, Browse local
-files.
+1. Close the game if it is running.
+2. Extract this zip into any folder: in File Explorer, select the zip, press the Applications key
+   (or Shift F10), choose Extract All, then Extract.
+3. In the extracted folder, press Enter on "Install Shroom Access.cmd". If Windows warns that the
+   file came from the internet, choose Run (under More info, if that is all it shows).
+4. A console window reads out each step. It finds the game through Steam, installs Microsoft's
+   .NET 6 runtime if it is missing (Windows asks for permission: choose Yes), and copies
+   MelonLoader (the mod loader), the mod and its speech library into the game folder.
+5. At the end it offers to start the game.
 
-Start the game. After the logo you should hear "Shroom Access loaded".
+The first start after installing takes a few minutes and is silent: MelonLoader prepares itself
+and needs the internet for that. Later starts are quick. On the title screen you should hear
+"Shroom Access loaded".
+
+By hand instead: install the .NET 6 Desktop Runtime from https://dotnet.microsoft.com/download/dotnet/6.0,
+then copy version.dll and the MelonLoader, Mods and UserLibs folders from this zip into the game's
+folder, next to "Shroom and Gloom.exe" (in Steam: the game's Properties, Installed Files, Browse).
 
 In the game's settings, on the Game tab, leave Controller Support on. The mod steers the game
 through it.
@@ -83,11 +93,14 @@ come from the game itself are already in the game's language.
 REMOVING
 
 Delete Mods\ShroomAccess.dll, the Mods\ShroomAccess folder, UserLibs\prism.dll and
-UserLibs\prism-licenses from the game folder.
+UserLibs\prism-licenses from the game folder. To remove MelonLoader too, also delete version.dll
+and the MelonLoader folder. Steam's "Verify integrity of game files" does not remove them.
 
 
 CREDITS AND LICENCES
 
+The mod loader is MelonLoader 0.7.3 by LavaGang (https://github.com/LavaGang/MelonLoader),
+Apache-2.0; its licence is in MelonLoader\Documentation.
 Speech uses Prism by Ethin Probst (https://github.com/ethindp/prism), MPL-2.0. Its licence files
 are in UserLibs\prism-licenses.
 Shroom and Gloom is by Team Lazerbeam, published by Devolver Digital. This mod is not affiliated
