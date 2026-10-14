@@ -160,7 +160,7 @@ namespace ShroomAccess
                     {
                         // The soup pot's heading and value are said by Soup, with the soups.
                         // A card-change screen's words are given by its own introduction.
-                        if (!Rewards.Handles(scope) && Soup.Screen(focus) == null && !scopeKind.Contains("ModifyCard")) AnnounceScreen(scope);
+                        if (!Rewards.Handles(scope) && Soup.Screen(focus) == null && DeckView.Screen(focus) == null && !scopeKind.Contains("ModifyCard")) AnnounceScreen(scope);
                         Rewards.ScreenOpened(scope);
                     }
                 }
@@ -248,7 +248,7 @@ namespace ShroomAccess
                         foreach (string part in now) if (!_liveText.Contains(part)) fresh.Add(part);
                         // While food is being paid the shopkeeper's lines only repeat the price.
                         bool paying = _shopState == "FeedMePlease";
-                        if (fresh.Count > 0 && fresh.Count <= 3 && Soup.Screen(focus) == null && !paying)
+                        if (fresh.Count > 0 && fresh.Count <= 3 && Soup.Screen(focus) == null && DeckView.Screen(focus) == null && !paying)
                         {
                             Log("[screen-change] " + string.Join(" | ", fresh));
                             foreach (string part in fresh) if (!SaidLately(part)) FocusProbe.Announce(part, interrupt: false);

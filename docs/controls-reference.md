@@ -20,7 +20,7 @@ The mod does not invent its own navigation. The game already has a full set of g
 - **W / S (hold):** walk forward / back. A and D are passed as left and right on the walk stick.
 - **M:** map (the game's own key).
 - **I:** inspect the focused thing.
-- **Tab:** deck view.
+- **Tab:** deck view. In a run the game opens it only from its mouse-only pile buttons, so the mod opens it: the draw pile of the deck in play; Tab again, the discard pile; Tab again, closed. Inside, Up reaches buttons for the full deck and the combat, explore and foresight decks.
 - **Page Up / Page Down:** previous / next page.
 - **O:** sort hand.
 - **C:** recentre the view.

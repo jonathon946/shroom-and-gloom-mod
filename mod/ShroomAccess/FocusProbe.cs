@@ -128,6 +128,7 @@ namespace ShroomAccess
                 Hud.AnnounceChanges(focus);
                 Rewards.Tick(focus);
                 Soup.Tick(focus);
+                DeckView.Tick(focus);
                 Summaries(focus);
                 AltText.Tick();
                 FlushHeld();
@@ -238,6 +239,8 @@ namespace ShroomAccess
                         }
                     }
                 }
+                string deckPlace = DeckView.Suffix(focus, current);
+                if (deckPlace.Length > 0) spoken = spoken.TrimEnd('.', ' ') + deckPlace;
                 string soup = Soup.Suffix(focus, current);
                 if (soup.Length > 0) spoken = spoken.TrimEnd('.', ' ') + soup + ".";
                 if (zone == "shop")
@@ -761,6 +764,8 @@ namespace ShroomAccess
             }
             string name = Humanize(comp.gameObject.name);
             if (name.StartsWith("Hamburger")) return "Menu";
+            string deckButton = DeckView.ButtonName(comp.gameObject.name);
+            if (deckButton.Length > 0 && DeckDisplay.DeckDisplayIsActive) return deckButton;
             if (name == "Pack Icon") return "Starting cards. Enter opens the deck";
             // The bare arrow in the corner of the character screen.
             if (name == "Button" && Walk.Scene.Contains("CharacterSelection")) return "Back";
@@ -1175,6 +1180,15 @@ namespace ShroomAccess
             _clearSince = Time.realtimeSinceStartup;
         }
 
+        private static string Plural(string name)
+        {
+            if (name.EndsWith("s")) return name;
+            if (name.EndsWith("x") || name.EndsWith("ch") || name.EndsWith("sh")) return name + "es";
+            // Toasty, Terry: a consonant before the y.
+            if (name.Length > 1 && name.EndsWith("y") && "aeiou".IndexOf(char.ToLowerInvariant(name[name.Length - 2])) < 0) return name.Substring(0, name.Length - 1) + "ies";
+            return name + "s";
+        }
+
         // "Door, Door, Chest" -> "2 Doors, Chest"
         internal static string Group(IEnumerable<string> things) => Group(things, ", ");
 
@@ -1192,7 +1206,7 @@ namespace ShroomAccess
             }
             var parts = new List<string>();
             foreach (string name in names)
-                parts.Add(counts[name] == 1 ? (countOne ? "1 " + name : name) : counts[name] + " " + (name.EndsWith("s") ? name : name.EndsWith("x") || name.EndsWith("ch") ? name + "es" : name + "s"));
+                parts.Add(counts[name] == 1 ? (countOne ? "1 " + name : name) : counts[name] + " " + Plural(name));
             return string.Join(separator, parts);
         }
 
@@ -1294,7 +1308,7 @@ namespace ShroomAccess
                     }
                 var parts = new List<string>();
                 foreach (string name in names)
-                    parts.Add(counts[name] == 1 ? name : counts[name] + " " + (name.EndsWith("s") ? name : name.EndsWith("x") || name.EndsWith("ch") ? name + "es" : name + "s"));
+                    parts.Add(counts[name] == 1 ? name : counts[name] + " " + Plural(name));
                 lines.Add("Nearby: " + string.Join(", ", parts) + ".");
             }
 

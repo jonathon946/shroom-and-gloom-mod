@@ -28,6 +28,7 @@ namespace ShroomAccess
             MapReader.Log = msg => LoggerInstance.Msg(msg);
             Rewards.Log = msg => LoggerInstance.Msg(msg);
             Soup.Log = msg => LoggerInstance.Msg(msg);
+            DeckView.Log = msg => LoggerInstance.Msg(msg);
             CardPlay.Log = msg => LoggerInstance.Msg(msg);
             TextWatch.Log = msg => LoggerInstance.Msg(msg);
             Review.Log = msg => LoggerInstance.Msg(msg);
