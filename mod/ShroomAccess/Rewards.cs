@@ -71,7 +71,8 @@ namespace ShroomAccess
                 if (_statsDue > 0f && now >= _statsDue) ReadStats(now);
                 if (_cardsDue > 0f && now >= _cardsDue) ReadCards(now);
 
-                if (now >= _packLookAt)
+                // No pack is opened in a fight, and the search is slow enough to be felt there.
+                if (now >= _packLookAt && !focus.InCombat)
                 {
                     _packLookAt = now + 0.5f;
                     _pack = UnityEngine.Object.FindObjectOfType<CardUnlockPack>();

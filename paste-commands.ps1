@@ -50,6 +50,24 @@
 #
 #   I. Several enemies summoned at once are said in one line: "Joined the fight: 4 Mega Babies."
 #
+#   J. (new 2026-10-14, after Leanne's report of Enter landing on the wrong card) In a fight, Left
+#      and Right through the hand as fast as you can: each card should cut off the one before, with
+#      no trail of old cards still being read, including straight after "Drew 4 cards" or a hit.
+#      The hand no longer wraps: past the last card is the edge sound.
+#
+#   K. After playing a card, press Enter again without arrowing: the mod reads the card now under
+#      the cursor instead of playing it ("Toasty, cost 0 ..."); the next Enter plays it. Another
+#      card of the same name (Toasty after Toasty) plays at once. Right on a one-card hand: the
+#      edge sound and that card read.
+#
+#   L. With two enemies of the same name, targets say their place: "Gill Beast ..., 2 of 3".
+#
+#   M. When the attacks shown add up to your health or more: "Warning: the enemies will deal 30
+#      damage next turn, and you have 11 health." The Megashroom's explosion now counts.
+#
+#   N. Is the game smoother in fights? The mod's own work per frame dropped from about 22 to 2
+#      milliseconds there.
+#
 #   Keep marking with Ctrl+B anywhere something seems wrong or silent.
 #
 # IF THERE IS NO SPEECH AT ALL: tell me, and I will read the log. Nothing else is needed from you.

@@ -40,7 +40,7 @@ namespace ShroomAccess
                     Resolve(focus, p);
                 }
 
-                if (!InputBridge.Key(InputActionId.Confirm) || InputBridge.CtrlHeld) return;
+                if (!InputBridge.Key(InputActionId.Confirm) || InputBridge.CtrlHeld || InputBridge.ConfirmSwallowed()) return;
                 // Enter on a target: the card being cast is the one to report on.
                 if (focus.Mode == FocusMode.Target && focus.Scope == null && focus.TargetResolver != null)
                 {

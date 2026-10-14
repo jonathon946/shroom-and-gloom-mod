@@ -22,6 +22,8 @@ namespace ShroomAccess
                 Vector3? player = null;
                 if (S_ControllerFocus.TryGetFocus(out S_ControllerFocus focus) && focus != null && focus.Player != null)
                     player = focus.Player.transform.position;
+                // Nothing is approached in a fight, and the search below is slow enough to be felt.
+                if (focus != null && focus.InCombat) return;
 
                 foreach (ProximityFocusGate gate in UnityEngine.Object.FindObjectsOfType<ProximityFocusGate>())
                 {

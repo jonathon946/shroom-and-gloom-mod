@@ -283,11 +283,32 @@ namespace ShroomAccess
         internal static bool ConfirmHeld(InputActionId id) =>
             id == InputActionId.Confirm && Time.frameCount >= HoldConfirmFromFrame && Time.realtimeSinceStartup < HoldConfirmUntil;
 
+        // Enter in the hand acts only on a card the player has heard. The game moves the hand's
+        // cursor by itself (a card played, a hand dealt) without that being read; Enter there reads
+        // the card instead, and the next Enter plays it. Decided once per press, so the game and
+        // the mod, reading the key in either order within the frame, agree.
+        internal static Func<bool> HandCardUnheard = () => false;
+        private static int _swallowCheckedFrame = -1;
+        private static bool _swallowConfirm;
+
+        internal static bool ConfirmSwallowed()
+        {
+            int frame = Time.frameCount;
+            if (_swallowCheckedFrame != frame)
+            {
+                _swallowCheckedFrame = frame;
+                if (Key(InputActionId.Confirm, 0)) _swallowConfirm = HandCardUnheard();
+                else if (!Key(InputActionId.Confirm, 1)) _swallowConfirm = false;
+            }
+            return _swallowConfirm;
+        }
+
         private static bool Read(InputActionId id, int phase)
         {
             try
             {
                 if (ConfirmHeld(id)) return false;
+                if (id == InputActionId.Confirm && ConfirmSwallowed()) return false;
                 if (id == _forwarded && id != InputActionId.None)
                 {
                     int age = Time.frameCount - _forwardedFrame;

@@ -96,7 +96,7 @@ namespace ShroomAccess
                 }
                 else if (IsHand(mode))
                 {
-                    if (dx != 0) InputBridge.Forward(dx > 0 ? InputActionId.FocusNext : InputActionId.FocusPrev);
+                    if (dx != 0) HandStep(focus, dx);
                     else if (dy < 0) { if (world > 0) EnterNearby(focus, mode); else EnterStatus(focus); }
                     else Edge(focus);
                 }
@@ -182,6 +182,94 @@ namespace ShroomAccess
             if (!focus.TryPushHand()) InputBridge.Forward(InputActionId.FocusDown);
         }
 
+        // Left and Right move the game's hand cursor here, in the same frame as the key: handing
+        // the arrow to the game costs a frame, and in a fight a frame can be a tenth of a second,
+        // long enough for a quick Enter to land on the card before the one just read. The game's
+        // own step also wraps from the last card to the first; this one stops at the ends.
+        // For a moment after a play the game's hand still lists the card on its way out; the
+        // cursor can land on it, and the player would hear nothing they could choose. Only cards
+        // still held are stepped to.
+        private static void HandStep(S_ControllerFocus focus, int dx)
+        {
+            HandFocusResolver hand = focus.HandResolver;
+            List<int> slots = HeldSlots(focus, out IntPtr[] views);
+            if (hand == null || slots.Count == 0)
+            {
+                InputBridge.Forward(dx > 0 ? InputActionId.FocusNext : InputActionId.FocusPrev);
+                return;
+            }
+            // Where the cursor is among the held cards; on a card leaving, or on none, the step
+            // goes to the nearest held card in the direction pressed.
+            Il2CppSystem.Object current = focus.CurrentFocus;
+            IntPtr at = current != null ? current.Pointer : IntPtr.Zero;
+            int place = slots.FindIndex(s => views[s] == at);
+            int toPlace;
+            if (place >= 0) toPlace = place + dx;
+            else
+            {
+                int raw = hand.HasFocus ? hand.FocusedIndex : (dx > 0 ? -1 : int.MaxValue);
+                toPlace = dx > 0 ? slots.FindIndex(s => s > raw) : slots.FindLastIndex(s => s < raw);
+            }
+            if (toPlace < 0 || toPlace >= slots.Count)
+            {
+                Edge(focus);
+                // The game may have moved the cursor by itself (a card played, a new hand dealt)
+                // to a card that was never read: an arrow at the end reads where it is.
+                FocusProbe.ReadIfUnheard();
+                return;
+            }
+            int to = slots[toPlace];
+            hand.SetFocus(to);
+            if (hand.FocusedIndex != to)
+            {
+                Log("[hand] step to " + to + " did not take (at " + hand.FocusedIndex + "); handing the arrow to the game");
+                InputBridge.Forward(dx > 0 ? InputActionId.FocusNext : InputActionId.FocusPrev);
+            }
+        }
+
+        // The cursor is on a card that has left the hand: put it on the nearest one still held.
+        internal static void SettleHand(S_ControllerFocus focus)
+        {
+            HandFocusResolver hand = focus.HandResolver;
+            List<int> slots = HeldSlots(focus, out _);
+            if (hand == null || slots.Count == 0) return;
+            int raw = hand.HasFocus ? hand.FocusedIndex : 0;
+            int best = slots[0];
+            foreach (int s in slots) if (Math.Abs(s - raw) < Math.Abs(best - raw)) best = s;
+            hand.SetFocus(best);
+            Log("[hand] settled on " + best + " from " + raw);
+        }
+
+        // The cursor positions (the game's index) of the cards still held, left to right, and the
+        // card object at every position.
+        private static List<int> HeldSlots(S_ControllerFocus focus, out IntPtr[] views)
+        {
+            var slots = new List<int>();
+            views = new IntPtr[0];
+            try
+            {
+                HandFocusResolver resolver = focus.HandResolver;
+                IControllerFocusHand hand = resolver != null ? resolver.FocusedHand : null;
+                if (hand == null) hand = resolver != null ? resolver.ResolveHand() : null;
+                if (hand == null) return slots;
+                var held = new HashSet<IntPtr>();
+                IM_Hand model = focus.PlayerModel != null ? focus.PlayerModel.GetActiveHand() : null;
+                var cards = model != null ? model.HeldCards : null;
+                for (int i = 0; cards != null && i < cards.Count; i++) if (cards[i] != null) held.Add(cards[i].Pointer);
+                int n = hand.FocusableCardCount;
+                views = new IntPtr[n];
+                for (int i = 0; i < n; i++)
+                {
+                    IV_CardInstance v = hand.GetFocusableCard(i);
+                    if (v == null) continue;
+                    views[i] = v.Pointer;
+                    if (v.IModel != null && held.Contains(v.IModel.Pointer)) slots.Add(i);
+                }
+            }
+            catch (Exception ex) { Log("[hand] " + ex.GetType().Name + ": " + ex.Message); }
+            return slots;
+        }
+
         // ---- Status row ----
 
         private static List<string> StatusItems(S_ControllerFocus focus)
@@ -258,6 +346,10 @@ namespace ShroomAccess
                 if (current == null) return;
                 if (current.TryCast<IV_CardInstance>() != null)
                 {
+                    // Counted among the cards still held, as Left and Right step through them.
+                    List<int> slots = HeldSlots(focus, out IntPtr[] views);
+                    int place = slots.FindIndex(s => views[s] == current.Pointer);
+                    if (place >= 0) { index = place + 1; count = slots.Count; return; }
                     HandFocusResolver hand = focus.HandResolver;
                     count = HeldCount(focus);
                     index = hand != null ? hand.FocusedIndex + 1 : 0;

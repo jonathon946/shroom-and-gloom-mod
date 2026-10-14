@@ -49,6 +49,8 @@ namespace ShroomAccess
             Loc.Load(Path.Combine(MelonEnvironment.ModsDirectory, "ShroomAccess", "strings.txt"));
             Settings.Log = msg => LoggerInstance.Msg(msg);
             Cue.Log = msg => LoggerInstance.Msg(msg);
+            Perf.Log = msg => LoggerInstance.Msg(msg);
+            InputBridge.HandCardUnheard = FocusProbe.HandCardUnheard;
             if (Speaker.Init(prism, backend))
             {
                 LoggerInstance.Msg("Speech ready through " + Speaker.BackendName + ".");
@@ -80,12 +82,19 @@ namespace ShroomAccess
 
         public override void OnUpdate()
         {
+            Perf.BeginFrame();
             TextWatch.Tick();
+            Perf.Lap("TextWatch");
             ShroomAccess.Speech.Speaker.PumpDirect();
+            Perf.Lap("Speech");
             FocusProbe.Tick();
+            Perf.Lap("Focus");
             WorldAssist.Tick();
+            Perf.Lap("WorldAssist");
             DevBridge.Tick();
             UpdateCheck.Tick(Walk.Scene.Contains("Title"));
+            Perf.Lap("Dev");
+            Perf.EndFrame();
         }
 
         public override void OnDeinitializeMelon()

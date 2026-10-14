@@ -13,10 +13,15 @@ namespace ShroomAccess
         internal static Action<string> Log = _ => { };
 
         private static S_PlayerValuesDisplay _display;
+        private static float _displayLookAt;
 
         private static S_PlayerValuesDisplay Display()
         {
-            if (_display == null) _display = UnityEngine.Object.FindObjectOfType<S_PlayerValuesDisplay>();
+            if (_display == null && Time.realtimeSinceStartup >= _displayLookAt)
+            {
+                _displayLookAt = Time.realtimeSinceStartup + 1f;
+                _display = UnityEngine.Object.FindObjectOfType<S_PlayerValuesDisplay>();
+            }
             return _display;
         }
 
@@ -64,6 +69,7 @@ namespace ShroomAccess
         private static string _threatOutcome = "";
         private static string _threatSeen = "";
         private static float _threatDue;
+        private static float _threatReadAt;
         internal static float DeathSaidAt = -100f;
         private static bool _turnSaid;
         private static float _emptySince = -1f;
@@ -150,7 +156,10 @@ namespace ShroomAccess
                         _turnSaid = false;
                         _phase = phase;
                     }
+                    Perf.Lap("Hud.core");
                     WatchEnemies();
+                    WarnIfLethal(phase, turns, hp, armour);
+                    Perf.Lap("Hud.enemies");
                     int held = -1;
                     try { held = p.GetActiveHand() != null && p.GetActiveHand().HeldCards != null ? p.GetActiveHand().HeldCards.Count : -1; } catch { }
                     // Said once the hand has stayed empty a moment: a card played can make another
@@ -166,7 +175,11 @@ namespace ShroomAccess
                 }
                 else { _enemyHp.Clear(); _enemyArmour.Clear(); }
 
-                string threat = Threat();
+                Perf.Lap("Hud.hand");
+                // Read a few times a second: the game builds the whole hover text each time.
+                string threat = _threatSeen;
+                if (Time.realtimeSinceStartup >= _threatReadAt) { _threatReadAt = Time.realtimeSinceStartup + 0.3f; threat = Threat(); }
+                Perf.Lap("Hud.threat");
                 if (threat != _threatSeen) { _threatSeen = threat; _threatDue = Time.realtimeSinceStartup + 1.2f; }
                 if (_threatDue > 0f && Time.realtimeSinceStartup >= _threatDue)
                 {
@@ -182,6 +195,26 @@ namespace ShroomAccess
             catch (Exception ex) { Log("[hud] " + ex.GetType().Name + ": " + ex.Message); }
         }
 
+        // In the player's turn, the enemies' shown attacks (a Megashroom's explosion among them) add
+        // up to the player's health or more: said once per turn and amount, a few times a second at
+        // most. A sighted player sees the big number over the enemy; this is that glance.
+        private static float _lethalCheckAt;
+        private static string _lethalSaid = "";
+
+        private static void WarnIfLethal(string phase, int turn, int hp, int armour)
+        {
+            if (phase != "PlayerTurn" || Time.realtimeSinceStartup < _lethalCheckAt) return;
+            _lethalCheckAt = Time.realtimeSinceStartup + 0.5f;
+            int incoming = FocusProbe.IncomingTotal(out _);
+            if (incoming <= 0 || incoming < hp + armour) return;
+            string key = turn + ":" + incoming;
+            if (key == _lethalSaid) return;
+            _lethalSaid = key;
+            Say(armour > 0
+                ? Loc.T("hud.lethal_armour", "Warning: the enemies will deal {0} damage next turn, and you have {1} health and {2} armour.", incoming, hp, armour)
+                : Loc.T("hud.lethal", "Warning: the enemies will deal {0} damage next turn, and you have {1} health.", incoming, hp));
+        }
+
         private static float _shopUntil = -100f;
         private static int _armourBefore;
 
@@ -194,7 +227,7 @@ namespace ShroomAccess
             try
             {
                 var views = new List<V_Enemy>();
-                foreach (V_Enemy v in UnityEngine.Object.FindObjectsOfType<V_Enemy>()) if (v != null) views.Add(v);
+                foreach (V_Enemy v in EnemyViews()) if (v != null) views.Add(v);
                 views.Sort((a, b) => a.transform.position.x.CompareTo(b.transform.position.x));
                 foreach (V_Enemy v in views)
                 {
@@ -202,7 +235,7 @@ namespace ShroomAccess
                     if (m == null || !m.IsAlive || m.CurrentTurnAction == null) continue;
                     var pairs = m.CurrentTurnAction.EnemyIntentPairs;
                     for (int i = 0; pairs != null && i < pairs.Count; i++)
-                        if (pairs[i] != null && pairs[i].Intent != null && FocusProbe.Humanize(pairs[i].Intent.name).Contains("Deal Damage"))
+                        if (pairs[i] != null && pairs[i].Intent != null && FocusProbe.IsDamageIntent(pairs[i].Intent.name))
                             _attacks.Add(new KeyValuePair<string, int>(FocusProbe.EnemyName(v, m), pairs[i].ModifiedNumber));
                 }
             }
@@ -227,7 +260,7 @@ namespace ShroomAccess
                 }
                 if (_phase == "PlayerTurn")
                 {
-                    foreach (V_Enemy v in UnityEngine.Object.FindObjectsOfType<V_Enemy>())
+                    foreach (V_Enemy v in EnemyViews())
                     {
                         M_Enemy m = v != null ? v.Model : null;
                         if (m == null) continue;
@@ -269,10 +302,50 @@ namespace ShroomAccess
         private static bool _exploring;
         private static string _phase = "";
 
+        // The enemies on screen. Searching the scene for them takes this game tens of milliseconds,
+        // long enough to make a fight's frames late, so the list is taken from the game's encounter
+        // manager, found once. An enemy stays on the list until its object is destroyed or hidden,
+        // as a scene search would have it, so its death is still seen.
+        private static readonly List<V_Enemy> _views = new List<V_Enemy>();
+        private static float _viewsAt = -100f, _managerLookAt;
+        private static S_EnemyEncounterManager _manager;
+
+        internal static List<V_Enemy> EnemyViews()
+        {
+            float now = Time.realtimeSinceStartup;
+            if (_manager == null && now >= _managerLookAt)
+            {
+                _managerLookAt = now + 2f;
+                _manager = UnityEngine.Object.FindObjectOfType<S_EnemyEncounterManager>();
+            }
+            Il2CppSystem.Collections.Generic.List<V_Enemy> current = null;
+            try { current = _manager != null ? _manager._currentEnemies : null; } catch { }
+            if (current == null)
+            {
+                if (now - _viewsAt > 1f)
+                {
+                    _viewsAt = now;
+                    _views.Clear();
+                    foreach (V_Enemy v in UnityEngine.Object.FindObjectsOfType<V_Enemy>()) if (v != null) _views.Add(v);
+                }
+                else _views.RemoveAll(v => v == null);
+                return _views;
+            }
+            _views.RemoveAll(v => v == null || !v.gameObject.activeInHierarchy);
+            for (int i = 0; i < current.Count; i++)
+            {
+                V_Enemy v = current[i];
+                if (v == null || !v.gameObject.activeInHierarchy) continue;
+                IntPtr ptr = v.Pointer;
+                if (!_views.Exists(x => x.Pointer == ptr)) _views.Add(v);
+            }
+            return _views;
+        }
+
         private static void WatchEnemies()
         {
             var seen = new HashSet<IntPtr>();
-            foreach (V_Enemy view in UnityEngine.Object.FindObjectsOfType<V_Enemy>())
+            foreach (V_Enemy view in EnemyViews())
             {
                 if (view == null) continue;
                 M_Enemy m = null;
@@ -312,6 +385,6 @@ namespace ShroomAccess
             }
         }
 
-        private static void Say(string text) => FocusProbe.Announce(text, interrupt: false, holdWhileWalking: true);
+        private static void Say(string text) => FocusProbe.Announce(text, interrupt: false, holdWhileWalking: true, repeatable: true);
     }
 }

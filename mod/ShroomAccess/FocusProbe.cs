@@ -38,6 +38,51 @@ namespace ShroomAccess
         private static float _playedAt = -100f;
         private static string _playedName = "";
 
+        // The focus the player last heard read, and its card's name. Enter in the hand waits for a
+        // card the player has heard (InputBridge.ConfirmSwallowed).
+        private static IntPtr _heardFocus;
+        private static string _heardName = "";
+        private static float _forceUntil;
+        private static bool ForceRead => Time.realtimeSinceStartup < _forceUntil;
+
+        private static string CardNameOf(Il2CppSystem.Object current)
+        {
+            try
+            {
+                IV_CardInstance view = current != null ? current.TryCast<IV_CardInstance>() : null;
+                return view != null && view.IModel != null ? view.IModel.CardName ?? "" : "";
+            }
+            catch { return ""; }
+        }
+
+        // True when the hand's cursor is on a card the player has not heard (another card of the
+        // same name counts as heard: Toasty after Toasty).
+        internal static bool HandCardUnheard()
+        {
+            try
+            {
+                if (!S_ControllerFocus.TryGetFocus(out S_ControllerFocus focus) || focus == null) return false;
+                if (focus.Mode.ToString() != "Hand" || focus.Scope != null || Navigator.InStatusRow) return false;
+                Il2CppSystem.Object current = focus.CurrentFocus;
+                if (current == null) return false;
+                // A card already played, still under the cursor on its way out, is never what Enter is for.
+                if (current.TryCast<IV_CardInstance>() != null && !InHand(focus, current)) return true;
+                if (current.Pointer == _heardFocus) return false;
+                string name = CardNameOf(current);
+                return name.Length > 0 && name != _heardName;
+            }
+            catch { return false; }
+        }
+
+        // Read the focused thing now, past the rules that keep a moving focus quiet, if the player
+        // has not heard it.
+        internal static void ReadIfUnheard()
+        {
+            if (!HandCardUnheard()) return;
+            _lastFocus = IntPtr.Zero;
+            _forceUntil = Time.realtimeSinceStartup + 1.5f;
+        }
+
         // A card has just been played: what follows from it in the next moments is not news.
         internal static void NotePlay(string name)
         {
@@ -62,6 +107,8 @@ namespace ShroomAccess
         private static IntPtr _suppressedLogged;
         private static string _lastValue = "";
         private static float _protectUntil;
+        // One line the player asked for has already waited behind a protected announcement.
+        private static bool _protectedLineQueued;
         private static readonly HashSet<IntPtr> _knownNearby = new HashSet<IntPtr>();
         private static readonly Dictionary<IntPtr, bool> _doorOpen = new Dictionary<IntPtr, bool>();
         private static readonly Dictionary<IntPtr, V_SpellReceiverDoor> _doors = new Dictionary<IntPtr, V_SpellReceiverDoor>();
@@ -118,21 +165,37 @@ namespace ShroomAccess
                 }
                 FocusMode mode = focus.Mode;
                 Speaker.WalkHeld = InputBridge.MoveHeld;
+                Perf.Lap("Focus.Start");
                 Messages.Tick(focus);
+                Perf.Lap("Messages");
                 Navigator.Tick(focus);
+                Perf.Lap("Navigator");
                 Review.Tick(focus);
+                Perf.Lap("Review");
                 Walk.Tick(focus);
+                Perf.Lap("Walk");
                 CardPlay.Tick(focus);
+                Perf.Lap("CardPlay");
                 AnnounceArrivals(focus);
+                Perf.Lap("Arrivals");
                 WatchDoors();
+                Perf.Lap("Doors");
                 AnnounceHandChanges(focus);
+                Perf.Lap("HandChanges");
                 Hud.AnnounceChanges(focus);
+                Perf.Lap("Hud");
                 Rewards.Tick(focus);
+                Perf.Lap("Rewards");
                 Soup.Tick(focus);
+                Perf.Lap("Soup");
                 DeckView.Tick(focus);
+                Perf.Lap("DeckView");
                 Summaries(focus);
+                Perf.Lap("Summaries");
                 AltText.Tick();
+                Perf.Lap("AltText");
                 FlushHeld();
+                Perf.Lap("FlushHeld");
 
                 if (input != null && _bindingsDumped && DevBridge.Enabled)
                 {
@@ -162,6 +225,13 @@ namespace ShroomAccess
                     _arrowAt = Time.realtimeSinceStartup;
                     _arrowFrom = ptr;
                     _arrowValue = LiveValue(current);
+                }
+                if (InputBridge.Key(InputActionId.Confirm) && InputBridge.ConfirmSwallowed())
+                {
+                    Log("[guard] Enter on a card not yet heard: reading it first");
+                    if (current != null && current.TryCast<IV_CardInstance>() != null && !InHand(focus, current)) Navigator.SettleHand(focus);
+                    _lastFocus = IntPtr.Zero;
+                    _forceUntil = Time.realtimeSinceStartup + 1.5f;
                 }
                 // Applying a card change makes the game's focus skip across three things in a second.
                 if (InputBridge.Key(InputActionId.Confirm) && InputBridge.ConfirmHeld(InputActionId.Confirm))
@@ -217,6 +287,13 @@ namespace ShroomAccess
                 // Looking the thing up notes it if it has no appearance description yet.
                 try { DetailLines(current); } catch { }
                 if (Navigator.InStatusRow) return;
+                // A card just played keeps the focus for a moment as it leaves the hand; it is no longer one
+                // the player can choose, and reading it would name the wrong card before the next Enter.
+                if (mode.ToString() == "Hand" && focus.Scope == null && current.TryCast<IV_CardInstance>() != null && !InHand(focus, current))
+                {
+                    if (_suppressedLogged != ptr) { _suppressedLogged = ptr; Log("[leaving] " + line); }
+                    return;
+                }
 
                 // Name the row the player has just moved into, so they know what they are among:
                 // their own cards, things in the world, valid targets for a cast, or an offer.
@@ -273,34 +350,43 @@ namespace ShroomAccess
                     CardTargetPosition(focus, out int index, out int count);
                     if (count > 1) spoken = spoken.TrimEnd('.', ' ') + ", " + Loc.T("pos.of", "{0} of {1}", index, count);
                 }
+                // Two enemies of one name read the same; where each stands tells them apart.
+                else if (zone == "targets" && current.TryCast<V_Enemy>() != null)
+                {
+                    Navigator.RowPosition(focus, current, out int index, out int count);
+                    if (count > 1) spoken = spoken.TrimEnd('.', ' ') + ", " + Loc.T("pos.of", "{0} of {1}", index, count);
+                }
                 // The last card has gone, or the enemies are acting and the next hand is being dealt:
                 // the game moves the focus around by itself. The empty hand is said once by the HUD,
                 // the new hand with "Drew N cards".
-                if (!InputBridge.ArrowJustPressed && focus.Scope == null && (zone == "hand" || (zone == "nearby" && Hud.InFight(focus)))
+                if (!ForceRead && !InputBridge.ArrowJustPressed && focus.Scope == null && (zone == "hand" || (zone == "nearby" && Hud.InFight(focus)))
                     && (HeldCount(focus) == 0 || Hud.EnemyTurnNow))
                 {
                     if (_suppressedLogged != ptr) { _suppressedLogged = ptr; Log("[quiet] " + spoken); }
                     return;
                 }
-                if (SilentNow)
+                if (SilentNow && !ForceRead)
                 {
                     if (_suppressedLogged != ptr) { _suppressedLogged = ptr; Log("[silent] " + spoken); }
                     return;
                 }
-                if (zone == "hand" && focus.Scope == null && !InputBridge.ArrowJustPressed && Time.realtimeSinceStartup - _playedAt < 2.5f
+                if (!ForceRead && zone == "hand" && focus.Scope == null && !InputBridge.ArrowJustPressed && Time.realtimeSinceStartup - _playedAt < 2.5f
                     && Time.realtimeSinceStartup >= SuppressFocusUntil)
                 {
                     Log("[quiet] " + spoken);
                     return;
                 }
-                if ((Time.realtimeSinceStartup < SuppressFocusUntil && !InputBridge.ArrowJustPressed) || Time.realtimeSinceStartup < _flickerUntil
-                    || (InputBridge.MoveHeld && !InputBridge.ArrowJustPressed))
+                if (!ForceRead && ((Time.realtimeSinceStartup < SuppressFocusUntil && !InputBridge.ArrowJustPressed) || Time.realtimeSinceStartup < _flickerUntil
+                    || (InputBridge.MoveHeld && !InputBridge.ArrowJustPressed)))
                 {
                     if (_suppressedLogged != ptr) { _suppressedLogged = ptr; Log("[suppressed] " + spoken); }
                     _lastFocus = IntPtr.Zero;
                     _lastZone = zoneBefore;
                     return;
                 }
+                _forceUntil = 0f;
+                _heardFocus = ptr;
+                _heardName = CardNameOf(current);
                 // Let a line that announces an arrival finish before the first focus line follows it.
                 Announce(spoken, interrupt: true);
             }
@@ -461,6 +547,7 @@ namespace ShroomAccess
             }
             Announce(Loc.T("nearby.list", "Nearby: {0}.", string.Join("|", fresh)), interrupt: false, holdWhileWalking: true);
             _protectUntil = Time.realtimeSinceStartup + 1.5f;
+            _protectedLineQueued = false;
         }
 
         private static readonly Dictionary<IntPtr, float> _nearbyAt = new Dictionary<IntPtr, float>();
@@ -799,10 +886,19 @@ namespace ShroomAccess
         // above their heads. Armour and statuses are not taken off.
         internal static string IncomingDamage()
         {
-            int total = 0, hits = 0;
+            int total = IncomingTotal(out int hits);
+            return hits == 0 ? Loc.T("status.no_attacks", "No attacks coming")
+                : hits == 1 ? Loc.T("status.incoming_one", "Incoming: {0} damage from {1} attack", total, hits)
+                : Loc.T("status.incoming", "Incoming: {0} damage from {1} attacks", total, hits);
+        }
+
+        internal static int IncomingTotal(out int hits)
+        {
+            int total = 0;
+            hits = 0;
             try
             {
-                foreach (V_Enemy view in UnityEngine.Object.FindObjectsOfType<V_Enemy>())
+                foreach (V_Enemy view in Hud.EnemyViews())
                 {
                     M_Enemy m = view != null ? Safe(() => view.Model) : null;
                     if (m == null || !m.IsAlive) continue;
@@ -811,17 +907,21 @@ namespace ShroomAccess
                     for (int i = 0; pairs != null && i < pairs.Count; i++)
                     {
                         EnemyIntentPair pair = pairs[i];
-                        if (pair == null || pair.Intent == null) continue;
-                        if (!Humanize(pair.Intent.name).Contains("Deal Damage")) continue;
+                        if (pair == null || pair.Intent == null || !IsDamageIntent(pair.Intent.name)) continue;
                         total += pair.ModifiedNumber;
                         hits++;
                     }
                 }
             }
             catch (Exception ex) { Log("[enemy] incoming: " + ex.Message); }
-            return hits == 0 ? Loc.T("status.no_attacks", "No attacks coming")
-                : hits == 1 ? Loc.T("status.incoming_one", "Incoming: {0} damage from {1} attack", total, hits)
-                : Loc.T("status.incoming", "Incoming: {0} damage from {1} attacks", total, hits);
+            return total;
+        }
+
+        // An attack, or a Megashroom's explosion: its number is damage to the player.
+        internal static bool IsDamageIntent(string intentName)
+        {
+            string name = Humanize(intentName ?? "");
+            return name.Contains("Deal Damage") || name.IndexOf("Explode", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         // The game words what an enemy will do as "DEALS 3 DAMAGE", "SHIELDS SELF". After "Will"
@@ -1160,7 +1260,7 @@ namespace ShroomAccess
         // Speech is confined to the game's own window: nothing is spoken while the player is elsewhere.
         // holdWhileWalking: for lines the player did not ask for. A screen reader cuts speech on every
         // key repeat, so a line spoken while W is held is never heard; it waits for the key to come up.
-        internal static void Announce(string text, bool interrupt = true, bool holdWhileWalking = false)
+        internal static void Announce(string text, bool interrupt = true, bool holdWhileWalking = false, bool repeatable = false)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             if (!interrupt && Time.realtimeSinceStartup - _campAt < 3f && text.StartsWith("Energy "))
@@ -1184,7 +1284,9 @@ namespace ShroomAccess
                 // Things that happen together (a fight starting, cards dealt, enemies appearing)
                 // arrive as a burst. Gather the burst and say it once, in an order that makes sense.
                 if (_batch.Count == 0) _batchAt = Time.realtimeSinceStartup;
-                if (!_batch.Contains(text)) _batch.Add(text);
+                // The same words twice are usually one thing seen twice; two enemies of one name
+                // dying together are two events (repeatable).
+                if (repeatable || !_batch.Contains(text)) _batch.Add(text);
                 Log("[queued] " + text);
                 return;
             }
@@ -1198,7 +1300,14 @@ namespace ShroomAccess
             }
             Log("[say] " + text);
             Remember(text);
-            if (Application.isFocused) Speaker.Say(text, Time.realtimeSinceStartup > _protectUntil, asked: InputBridge.JustPressed);
+            // An announcement just made is protected: the next line waits for it to finish. Only the
+            // first waits; a second key press means the player is moving on, and from then on every
+            // line cuts off the one before, so speech never trails behind the focus.
+            bool protect = Time.realtimeSinceStartup <= _protectUntil && !(_protectedLineQueued && InputBridge.JustPressed);
+            if (protect && InputBridge.JustPressed) _protectedLineQueued = true;
+            if (!protect) _protectUntil = 0f;
+            else Log("[waits] the line above waits for the announcement before it");
+            if (Application.isFocused) Speaker.Say(text, !protect, asked: InputBridge.JustPressed);
         }
 
         // ---- Arrivals, fights and camps ----
@@ -1428,6 +1537,7 @@ namespace ShroomAccess
             foreach (string l in ordered) Remember(l);
             string all = string.Join(" ", ordered);
             _protectUntil = Time.realtimeSinceStartup + 1.5f + all.Length * 0.03f;
+            _protectedLineQueued = false;
             // Each line is handed over on its own, so there is a pause between them.
             bool direct = InputBridge.MoveHeld && Speaker.HasDirect;
             foreach (string l in ordered)
@@ -1539,6 +1649,7 @@ namespace ShroomAccess
                 // A whole hand arriving is a draw; the player reads the cards themselves.
                 Announce(_pendingAdded.Count > 1 ? Loc.T("hand.drew", "Drew {0} cards.", _pendingAdded.Count) : Loc.T("hand.added", "Added to hand: {0}.", _pendingAdded[0]), interrupt: false, holdWhileWalking: true);
                 _protectUntil = Time.realtimeSinceStartup + 1.5f;
+                _protectedLineQueued = false;
             }
             _pendingAdded.Clear();
         }
@@ -1604,7 +1715,12 @@ namespace ShroomAccess
                     if (lines.Count == 0) lines.Add(whole);
                 }
                 // Appearance lines are for things in the world, not for buttons and sliders.
-                if (lines.Count > 0 && item.TryCast<IControllerFocusTarget>() != null && item.TryCast<UnityEngine.UI.Selectable>() == null) AddLooks(lines, "thing", lines[0].Split(',')[0]);
+                // Not the card-change screen and not a button label in capitals ("MAKE A SOUP"): those have no picture of their own.
+                if (lines.Count > 0 && item.TryCast<IControllerFocusTarget>() != null && item.TryCast<UnityEngine.UI.Selectable>() == null)
+                {
+                    string thing = lines[0].Split(',')[0];
+                    if (item.TryCast<ModifyCardEncounterUI>() == null && thing != thing.ToUpperInvariant()) AddLooks(lines, "thing", thing);
+                }
                 if (lines.Count == 1) lines.Add(Loc.T("detail.nothing_more", "The game shows nothing more about this"));
                 // A thing lying in the world shows a sighted player nothing but itself until it is
                 // opened, so there is nothing more to read here; say how to find out.

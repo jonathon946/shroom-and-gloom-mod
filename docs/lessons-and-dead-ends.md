@@ -155,3 +155,11 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - In target mode for cards such as Vile Oil, `S_ControllerFocus.CurrentFocus` is an `M_GameplayCardInstance` (the card's model), not the `V_GameplayCardInstance` on screen, so a describer keyed on `IV_CardInstance` falls through to the type name. Find the view whose `IModel.Pointer` matches. The legal targets and the cursor are `TargetFocusResolver._cardTargets` (a mask over the hand) and `_cardIndex`.
 - On a card-change screen, `ModifyCardEncounterUI.newGameplayCardData` was empty when Take appeared; the card drawn beside Take is the result to read.
 - An odd-looking result ("Make 2 X SPICY TOASTY" after "Make a Repressed Rage") was the game's own: check the card later in the hand before calling the mod wrong.
+
+## Hand lag and Enter on the wrong card (2026-10-14, Session 04 part 12)
+
+- **KEY FINDING — `FindObjectsOfType` costs this game 10 to 30 ms a call.** One in a per-frame path made every fight frame late. Use the game's own registries (`S_EnemyEncounterManager._currentEnemies`) or throttle; the `[perf]` log line shows the cost of each part.
+- **GOTCHA — Handing an arrow to the game (`InputBridge.Forward`) costs a frame.** In a fight that was 60 to 100 ms. Moving the game's resolver directly (`HandFocusResolver.SetFocus`) acts in the same frame.
+- **GOTCHA — After a play the game's hand still lists the played card** for a moment; check `HeldCards` before reading or stepping to a card.
+- **GOTCHA — A protected announcement must not hold back every later line.** A non-interrupting focus line is queued by the screen reader; several quick arrows then trail behind the cursor.
+- **KEY FINDING — The key and speech timeline answers "lag" questions.** `[key]` against `[action]` and `[focus]` times, by mode, found the frame-late arrows; `[say]` before each `[key] Confirm` against the focused card found the silent landings.
