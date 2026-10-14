@@ -54,6 +54,25 @@ namespace ShroomAccess
         private static bool _wasTarget;
 
         private static IntPtr _introSaidFor;
+        private static IntPtr _pausedOver;
+        private static bool _lastWasPause;
+
+        // The pause menu is one of several menus of the same kind; it lives under the pause canvas.
+        private static bool IsPauseMenu(IFocusScope scope)
+        {
+            try
+            {
+                Component c = scope != null ? scope.Cast<Il2CppSystem.Object>().TryCast<Component>() : null;
+                for (Transform t = c != null ? c.transform : null; t != null; t = t.parent)
+                    if (t.gameObject.name.Contains("Pause")) return true;
+                // Or the menu holds the Unpause button.
+                if (c != null)
+                    foreach (Selectable b in c.GetComponentsInChildren<Selectable>(false))
+                        if (b != null && b.gameObject.name.StartsWith("Unpause")) return true;
+            }
+            catch { }
+            return false;
+        }
         private static float _screenDue;
         private static IntPtr _screenScope;
 
@@ -78,9 +97,22 @@ namespace ShroomAccess
 
                 IFocusScope scope = focus.Scope;
                 IntPtr ptr = scope != null ? scope.Pointer : IntPtr.Zero;
+                string scopeKind = scope != null ? scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name : "";
+                // Back from the pause menu to the screen that was paused: it is as it was, so only
+                // the focused thing is read again, not the screen's introduction.
+                if (ptr != _lastScope && ptr != IntPtr.Zero && ptr == _pausedOver && _lastWasPause)
+                {
+                    Log("[screen] back from pause; not read again");
+                    _lastScope = ptr;
+                    _lastWasPause = false;
+                    _pausedOver = IntPtr.Zero;
+                }
                 if (ptr != _lastScope)
                 {
+                    bool pause = IsPauseMenu(scope);
+                    if (pause) _pausedOver = _lastScope;
                     _lastScope = ptr;
+                    _lastWasPause = pause;
                     if (scope == null) _introSaidFor = IntPtr.Zero;
                     // A screen that is up for a blink on the way to another is not read: wait and see
                     // that it is still there. Choosing a character flips back through its first page.
@@ -93,7 +125,7 @@ namespace ShroomAccess
                         FocusProbe.SuppressFocusUntil = Mathf.Max(FocusProbe.SuppressFocusUntil, _screenDue + 0.05f);
                     }
                     if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "BowlShopEncounterUI" && Time.realtimeSinceStartup - _shopSaidAt > 30f && (_shopSaidAt = Time.realtimeSinceStartup) > 0f)
-                        FocusProbe.Announce("A shop. Cards are paid for with food. Enter on a card to choose it, then Enter on a food card in your hand and Enter on the bowl to pay.", interrupt: false);
+                        FocusProbe.Announce("A shop. Cards are paid for with food. Enter on a card to buy it. The Player buffer tells how much food you have.", interrupt: false);
                     if (scope != null && scope.Cast<Il2CppSystem.Object>().GetIl2CppType().Name == "S_MapReminder")
                     {
                         System.Collections.Generic.List<string> map = MapReader.Lines();
@@ -127,7 +159,8 @@ namespace ShroomAccess
                     if (scope != null && ptr == _screenScope)
                     {
                         // The soup pot's heading and value are said by Soup, with the soups.
-                        if (!Rewards.Handles(scope) && Soup.Screen(focus) == null) AnnounceScreen(scope);
+                        // A card-change screen's words are given by its own introduction.
+                        if (!Rewards.Handles(scope) && Soup.Screen(focus) == null && !scopeKind.Contains("ModifyCard")) AnnounceScreen(scope);
                         Rewards.ScreenOpened(scope);
                     }
                 }
@@ -150,9 +183,14 @@ namespace ShroomAccess
                             _liveText = ScreenText(scope, 6);
                             _lastScreenText = string.Join(" | ", ScreenText(scope, 4));
                             _lastScreenAt = Time.realtimeSinceStartup;
-                            FocusProbe.Announce(string.Join(" ", words) + ". Left and Right choose one of your cards, Enter picks it. Up is No thanks.", interrupt: false);
+                            // What it does first, then what to do. The game's heading ("SELECT A CARD
+                            // TO GAIN:") is the instruction, given in plain words instead.
+                            var effect = words.Where(w => !w.TrimEnd().EndsWith(":")).ToList();
+                            FocusProbe.Announce((effect.Count > 0 ? string.Join(". ", effect).TrimEnd('.') + ". " : "")
+                                + "Choose one of your cards with Left and Right; Enter picks it.", interrupt: false);
                         }
-                        FocusProbe.Reannounce();
+                        // The cards are there to be found with the arrows; none is read now.
+                        FocusProbe.Silent(2f);
                     }
                 }
 
@@ -208,7 +246,9 @@ namespace ShroomAccess
                     {
                         var fresh = new List<string>();
                         foreach (string part in now) if (!_liveText.Contains(part)) fresh.Add(part);
-                        if (fresh.Count > 0 && fresh.Count <= 3 && Soup.Screen(focus) == null)
+                        // While food is being paid the shopkeeper's lines only repeat the price.
+                        bool paying = _shopState == "FeedMePlease";
+                        if (fresh.Count > 0 && fresh.Count <= 3 && Soup.Screen(focus) == null && !paying)
                         {
                             Log("[screen-change] " + string.Join(" | ", fresh));
                             foreach (string part in fresh) if (!SaidLately(part)) FocusProbe.Announce(part, interrupt: false);
@@ -218,7 +258,7 @@ namespace ShroomAccess
                     _liveText = now;
                 }
 
-                WatchShop(scope);
+                WatchShop(scope, focus);
 
                 // A card aimed at the player waits for a second Enter with nothing focused; say so, or
                 // the first Enter seems to do nothing. Some (food) can be turned on other targets too.
@@ -238,11 +278,13 @@ namespace ShroomAccess
 
         // The shop shows payment as food piling up in the bowl. Say how much is paid, and that the
         // card was bought: the shopkeeper's line alone does not make it clear.
-        private static void WatchShop(IFocusScope scope)
+        private static void WatchShop(IFocusScope scope, S_ControllerFocus focus)
         {
             BowlShopEncounterUI shop = scope != null ? scope.Cast<Il2CppSystem.Object>().TryCast<BowlShopEncounterUI>() : null;
             if (shop == null) { _shopState = ""; _shopCheckAt = 0f; return; }
             string state = shop._currentShopState.ToString();
+            // Enter on the bowl: the focus goes back to the food before the payment shows.
+            if (state == "FeedMePlease" && focus.Mode == FocusMode.Target && InputBridge.Key(InputActionId.Confirm)) FocusProbe.Silent(2f);
             int paid = shop._paidCostAmountInBowl;
             if (state == "FeedMePlease" && _shopState != "FeedMePlease")
             {
@@ -252,13 +294,17 @@ namespace ShroomAccess
                 string digits = card != null ? new string(FocusProbe.ShopPrice(card).Where(char.IsDigit).ToArray()) : "";
                 _shopPrice = int.TryParse(digits, out int price) ? price : 0;
                 _shopPaid = paid;
-                // The focus passes over the Nevermind button on its way to the food.
-                FocusProbe.Flicker(0.5f);
+                // One line; the food hand, the bowl and Nevermind are found with the arrows.
+                FocusProbe.Announce((_shopPrice > 0 ? "Costs " + _shopPrice + " food." : "Pay with food.")
+                    + " Enter on a food card, then Enter on the bowl. Up is Nevermind.", interrupt: false);
+                FocusProbe.Silent(2.5f);
             }
             else if (state == "FeedMePlease" && paid > _shopPaid)
             {
                 FocusProbe.Announce("Paid " + paid + (_shopPrice > 0 ? " of " + _shopPrice : "") + ".", interrupt: false);
                 _shopPaid = paid;
+                // Back in the food hand for the next one, without reading it again.
+                FocusProbe.Silent(2f);
             }
             // Paying is over, by purchase or by Nevermind. A bought card leaves the shop's offer once
             // it has flown to the deck; look a moment later.
@@ -351,8 +397,22 @@ namespace ShroomAccess
             _lastScreenText = joined;
             _lastScreenAt = Time.realtimeSinceStartup;
             Log("[screen] " + string.Join(" | ", parts));
+            // On the character page the character's own words come before the labels.
+            if (Walk.Scene.Contains("CharacterSelection")) parts = parts.OrderBy(p => p.StartsWith("\"") ? 0 : 1).ToList();
             // Each piece is its own utterance, so the screen reader pauses between them.
-            foreach (string part in parts) if (!SaidLately(part)) FocusProbe.Announce(part, interrupt: false);
+            foreach (string part in parts) if (!SaidLately(part)) FocusProbe.Announce(Reword(part), interrupt: false);
+        }
+
+        // The character page labels pictures: a fan of starting cards, a foresight card, and a row
+        // of icons for something the game has not built yet. Said in words that stand on their own.
+        private static string Reword(string part)
+        {
+            if (!Walk.Scene.Contains("CharacterSelection")) return part;
+            var m = System.Text.RegularExpressions.Regex.Match(part, @"^DISCOVERED:\s*(\d+)\s*/\s*(\d+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (m.Success) return "Starting cards found so far: " + m.Groups[1].Value + " of " + m.Groups[2].Value + ".";
+            if (part.Equals("Foresight", StringComparison.OrdinalIgnoreCase)) return "Up from Let's go is the starting foresight, and Left from it the starting cards.";
+            if (part.Equals("COMING SOON", StringComparison.OrdinalIgnoreCase)) return "A row of icons marked Coming soon: not in the game yet.";
+            return part;
         }
     }
 }

@@ -22,6 +22,18 @@ namespace ShroomAccess
         // Focus lines in the next moment are passing through, whatever key was pressed; the one it
         // settles on is read afterwards.
         internal static void Flicker(float seconds) => _flickerUntil = Mathf.Max(_flickerUntil, Time.realtimeSinceStartup + seconds);
+
+        // Something the player did (a play, a payment) or the game did (a deal) moves the focus.
+        // Where it lands is noted but not read: the player knows where they are and moves on
+        // with an arrow when ready. Any arrow pressed after this starts is read as usual.
+        private static float _silentUntil, _silentFrom;
+        internal static void Silent(float seconds)
+        {
+            float now = Time.realtimeSinceStartup;
+            if (now >= _silentUntil) _silentFrom = now;
+            _silentUntil = Mathf.Max(_silentUntil, now + seconds);
+        }
+        private static bool SilentNow => Time.realtimeSinceStartup < _silentUntil && InputBridge.LastArrowAt < _silentFrom;
         private static float _playedAt = -100f;
         private static string _playedName = "";
 
@@ -142,6 +154,7 @@ namespace ShroomAccess
                 Il2CppSystem.Object current = focus.CurrentFocus;
                 IntPtr ptr = current != null ? current.Pointer : IntPtr.Zero;
                 if (!InputBridge.NavigatorOwnsArrows && !InputBridge.CtrlHeld && ptr != IntPtr.Zero && !Navigator.InStatusRow
+                    && Time.realtimeSinceStartup - Navigator.PileArrowAt > 0.05f
                     && (InputBridge.Key(InputActionId.FocusPrev) || InputBridge.Key(InputActionId.FocusNext) || InputBridge.Key(InputActionId.FocusUp) || InputBridge.Key(InputActionId.FocusDown)))
                 {
                     _arrowAt = Time.realtimeSinceStartup;
@@ -151,7 +164,7 @@ namespace ShroomAccess
                 // Applying a card change makes the game's focus skip across three things in a second.
                 if (mode == FocusMode.Target && TypeName(focus.Scope).Contains("ModifyCard") && InputBridge.Key(InputActionId.Confirm))
                     _flickerUntil = Time.realtimeSinceStartup + 1.6f;
-                if (_arrowAt > 0f && Time.realtimeSinceStartup - _arrowAt > 0.25f)
+                if (_arrowAt > 0f && Time.realtimeSinceStartup - _arrowAt > 0.12f)
                 {
                     if (ptr == _arrowFrom && LiveValue(current) == _arrowValue && Time.realtimeSinceStartup >= SuppressFocusUntil)
                     {
@@ -201,7 +214,7 @@ namespace ShroomAccess
                 if (zone != _lastZone)
                 {
                     _lastZone = zone;
-                    if (zone == "food") spoken = "Your food, " + Count(HeldCount(focus), "card") + ". Enter on one, then Enter on the bowl, pays one food. " + line;
+                    if (zone == "food") spoken = "Your food, " + Count(HeldCount(focus), "card") + ". " + line;
                     else if (zone == "shop") spoken = "For sale. " + line;
                     else if (zone == "hand" && TypeName(focus.Scope).Contains("ModifyCard")) spoken = "Choose a card to change, " + Count(HeldCount(focus), "card") + ". " + line;
                     else if (zone == "hand" && TypeName(focus.Scope).Contains("AdditiveUnlock")) spoken = "Your food for the pot, " + Count(HeldCount(focus), "card") + ". " + line;
@@ -244,9 +257,11 @@ namespace ShroomAccess
                     && (HeldCount(focus) == 0 || Hud.EnemyTurnNow))
                 {
                     if (_suppressedLogged != ptr) { _suppressedLogged = ptr; Log("[quiet] " + spoken); }
-                    // In the enemy turn, try again each frame: the card it settles on is read when
-                    // the player's turn begins.
-                    if (Hud.EnemyTurnNow) _lastFocus = IntPtr.Zero;
+                    return;
+                }
+                if (SilentNow)
+                {
+                    if (_suppressedLogged != ptr) { _suppressedLogged = ptr; Log("[silent] " + spoken); }
                     return;
                 }
                 if (zone == "hand" && focus.Scope == null && !InputBridge.ArrowJustPressed && Time.realtimeSinceStartup - _playedAt < 2.5f
@@ -486,7 +501,7 @@ namespace ShroomAccess
             {
                 string price = FirstText(bowl, "COST");
                 detail = "bowl " + price;
-                return Clean("The bowl. Enter puts this food in to pay" + (price.Length > 0 ? ". " + price.Replace(":", "") + " food still to pay" : ""));
+                return Clean("The bowl. Enter pays with this food" + (price.Length > 0 ? ". " + price.Replace(":", "") + " food still to pay" : ""));
             }
 
             SpellReceiverRoom plot = obj.TryCast<SpellReceiverRoom>();
@@ -531,7 +546,8 @@ namespace ShroomAccess
                     parts.Add(t.text.Trim());
                 }
                 detail = "modify " + string.Join(" / ", parts);
-                return Clean(string.Join(" ", parts) + ". Enter applies it to the card you chose. Backspace goes back");
+                // What it does was said when the screen opened; here only what Enter will do.
+                return "Enter applies it to the card you chose; Backspace goes back";
             }
 
             V_Enemy enemy = obj.TryCast<V_Enemy>();
@@ -1101,8 +1117,8 @@ namespace ShroomAccess
             _summaryDue = Time.realtimeSinceStartup + 0.5f;
             _campAt = Time.realtimeSinceStartup;
             _afterFight = false;
-            // The hand is dealt one card at a time from here; "Drew N cards" and the card follow it.
-            SuppressFocusUntil = Mathf.Max(SuppressFocusUntil, Time.realtimeSinceStartup + 2f);
+            // The hand is dealt one card at a time from here; "Drew N cards" follows it.
+            Silent(2.5f);
         }
 
         internal static void CombatStarted()
@@ -1111,7 +1127,7 @@ namespace ShroomAccess
             _combatStartAt = Time.realtimeSinceStartup;
             _combatLinePending = true;
             _summaryDue = 0f;
-            SuppressFocusUntil = Time.realtimeSinceStartup + CombatOpening;
+            Silent(CombatOpening);
             // Lines gathered a moment ago that the opening line replaces.
             _batch.RemoveAll(l => l.StartsWith("Nearby:") || l.StartsWith("Energy ") || l.StartsWith("New turn") || l.StartsWith("Your turn"));
         }
@@ -1132,7 +1148,7 @@ namespace ShroomAccess
         internal static string Group(IEnumerable<string> things) => Group(things, ", ");
 
         // In a summary the things are separated by full stops: the walking voice runs commas together.
-        internal static string Group(IEnumerable<string> things, string separator)
+        internal static string Group(IEnumerable<string> things, string separator, bool countOne = false)
         {
             var names = new List<string>();
             var counts = new Dictionary<string, int>();
@@ -1145,7 +1161,7 @@ namespace ShroomAccess
             }
             var parts = new List<string>();
             foreach (string name in names)
-                parts.Add(counts[name] == 1 ? name : counts[name] + " " + (name.EndsWith("s") ? name : name.EndsWith("x") || name.EndsWith("ch") ? name + "es" : name + "s"));
+                parts.Add(counts[name] == 1 ? (countOne ? "1 " + name : name) : counts[name] + " " + (name.EndsWith("s") ? name : name.EndsWith("x") || name.EndsWith("ch") ? name + "es" : name + "s"));
             return string.Join(separator, parts);
         }
 
@@ -1172,9 +1188,12 @@ namespace ShroomAccess
                     string name = FirstSentence(Describe(t, out _));
                     if (t.Cast<Il2CppSystem.Object>().TryCast<V_Enemy>() != null) enemies.Add(name); else others.Add(name);
                 }
+                // Every name with its count ("2 Terrys, 1 Touchy"); the walking voice runs commas
+                // together, so it gets full stops between them.
+                string sep = InputBridge.MoveHeld && Speaker.HasDirect ? ". " : ", ";
                 Announce("Combat started."
-                    + (enemies.Count > 0 ? " Enemies: " + Group(enemies) + "." : "")
-                    + (others.Count > 0 ? " Also here: " + Group(others) + "." : ""), interrupt: false);
+                    + (enemies.Count > 0 ? " Enemies: " + Group(enemies, sep, countOne: true) + "." : "")
+                    + (others.Count > 0 ? " Also here: " + Group(others, sep) + "." : ""), interrupt: false);
             }
 
             if (_summaryDue > 0f && now >= _summaryDue && !_inFight)
@@ -1341,8 +1360,8 @@ namespace ShroomAccess
             {
                 _pendingAdded.AddRange(added);
                 _pendingAddedAt = Time.realtimeSinceStartup + 1.1f;
-                // The game's focus hops along the cards as they are dealt; do not read each hop.
-                if (_pendingAdded.Count > 1) SuppressFocusUntil = _pendingAddedAt + 0.2f;
+                // The game's focus hops along the cards as they are dealt; none of it is read.
+                if (_pendingAdded.Count > 1) Silent(_pendingAddedAt + 0.6f - Time.realtimeSinceStartup);
             }
             if (_pendingAdded.Count == 0 || Time.realtimeSinceStartup < _pendingAddedAt) return;
 
@@ -1352,13 +1371,19 @@ namespace ShroomAccess
             IV_CardInstance focused = cur != null ? cur.TryCast<IV_CardInstance>() : null;
             string focusedName = focused != null && focused.IModel != null ? focused.IModel.CardName : null;
             if (_pendingAdded.Count == 1) _pendingAdded.RemoveAll(n => n == focusedName);
+            // Inside a screen (a shop, the soup pot, a card change) the hand is swapped for the
+            // screen's own cards; the screen's line says what they are for.
+            if (_pendingAdded.Count > 0 && focus.Scope != null)
+            {
+                Log("[hand] " + string.Join(", ", _pendingAdded));
+                _pendingAdded.Clear();
+            }
             if (_pendingAdded.Count > 0)
             {
                 // A whole hand arriving is a draw; the player reads the cards themselves.
                 Announce(_pendingAdded.Count > 1 ? "Drew " + _pendingAdded.Count + " cards." : "Added to hand: " + _pendingAdded[0] + ".", interrupt: false, holdWhileWalking: true);
                 _protectUntil = Time.realtimeSinceStartup + 1.5f;
             }
-            if (_pendingAdded.Count > 1) Reannounce();
             _pendingAdded.Clear();
         }
 

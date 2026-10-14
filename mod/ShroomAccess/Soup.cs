@@ -77,12 +77,14 @@ namespace ShroomAccess
                     var parts = soups.Select(s => s.Name + ", " + Needs(s) + (s.Open ? ", open" : ", locked"));
                     FocusProbe.Announce("Make a soup. Soup value " + value + ". " + string.Join(". ", parts)
                         + ". Put food in the pot to raise the value: Enter on a food card, then Enter on the pot. Up goes to the soups; Enter on an open one takes it.", interrupt: false);
+                    FocusProbe.Silent(2f);
                     return;
                 }
                 if (value != _value)
                 {
                     string newly = string.Join(", ", soups.Where(s => s.Open && !_open.Split(new[] { ", " }, StringSplitOptions.None).Contains(s.Name)).Select(s => s.Name));
                     FocusProbe.Announce("Soup value " + value + "." + (newly.Length > 0 ? " Now open: " + newly + "." : ""), interrupt: false);
+                    FocusProbe.Silent(2f);
                     _value = value;
                     _open = open;
                 }

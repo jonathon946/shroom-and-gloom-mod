@@ -1,4 +1,4 @@
-# Shroom and Gloom accessibility - listening checklist for the Session 04 build (2026-10-14).
+# Shroom and Gloom accessibility - listening checklist for the Session 04 part 2 build (2026-10-14).
 #
 # There is nothing to run here except starting the game. Either start it from Steam as usual,
 # or run this file, which starts it for you:
@@ -20,32 +20,28 @@
 #   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player, Surroundings, Messages, Help
 #   Ctrl+Page Up / Down     walking voice faster / slower
 #
-# CHECKLIST (Session 04 build) - report by letter, as far as you get.
-# Your save is as you left it after your last death: the title offers New Run.
+# CHECKLIST (Session 04 part 2 build, 2026-10-14) - report by letter, as far as you get.
+# Your save is as you left it: in the shop in tunnel 2, after buying Assassinate.
 #
-#   A. The two voices (still open from last time). Do they ever talk over each other? Does the
-#      walking voice wait too long after NVDA, or start too soon?
+#   A. Quieter: after playing a card, after a draw, at a new turn and after paying, nothing should
+#      be read about the card you land on. The next arrow reads as usual. Too quiet anywhere?
 #
-#   B. A new turn in a fight should sound like: "Enemy turn", what happened to you, then
-#      "Your turn. Energy 3 of 3. Drew 4 cards. Your hand, 4 cards." and the card. Better?
+#   B. Fights open with "Enemies: 2 Terrys, 1 Touchy"; while walking, the names should now be
+#      clearly separate.
 #
-#   C. Hitting an enemy that has armour: "3 blocked by armour". In their turn: "gains 3 armour".
+#   C. The edge sound should come sooner. In the backpack's pile it should play only at the ends.
 #
-#   D. Persistent cards (Toasty Kebab, soups) should say "Played", not "can't be played".
-#      Unplayable cards (Sponge Shield, Pet Rat) say they work by themselves. If any card says
-#      "was not played", press Ctrl+B there.
+#   D. Ctrl+Up at the end of the map (or any buffer): the edge sound, no line repeated.
 #
-#   E. A shop: no "Combat started" while paying; "Paid 1 of 3" for each food; "Bought ..." at the end.
+#   E. A practice dummy, grimoire or geode: "placed", what it does, "Choose one of your cards",
+#      and then quiet until you move.
 #
-#   F. A soup pot (build one from a Soup Pot card at a camp): the opening line lists the soups with
-#      what each needs and whether it is open; "Soup value 1. Now open: ..." as food goes in;
-#      Up goes to the open soups; "Made ... It is in your hand." Is it clear how it works?
+#   F. Shop: Ctrl+Right to the Player buffer starts with "Food to spend". Choosing a card says
+#      "Costs 2 food..." once. Paying: "Paid 1 of 2" only. Pause and unpause mid-purchase: no
+#      "Combat started" or "Combat over", and the shop's opening is not read again.
 #
-#   G. Feeding: Enter on a food card says "Aimed at you"; Left and Right reach hungry creatures,
-#      and you are said as "You".
-#
-#   H. Sounds (the arrival notes and the low edge note) should keep working after a death and back
-#      at the title. Last time they stopped.
+#   G. The Paper Boy page: the quote, how many starting cards are found, where the foresight is,
+#      and the Coming soon row, in words.
 #
 #   Keep marking with Ctrl+B anywhere something seems wrong or silent.
 #

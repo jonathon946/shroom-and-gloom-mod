@@ -2,6 +2,18 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-14 — Session 04, part 2 — ninth playthrough: less speech
+
+- After a play, a draw, a new turn, a fight opening, a payment or a screen's introduction, the card the focus lands on is not read; the next arrow is.
+- "Played X" is no longer said.
+- Fights open with counted names ("2 Terrys, 1 Touchy"), separated by full stops in the walking voice.
+- The edge sound comes sooner (0.12 seconds); the backpack pile no longer plays it on every step.
+- Buffers and the map: at either end the edge sound plays and nothing is re-read.
+- Card-change screens (practice dummy): the effect, then "Choose one of your cards"; no heading, card list or draw count.
+- Shop: "Food to spend" in the Player buffer; choosing a card is one line ("Costs 2 food..."); paying is "Paid 1 of 2" and back to the hand silently; no false combat when pausing mid-purchase.
+- Returning from the pause menu does not re-read the screen's introduction.
+- The character page's labels are said in words (starting cards found, where the foresight is, a Coming soon row).
+
 ## 2026-10-14 — Session 04 — eighth playthrough: false failures, the shop, the soup pot
 
 - Recovered and committed the cut-off session's work from 2026-10-12 (map forks and boss, walking voice hand-over, quieter card plays, camp card placement, threat outcome).

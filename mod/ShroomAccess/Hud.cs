@@ -90,7 +90,7 @@ namespace ShroomAccess
                 // Energy refills some seconds into a new turn, so it is announced when it actually
                 // rises, not when the turn count changes.
                 int turns = p.ExploreTurnCount + p.CombatTurnCount;
-                if (_turns != int.MinValue && turns > _turns && !_combat) Say("New turn.");
+                if (_turns != int.MinValue && turns > _turns && !_combat) { Say("New turn."); FocusProbe.Silent(4f); }
                 _turns = turns;
 
                 int energy = p.Energy;
@@ -102,7 +102,7 @@ namespace ShroomAccess
                     if (_combat && _phase == "EnemyTurn")
                     {
                         _energyHeld = line;
-                        FocusProbe.SuppressFocusUntil = Mathf.Max(FocusProbe.SuppressFocusUntil, Time.realtimeSinceStartup + 2.5f);
+                        FocusProbe.Silent(3f);
                     }
                     else Say(line);
                 }
@@ -158,6 +158,7 @@ namespace ShroomAccess
         }
 
         private static float _shopUntil = -100f;
+        private static bool _shopUnderMenu;
 
         // The enemies are acting; the player's hand is being cleared and the next one dealt.
         internal static bool EnemyTurnNow => _combat && _phase == "EnemyTurn";
@@ -168,7 +169,10 @@ namespace ShroomAccess
         {
             try
             {
-                if (focus.Scope != null && FocusProbe.TypeName(focus.Scope).EndsWith("BowlShopEncounterUI")) _shopUntil = Time.realtimeSinceStartup + 2f;
+                string scope = focus.Scope != null ? FocusProbe.TypeName(focus.Scope) : "";
+                // The pause menu over a shop is still the shop.
+                if (!scope.EndsWith("MenuFocusScope")) _shopUnderMenu = scope.EndsWith("BowlShopEncounterUI");
+                if (scope.EndsWith("BowlShopEncounterUI") || (scope.EndsWith("MenuFocusScope") && _shopUnderMenu)) _shopUntil = Time.realtimeSinceStartup + 2f;
                 if (Time.realtimeSinceStartup < _shopUntil) return false;
                 Il2CppBackend.M_Player p = focus.PlayerModel;
                 return p != null ? p.IsInCombat : focus.InCombat;

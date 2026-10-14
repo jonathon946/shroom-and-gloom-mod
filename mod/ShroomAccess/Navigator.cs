@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using Il2Cpp;
 using Il2CppControllerNav;
@@ -189,6 +190,8 @@ namespace ShroomAccess
             Il2CppBackend.M_Player p = focus.PlayerModel;
             if (p == null) { items.Add("No character yet"); return items; }
             PlayerHealthData h = p.HealthData;
+            string funds = ShopFunds(focus);
+            if (funds.Length > 0) items.Add(funds);
             items.Add("Health " + h.CurrentHealth + " of " + h.MaxHealth + (h.Armour > 0 ? ", armour " + h.Armour : ""));
             items.Add("Energy " + p.Energy + " of " + p.EnergySoftCap);
             items.Add("Gunk " + p.StoredGunk);
@@ -197,6 +200,25 @@ namespace ShroomAccess
             if (threat.Length > 0) items.Add(threat);
             if (hand != null) items.Add("Draw pile " + hand.CardsInDeckCount + ", discard pile " + hand.CardsInDiscardCount);
             return items;
+        }
+
+        // In a shop, the food the player has to spend, as the shop's own counter shows it.
+        internal static string ShopFunds(S_ControllerFocus focus)
+        {
+            try
+            {
+                Component shop = focus.Scope != null ? focus.Scope.Cast<Il2CppSystem.Object>().TryCast<BowlShopEncounterUI>() : null;
+                if (shop == null) return "";
+                foreach (Il2CppTMPro.TMP_Text t in shop.GetComponentsInChildren<Il2CppTMPro.TMP_Text>(false))
+                {
+                    string text = t != null ? FocusProbe.Clean(t.text) : "";
+                    // "Funds: 2 FOOD", once the colour tags are out.
+                    if (text.StartsWith("Funds", StringComparison.OrdinalIgnoreCase))
+                        return "Food to spend: " + new string(text.Where(char.IsDigit).ToArray());
+                }
+            }
+            catch { }
+            return "";
         }
 
         private static void EnterStatus(S_ControllerFocus focus)
@@ -256,6 +278,10 @@ namespace ShroomAccess
         // The card the player is reading in a pile, when that is not the game's own focus.
         internal static Il2CppSystem.Object VirtualSubject;
 
+        // When an arrow last stepped the pile here: the game's own focus did not move, and that
+        // is not the end of a row.
+        internal static float PileArrowAt = -100f;
+
         private static void PileStep(S_ControllerFocus focus, int dx)
         {
             Component root = focus.Scope.Cast<Il2CppSystem.Object>().TryCast<Component>();
@@ -275,7 +301,8 @@ namespace ShroomAccess
             }
 
             int next = _pileIndex + dx;
-            if (next < 0 || next >= count) { Cue.Play(Cue.Edge); return; }
+            PileArrowAt = Time.realtimeSinceStartup;
+            if (next < 0 || next >= count) { Edge(focus); return; }
             _pileIndex = next;
             Il2CppSystem.Object card = cards[next].Cast<Il2CppSystem.Object>();
             FocusChanged();
@@ -330,7 +357,9 @@ namespace ShroomAccess
             if (dx != 0)
             {
                 int next = Mathf.Clamp(_buffer + dx, 0, BufferNames.Length - 1);
-                if (next != _buffer) { _buffer = next; _line = 0; }
+                // At the first or last buffer: the edge sound, and nothing is read again.
+                if (next == _buffer) { Edge(focus); return; }
+                _buffer = next; _line = 0;
                 List<string> opened = Lines(focus);
                 FocusProbe.Speak(BufferNames[_buffer] + ". " + (opened.Count > 0 ? opened[Mathf.Clamp(_line, 0, opened.Count - 1)] : "Nothing here."));
                 return;
@@ -339,7 +368,10 @@ namespace ShroomAccess
             List<string> lines = Lines(focus);
             if (lines.Count == 0) { FocusProbe.Speak("Nothing here."); return; }
             // Ctrl+Up is "next line"; dy is -1 for Up.
-            _line = Mathf.Clamp(_line - dy, 0, lines.Count - 1);
+            int wanted = Mathf.Min(_line, lines.Count - 1) - dy;
+            // Past either end: the edge sound only, so the last line does not sound like a wrap.
+            if (wanted < 0 || wanted >= lines.Count) { Edge(focus); return; }
+            _line = wanted;
             FocusProbe.Speak(lines[_line]);
         }
 

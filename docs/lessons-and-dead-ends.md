@@ -133,3 +133,12 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **GOTCHA — The game pauses when its window loses focus.** A replay that stops responding mid-test may only mean the maintainer switched windows. Unpause with Confirm on Unpause.
 - **LESSON — A long session should leave a running note in its session file.** The cut-off session's intent had to be read back from its diff.
 
+## From the ninth playthrough [Session 04, part 2]
+
+- **LESSON — After the player acts, say the result, not where the focus lands** (maintainer, 2026-10-14). Reading the card the focus falls back to after a play, a payment or a draw was the main source of noise. The landing is noted silently; the next arrow is read as usual.
+- **LESSON — Do not announce what the game's own sound already says** ("Played Stab").
+- **GOTCHA — The walking voice (OneCore) does not pause on commas.** List items for it are separated by full stops.
+- **GOTCHA — Every menu in this game, including the pause menu and the character pages, is a `MenuFocusScope`.** Recognise the pause menu by its place under the pause canvas or its Unpause button.
+- **GOTCHA — TextMeshPro text carries colour tags with digits** (`<#FFAF61FF>`). Clean the text before taking numbers out of it.
+- **GOTCHA — Edge detection by "did the focus move" needs a short wait** (the game moves it within about 0.06 seconds); a quarter second felt laggy. And a row the mod steps itself (the backpack pile) never moves the game's focus, so it must be excluded.
+
