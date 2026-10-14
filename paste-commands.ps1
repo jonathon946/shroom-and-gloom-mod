@@ -1,4 +1,4 @@
-# Shroom and Gloom accessibility - listening checklist for the Session 04 part 2 build (2026-10-14).
+# Shroom and Gloom accessibility - listening checklist for the Session 04 roadmap build (2026-10-14).
 #
 # There is nothing to run here except starting the game. Either start it from Steam as usual,
 # or run this file, which starts it for you:
@@ -20,28 +20,24 @@
 #   Ctrl+Right, Ctrl+Left   switch buffer: Item, Player, Surroundings, Messages, Help
 #   Ctrl+Page Up / Down     walking voice faster / slower
 #
-# CHECKLIST (Session 04 part 2 build, 2026-10-14) - report by letter, as far as you get.
-# Your save is as you left it: in the shop in tunnel 2, after buying Assassinate.
+# CHECKLIST (Session 04, roadmap build, 2026-10-14) - report by letter, as far as you get.
+# Your save has no run in progress: the title offers New Run.
 #
-#   A. Quieter: after playing a card, after a draw, at a new turn and after paying, nothing should
-#      be read about the card you land on. The next arrow reads as usual. Too quiet anywhere?
+#   A. Deck view: in a run, Tab opens your draw pile with a list of its cards; Tab again the
+#      discard pile; Tab again closes it. Up from the cards reaches buttons for the full deck and
+#      the combat, explore and foresight decks. Is the list useful? Too long?
 #
-#   B. Fights open with "Enemies: 2 Terrys, 1 Touchy"; while walking, the names should now be
-#      clearly separate.
+#   B. Cards say their small label after the name: "Flash, Battery 10/10". A card refused for a
+#      dead battery should say so.
 #
-#   C. The edge sound should come sooner. In the backpack's pile it should play only at the ends.
+#   C. In a fight, the Status row (Up from Enemies) has "Incoming: N damage from M attacks".
 #
-#   D. Ctrl+Up at the end of the map (or any buffer): the edge sound, no line repeated.
+#   D. Enemy hits are named: "Brain Baby hits you for 6". Thorns: "Thorns on Lekker Limbs: lost 1".
 #
-#   E. A practice dummy, grimoire or geode: "placed", what it does, "Choose one of your cards",
-#      and then quiet until you move.
+#   E. At a camp, Up to Nearby, then the Encroaching Gloom and creatures: the threat they add and
+#      what they do ("If you rest, take 5 damage").
 #
-#   F. Shop: Ctrl+Right to the Player buffer starts with "Food to spend". Choosing a card says
-#      "Costs 2 food..." once. Paying: "Paid 1 of 2" only. Pause and unpause mid-purchase: no
-#      "Combat started" or "Combat over", and the shop's opening is not read again.
-#
-#   G. The Paper Boy page: the quote, how many starting cards are found, where the foresight is,
-#      and the Coming soon row, in words.
+#   F. Timing: "Your turn" with the draw sound; lines generally close to what happens.
 #
 #   Keep marking with Ctrl+B anywhere something seems wrong or silent.
 #
