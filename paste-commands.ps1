@@ -70,7 +70,7 @@
 #
 #   O. (new 2026-10-16, after Leanne's report of lag creeping in late in a run) Play a long run,
 #      past a camp or two and some reward screens. Do arrows in a camp and on reward choices stay
-#      as quick near the end as at the start? Built and tested here; not yet released.
+#      as quick near the end as at the start? Released as v0.1.2 on 2026-10-16 (Control N updates).
 #
 #   For Leanne, if lag still creeps in: before quitting the game, note the time; then send the
 #   newest file from the game folder's MelonLoader\Logs folder (or MelonLoader\Latest.log while
