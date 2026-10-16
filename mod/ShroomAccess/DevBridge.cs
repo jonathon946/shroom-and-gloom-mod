@@ -101,6 +101,28 @@ namespace ShroomAccess
                             Player().CMDAddCardByName(arg);
                             Log("[dev] addcard " + arg);
                             break;
+                        case "count":
+                        {
+                            // count: how many objects are loaded, and the names that repeat most. For
+                            // finding what piles up the longer the game runs.
+                            var byName = new System.Collections.Generic.Dictionary<string, int>();
+                            GameObject[] all = UnityEngine.Object.FindObjectsOfType<GameObject>(true);
+                            int active = 0;
+                            foreach (GameObject g in all)
+                            {
+                                if (g == null) continue;
+                                if (g.activeInHierarchy) active++;
+                                string n = g.name ?? "";
+                                byName.TryGetValue(n, out int c);
+                                byName[n] = c + 1;
+                            }
+                            var top = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, int>>(byName);
+                            top.Sort((a, b) => b.Value.CompareTo(a.Value));
+                            var sbCount = new StringBuilder();
+                            for (int i = 0; i < top.Count && i < 15; i++) sbCount.Append(top[i].Key + " " + top[i].Value + "; ");
+                            Log("[dev] count " + all.Length + " objects, " + active + " active; most: " + sbCount);
+                            break;
+                        }
                         case "polled":
                             Log("[dev] polled " + string.Join(" ", InputBridge.Polled));
                             InputBridge.Polled.Clear();

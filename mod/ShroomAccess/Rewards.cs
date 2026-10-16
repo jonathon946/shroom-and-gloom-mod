@@ -26,6 +26,9 @@ namespace ShroomAccess
         private static CardUnlockPack _pack;
         private static float _packLookAt;
         private static IntPtr _packSaidFor;
+        // The pack follows the page of numbers; it is looked for only in the scene that page opened
+        // in. A search of the whole scene is slower the more the run has loaded.
+        private static string _roundUpScene;
 
         private static string PackPrompt => Loc.T("rewards.pack", "A sealed pack of cards. Enter opens it.");
 
@@ -46,6 +49,7 @@ namespace ShroomAccess
                 float now = Time.realtimeSinceStartup;
                 if (kind == "RoundUpUIManager")
                 {
+                    _roundUpScene = Walk.Scene;
                     _statsRoot = scope.Cast<Il2CppSystem.Object>().TryCast<Component>();
                     // Coming back to the page from a reward is not news; the buffer still holds it.
                     if (_statsRoot != null && _statsRoot.Pointer != _statsSaidFor) { _statsDue = now + 1.5f; _statsTries = 0; }
@@ -71,7 +75,7 @@ namespace ShroomAccess
                 if (_statsDue > 0f && now >= _statsDue) ReadStats(now);
                 if (_cardsDue > 0f && now >= _cardsDue) ReadCards(now);
 
-                // No pack is opened in a fight, and the search is slow enough to be felt there.
+                if (_roundUpScene != Walk.Scene) { _pack = null; return; }
                 if (now >= _packLookAt && !focus.InCombat)
                 {
                     _packLookAt = now + 0.5f;

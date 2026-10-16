@@ -163,3 +163,9 @@ Findings from inspection, from running the mod in the game, and lessons carried 
 - **GOTCHA — After a play the game's hand still lists the played card** for a moment; check `HeldCards` before reading or stepping to a card.
 - **GOTCHA — A protected announcement must not hold back every later line.** A non-interrupting focus line is queued by the screen reader; several quick arrows then trail behind the cursor.
 - **KEY FINDING — The key and speech timeline answers "lag" questions.** `[key]` against `[action]` and `[focus]` times, by mode, found the frame-late arrows; `[say]` before each `[key] Confirm` against the focused card found the silent landings.
+
+## Lag that grows through a run (2026-10-16, Session 05)
+
+- **KEY FINDING — A scene search on a timer gets slower the longer the game runs, even with the object count flat.** On the card-reward screen, `FindObjectsOfType<ProximityFocusGate>` four times a second plus `FindObjectOfType<CardUnlockPack>` twice a second went from about 1 ms to 9–16 ms a frame in five minutes (log of 2026-10-14 17:09), while a later count found 15,535 objects throughout. Why the cost grows is not known. Do not search the scene on a timer: use the game's registries (`ControllerFocusRegistry._targets` and `GatesFor` for focus gates) or search only on the screen that needs it.
+- **TOOL — `dev:count`** logs the number of loaded objects and the names that repeat most; the `[perf]` line now ends with the game's and the mod's heap and collection counts.
+

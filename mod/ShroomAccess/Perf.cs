@@ -56,9 +56,31 @@ namespace ShroomAccess
                 .Select(p => p.Key + " " + (p.Value / _frames).ToString("0.0") + "/" + _worst[p.Key].ToString("0"));
             Log("[perf] " + _frames + " frames, frame avg " + (_gameFrameTotal / _frames).ToString("0") + " ms worst " + _gameFrameWorst.ToString("0")
                 + "; mod avg " + (_frameModTotal / _frames).ToString("0.0") + " worst " + _frameModWorst.ToString("0")
-                + "; parts avg/worst ms: " + string.Join(", ", parts));
+                + "; parts avg/worst ms: " + string.Join(", ", parts) + Memory());
             _total.Clear(); _worst.Clear();
             _frames = 0; _frameModTotal = 0; _frameModWorst = 0; _gameFrameTotal = 0; _gameFrameWorst = 0;
+        }
+
+        // Memory, so a long session's log shows whether something is piling up: the game's own
+        // heap (used of reserved), the mod's heap, and how many collections each has run.
+        private static bool _memoryFailed;
+
+        private static string Memory()
+        {
+            if (_memoryFailed) return "";
+            try
+            {
+                const double mb = 1024.0 * 1024.0;
+                return "; memory MB: game " + (UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong() / mb).ToString("0")
+                    + " of " + (UnityEngine.Profiling.Profiler.GetMonoHeapSizeLong() / mb).ToString("0")
+                    + " gc " + Il2CppSystem.GC.GetCollectionCount(0)
+                    + ", mod " + (GC.GetTotalMemory(false) / mb).ToString("0") + " gc " + GC.CollectionCount(0);
+            }
+            catch (Exception ex)
+            {
+                _memoryFailed = true;
+                return "; memory unavailable: " + ex.GetType().Name;
+            }
         }
     }
 }

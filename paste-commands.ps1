@@ -1,4 +1,4 @@
-# Shroom and Gloom accessibility - listening checklist for the Session 04 roadmap build (2026-10-14).
+# Shroom and Gloom accessibility - listening checklist for the Session 04 roadmap build (2026-10-14; item O added 2026-10-16, Session 05).
 #
 # There is nothing to run here except starting the game. Either start it from Steam as usual,
 # or run this file, which starts it for you:
@@ -67,6 +67,15 @@
 #
 #   N. Is the game smoother in fights? The mod's own work per frame dropped from about 22 to 2
 #      milliseconds there.
+#
+#   O. (new 2026-10-16, after Leanne's report of lag creeping in late in a run) Play a long run,
+#      past a camp or two and some reward screens. Do arrows in a camp and on reward choices stay
+#      as quick near the end as at the start? Built and tested here; not yet released.
+#
+#   For Leanne, if lag still creeps in: before quitting the game, note the time; then send the
+#   newest file from the game folder's MelonLoader\Logs folder (or MelonLoader\Latest.log while
+#   the game is still closed and not yet restarted). Every 30 seconds it records the mod's and the
+#   game's frame times and memory, which shows whether anything still piles up.
 #
 #   Keep marking with Ctrl+B anywhere something seems wrong or silent.
 #

@@ -2,6 +2,11 @@
 
 # Changelog — Shroom and Gloom accessibility
 
+## 2026-10-16 — Session 05 — lag that grew through a run
+
+- Camps, reward choices and other screens outside fights no longer get slower the longer you play. The mod searched the whole game world four times a second for things to mark as seen, and for the end-of-run card pack; that search grew slower over time. It now reads the game's own list of focus targets, and looks for the pack only after the end-of-run page has opened.
+- The log records memory every 30 seconds beside the frame times, so a long session's log shows whether anything else piles up.
+
 ## 2026-10-14 — Session 04, part 12 — the hand keeps up
 
 - Left and Right in the hand act at once, skip a card that has just been played, and stop at the ends with the edge sound instead of wrapping round.
